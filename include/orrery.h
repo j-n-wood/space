@@ -1,22 +1,19 @@
 #pragma once
 
-#include "raylib.h"
+#include "system.h"
 
 typedef struct 
 {
     Vector2 center;
     float scale;
 
-    int numPlanets;
-    float* planetDistances;
-    float* planetSizes;
-    Color* planetColors;
-    float* planetVelocities;
-
+    System* system;
 } Orrery;
 
 Orrery* createOrrery(Vector2 center, float scale);
 
-void renderOrrery(Orrery* orrery, float time);
+void setSystem(Orrery* orrery, System* system);
+
+void renderOrrery(Orrery* orrery);
 
 void destroyOrrery(Orrery* orrery);

@@ -27,7 +27,14 @@ int main ()
 	// Load a texture from the resources directory
 	Texture wabbit = LoadTexture("wabbit_alpha.png");
 
+	System* system = createSystem();
+
 	Orrery* orrery = createOrrery((Vector2){640, 400}, 1.f);
+	setSystem(orrery, system);
+
+	bool advanceTime = false;
+	float worldTime = 0.f;
+	float lastTime = GetTime();
 	
 	// game loop
 	while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
@@ -44,7 +51,7 @@ int main ()
 		// draw our texture to the screen
 		DrawTexture(wabbit, 400, 200, WHITE);
 
-		renderOrrery(orrery, GetTime());
+		renderOrrery(orrery);
 		
 		// end the frame and get ready for the next one  (display frame, poll input, etc...)
 		EndDrawing();
@@ -55,6 +62,20 @@ int main ()
 			orrery->scale += mouseWheel.y * 0.1f;
 			if (orrery->scale < 0.1f) orrery->scale = 0.1f;
 		}
+
+		if (IsKeyPressed(KEY_SPACE))
+		{
+			advanceTime = !advanceTime;
+		}
+
+		float currentTime = GetTime();
+		float deltaTime = currentTime - lastTime;
+		lastTime = currentTime;
+		if (advanceTime)
+		{						
+			worldTime += deltaTime;
+			updateSystem(system, worldTime);
+		}
 	}
 
 	// cleanup
@@ -62,6 +83,7 @@ int main ()
 	UnloadTexture(wabbit);
 
 	destroyOrrery(orrery);
+	destroySystem(system);
 
 	// destroy the window and cleanup the OpenGL context
 	CloseWindow();
