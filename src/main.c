@@ -6,11 +6,14 @@ Use this as a starting point or replace it with your code.
 by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
 
 */
+#include <stdlib.h>
 
 #include "raylib.h"
 
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 
+#include "loaders/loader.h"
+#include "loaders/load_system.h"
 #include "orrery.h"
 
 int main ()
@@ -27,7 +30,20 @@ int main ()
 	// Load a texture from the resources directory
 	Texture wabbit = LoadTexture("wabbit_alpha.png");
 
-	System* system = createSystem(true);
+	Loader* loader = createLoader("initial.db");
+
+	if (loader == NULL)
+	{
+		TraceLog(LOG_ERROR, "Failed to create loader");
+		goto cleanup;
+	}
+
+	System* system = createSystem(false);
+	if (!loadSystem(loader, 1, system))
+	{
+		TraceLog(LOG_ERROR, "Failed to load system");
+		goto cleanup;		
+	}	
 
 	Orrery* orrery = createOrrery((Vector2){640, 400}, 1.f);
 	setSystem(orrery, system);
@@ -79,11 +95,13 @@ int main ()
 	}
 
 	// cleanup
+	cleanup:
 	// unload our texture so it can be cleaned up
 	UnloadTexture(wabbit);
 
 	destroyOrrery(orrery);
 	destroySystem(system);
+	destroyLoader(loader);
 
 	// destroy the window and cleanup the OpenGL context
 	CloseWindow();

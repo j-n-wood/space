@@ -69,6 +69,7 @@ System* createSystem(const bool asSolSystem)
 
 void destroySystem(System* system)
 {
+    if (system == NULL) return;
     free(system->planetDistances);
     free(system->planetSizes);
     free(system->planetColors);

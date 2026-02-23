@@ -230,7 +230,7 @@ if (downloadRaylib) then
             libdirs {"../bin/%{cfg.buildcfg}"}
 
         filter "system:linux"
-            links {"pthread", "m", "dl", "rt"}
+            links {"pthread", "m", "dl", "rt", "sqlite3"}
 
         filter {"system:linux", "options:wayland=off"}
             links {"X11"}

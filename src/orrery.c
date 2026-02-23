@@ -13,7 +13,8 @@ Orrery* createOrrery(Vector2 center, float scale)
 }
 
 void destroyOrrery(Orrery* orrery)
-{    
+{
+    if (orrery == NULL) return;
     free(orrery);
 }
 
