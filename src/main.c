@@ -27,7 +27,7 @@ int main ()
 	// Load a texture from the resources directory
 	Texture wabbit = LoadTexture("wabbit_alpha.png");
 
-	System* system = createSystem();
+	System* system = createSystem(true);
 
 	Orrery* orrery = createOrrery((Vector2){640, 400}, 1.f);
 	setSystem(orrery, system);

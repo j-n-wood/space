@@ -13,6 +13,6 @@ typedef struct
 
 } System;
 
-System* createSystem();
+System* createSystem(const bool asSolSystem);
 void destroySystem(System* system);
 void updateSystem(System* system, float time);

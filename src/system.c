@@ -1,10 +1,21 @@
 #include "system.h"
+#include <stdlib.h>
+#include <math.h>
 
-System* createSystem()
+System* createSystem(const bool asSolSystem)
 {
     System* system = malloc(sizeof(System));
 
     system->numPlanets = 8;    
+
+    if (!asSolSystem) {
+        system->planetColors = NULL;
+        system->planetDistances = NULL;
+        system->planetSizes = NULL;
+        system->planetVelocities = NULL;
+        system->planetPositions = NULL;
+        return system;
+    } 
 
     system->planetDistances = malloc(sizeof(float) * system->numPlanets);
     system->planetDistances[0] = 80;
