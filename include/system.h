@@ -10,6 +10,7 @@ typedef struct
     Color* planetColors;
     float* planetVelocities;
     Vector2* planetPositions;
+    int* planetPrimaryIndexes; // array index of primary body for each planet, -1 if primary (e.g. star)
 
 } System;
 

@@ -304,3 +304,23 @@ if (downloadRaylib) then
             compileas "Objective-C"
 
         filter{}
+    project "tests"
+        kind "ConsoleApp"
+        location "build_files/"
+        targetdir "../bin/%{cfg.buildcfg}"
+
+        language "C"
+        cdialect "C17"
+
+        files {"../tests/test_db.c", "../tests/unity.c", "../src/loaders/loader.c", "../src/loaders/load_system.c", "../src/orrery.c", "../src/system.c"}
+        
+        includedirs { "../tests", "../src", "../include", raylib_dir .. "/src" }
+
+        links {"raylib"}
+
+        platform_defines()
+
+        filter "system:linux"
+            links {"pthread", "m", "dl", "rt", "sqlite3"}
+
+        filter {}

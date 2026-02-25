@@ -19,31 +19,68 @@ Color ColorFromHexStr(const char *hex) {
     return (Color){ (unsigned char)r, (unsigned char)g, (unsigned char)b, (unsigned char)a };
 }
 
-int countChildBodies(Loader* loader, int primary_id) {
+int queryInt(Loader* loader, const char* sql, int param) {
     sqlite3_stmt *stmt;
-    const char *sql = "SELECT COUNT(*) FROM bodies WHERE primary_id = ?";
     if (sqlite3_prepare_v2(loader->db, sql, -1, &stmt, 0) != SQLITE_OK) {
-        TraceLog(LOG_ERROR, "Failed to prepare count query: %s", sqlite3_errmsg(loader->db));
-        return 0;
+        TraceLog(LOG_ERROR, "Failed to prepare query: %s", sqlite3_errmsg(loader->db));
+        return -1;
     }
 
-    sqlite3_bind_int(stmt, 1, primary_id);
+    sqlite3_bind_int(stmt, 1, param);
 
-    int count = 0;
+    int result = -1;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
-        count = sqlite3_column_int(stmt, 0);
+        result = sqlite3_column_int(stmt, 0);
     } else {
-        TraceLog(LOG_ERROR, "Failed to execute count query: %s", sqlite3_errmsg(loader->db));
+        TraceLog(LOG_ERROR, "Failed to execute query: %s", sqlite3_errmsg(loader->db));
     }
 
     sqlite3_finalize(stmt);
-    return count;
+    return result;
+}
+
+int countChildBodies(Loader* loader, int primary_id) {
+    return queryInt(loader, "SELECT COUNT(*) FROM bodies WHERE primary_id = ?", primary_id);    
+}
+
+int countSystemBodies(Loader* loader, int system_id) {
+    return queryInt(loader, "SELECT COUNT(*) FROM bodies WHERE system_id = ?", system_id);    
+}
+
+int getPrimaryBodyId(Loader* loader, int system_id) {
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT id FROM bodies WHERE system_id = ? AND primary_id = 0 LIMIT 1";
+    if (sqlite3_prepare_v2(loader->db, sql, -1, &stmt, 0) != SQLITE_OK) {
+        TraceLog(LOG_ERROR, "Failed to prepare primary body query: %s", sqlite3_errmsg(loader->db));
+        return -1;
+    }
+
+    sqlite3_bind_int(stmt, 1, system_id);
+
+    int primary_id = -1;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        primary_id = sqlite3_column_int(stmt, 0);
+    } else {
+        TraceLog(LOG_ERROR, "Failed to execute primary body query: %s", sqlite3_errmsg(loader->db));
+    }
+
+    sqlite3_finalize(stmt);
+    return primary_id;
 }
 
 bool loadSystem(Loader* loader, int system_id, System* system) {
 
+    // get ID of primary body (e.g. the star) for this system
+    int primary_id = getPrimaryBodyId(loader, system_id);
+    if (primary_id == -1) {
+        TraceLog(LOG_ERROR, "Failed to get primary body ID for system %d", system_id);
+        return false;
+    }
+
     // get number of planets in system
-    system->numPlanets = countChildBodies(loader, 1); // assuming primary_id = 1 (convention)
+    system->numPlanets = countSystemBodies(loader, system_id);
+
+    TraceLog(LOG_INFO, "Loading system %d with primary body ID %d and %d bodies", system_id, primary_id, system->numPlanets);
 
     // allocate arrays based on number of planets
     system->planetDistances = malloc(sizeof(float) * system->numPlanets);
@@ -51,9 +88,10 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
     system->planetColors = malloc(sizeof(Color) * system->numPlanets);
     system->planetVelocities = malloc(sizeof(float) * system->numPlanets);
     system->planetPositions = malloc(sizeof(Vector2) * system->numPlanets);
+    system->planetPrimaryIndexes = malloc(sizeof(int) * system->numPlanets);
 
     if (!system->planetDistances || !system->planetSizes || !system->planetColors || 
-        !system->planetVelocities || !system->planetPositions) {
+        !system->planetVelocities || !system->planetPositions || !system->planetPrimaryIndexes) {
         TraceLog(LOG_ERROR, "Failed to allocate system arrays");
         return false;
     }
@@ -65,8 +103,16 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
         TraceLog(LOG_ERROR, "Failed to fetch data: %s", sqlite3_errmsg(loader->db));
         return false;
     }
-
+    
     sqlite3_bind_int(stmt, 1, system_id);
+
+    // need to map primary_id to array index for that ID - build a simple lookup table first
+    int* idToIndex = malloc(sizeof(int) * system->numPlanets * 2); // pairs of (id, index)    
+    if (!idToIndex) {
+        TraceLog(LOG_ERROR, "Failed to allocate ID to index mapping");
+        sqlite3_finalize(stmt);
+        return false;
+    }
 
     int index = 0;
     while (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -93,9 +139,35 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
         system->planetColors[index] = color;
         system->planetVelocities[index] = orbital_velocity;
         system->planetPositions[index] = (Vector2){ orbital_radius * cosf(initial_angle), orbital_radius * sinf(initial_angle) };
+        system->planetPrimaryIndexes[index] = primary_id;
+
+        // add to ID to index mapping
+        idToIndex[index * 2] = id;
+        idToIndex[index * 2 + 1] = index;
 
         index++;
     }
+
+    // Now convert primary_id in planetPrimaryIndexes to array index using our lookup table
+    for (int i = 0; i < system->numPlanets; i++) {
+        int primary_id = system->planetPrimaryIndexes[i];
+        if (primary_id == 0) {
+            system->planetPrimaryIndexes[i] = -1; // mark primary bodies with -1
+        } else {
+            // lookup primary_id in idToIndex mapping
+            int primary_index = -1;
+            for (int j = 0; j < system->numPlanets; j++) {
+                if (idToIndex[j * 2] == primary_id) {
+                    primary_index = idToIndex[j * 2 + 1];
+                    break;
+                }
+            }
+            system->planetPrimaryIndexes[i] = primary_index;
+        }
+    }
+    // now system->planetPrimaryIndexes contains the array index of the primary body for each planet, or -1 if it's a primary body itself
+
+    free(idToIndex);
 
     sqlite3_finalize(stmt);
 

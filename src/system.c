@@ -14,6 +14,7 @@ System* createSystem(const bool asSolSystem)
         system->planetSizes = NULL;
         system->planetVelocities = NULL;
         system->planetPositions = NULL;
+        system->planetPrimaryIndexes = NULL;
         return system;
     } 
 
@@ -64,6 +65,12 @@ System* createSystem(const bool asSolSystem)
         system->planetPositions[i] = (Vector2){system->planetDistances[i], 0};
     }
 
+    system->planetPrimaryIndexes = malloc(sizeof(int) * system->numPlanets);
+    for (int i = 0; i < system->numPlanets; i++)
+    {
+        system->planetPrimaryIndexes[i] = -1; // all planets orbit the star in this simple sol system
+    }
+
     return system;
 }
 
@@ -73,6 +80,9 @@ void destroySystem(System* system)
     free(system->planetDistances);
     free(system->planetSizes);
     free(system->planetColors);
+    free(system->planetVelocities);
+    free(system->planetPositions);
+    free(system->planetPrimaryIndexes);
     free(system);
 }
 
