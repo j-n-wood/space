@@ -1,7 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <math.h>
 
 #include "loaders/load_system.h"
+
+// loader to read system data from SQLite database and populate System struct
 
 Color ColorFromHexStr(const char *hex) {
     // Skip '#' if the string happens to include it
@@ -117,7 +121,7 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
     int index = 0;
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         int id = sqlite3_column_int(stmt, 0);
-        int primary_id = sqlite3_column_int(stmt, 1);
+        int local_primary_id = sqlite3_column_int(stmt, 1);
         const char* name = (const char*)sqlite3_column_text(stmt, 2);
         int type = sqlite3_column_int(stmt, 3);
         float orbital_radius = sqlite3_column_double(stmt, 4);
@@ -139,7 +143,7 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
         system->planetColors[index] = color;
         system->planetVelocities[index] = orbital_velocity;
         system->planetPositions[index] = (Vector2){ orbital_radius * cosf(initial_angle), orbital_radius * sinf(initial_angle) };
-        system->planetPrimaryIndexes[index] = primary_id;
+        system->planetPrimaryIndexes[index] = local_primary_id;
 
         // add to ID to index mapping
         idToIndex[index * 2] = id;
@@ -150,14 +154,14 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
 
     // Now convert primary_id in planetPrimaryIndexes to array index using our lookup table
     for (int i = 0; i < system->numPlanets; i++) {
-        int primary_id = system->planetPrimaryIndexes[i];
-        if (primary_id == 0) {
+        int local_primary_id = system->planetPrimaryIndexes[i];
+        if (local_primary_id == 0) {
             system->planetPrimaryIndexes[i] = -1; // mark primary bodies with -1
         } else {
-            // lookup primary_id in idToIndex mapping
+            // lookup local_primary_id in idToIndex mapping
             int primary_index = -1;
             for (int j = 0; j < system->numPlanets; j++) {
-                if (idToIndex[j * 2] == primary_id) {
+                if (idToIndex[j * 2] == local_primary_id) {
                     primary_index = idToIndex[j * 2 + 1];
                     break;
                 }

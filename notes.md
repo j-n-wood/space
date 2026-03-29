@@ -1,5 +1,14 @@
 # Notes
 
+## Build
+
+* CD into the build folder
+* run `./premake5 gmake`
+* CD back to the root
+* run `make`
+
+## General
+
 https://github.com/raylib-extras/raylib-quickstart
 
 https://kitemetric.com/blogs/animating-the-solar-system-with-c-and-raylib-a-comprehensive-guide
@@ -7,6 +16,8 @@ https://kitemetric.com/blogs/animating-the-solar-system-with-c-and-raylib-a-comp
 https://www.raylib.com/cheatsheet/cheatsheet.html
 
 sudo apt install libsqlite3-dev
+
+## Debug
 
 valgrind --leak-check=full --show-leak-kinds=all ./bin/Debug/space
 

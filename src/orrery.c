@@ -34,11 +34,18 @@ void renderOrrery(Orrery* orrery)
     }
 
     for (int i = 0; i < system->numPlanets; i++)
-    {        
+    {
+        int parent_id = system->planetPrimaryIndexes[i];
+        Vector2 parent_pos = { 0.0f, 0.0f };
+        if (parent_id > 0)
+        {
+            parent_pos.x = system->planetPositions[parent_id].x;
+            parent_pos.y = system->planetPositions[parent_id].y;
+        }
         Vector2 planet_pos = {
-            orrery->center.x + system->planetPositions[i].x * orrery->scale,
-            orrery->center.y + system->planetPositions[i].y * orrery->scale
-        };        
+            orrery->center.x + ( parent_pos.x + system->planetPositions[i].x ) * orrery->scale,
+            orrery->center.y + ( parent_pos.y + system->planetPositions[i].y ) * orrery->scale
+        };
         DrawCircleV(planet_pos, system->planetSizes[i] * orrery->scale, system->planetColors[i]);
     }
 }

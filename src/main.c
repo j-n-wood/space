@@ -14,7 +14,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 #include "loaders/loader.h"
 #include "loaders/load_system.h"
-#include "orrery.h"
+#include "pages/system_view.h"
 
 int main ()
 {
@@ -48,6 +48,8 @@ int main ()
 	Orrery* orrery = createOrrery((Vector2){640, 400}, 1.f);
 	setSystem(orrery, system);
 
+	SystemView* systemView = createSystemView(orrery);
+
 	bool advanceTime = false;
 	float worldTime = 0.f;
 	float lastTime = GetTime();
@@ -61,13 +63,8 @@ int main ()
 		// Setup the back buffer for drawing (clear color and depth buffers)
 		ClearBackground(BLACK);
 
-		// draw some text using the default font
-		DrawText("Hello Raylib", 200,200,20,WHITE);
-
-		// draw our texture to the screen
-		DrawTexture(wabbit, 400, 200, WHITE);
-
-		renderOrrery(orrery);
+		// renderOrrery(orrery);
+		RenderSystemView(systemView);
 		
 		// end the frame and get ready for the next one  (display frame, poll input, etc...)
 		EndDrawing();
@@ -99,6 +96,7 @@ int main ()
 	// unload our texture so it can be cleaned up
 	UnloadTexture(wabbit);
 
+	destroySystemView(systemView);
 	destroyOrrery(orrery);
 	destroySystem(system);
 	destroyLoader(loader);
