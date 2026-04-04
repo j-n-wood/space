@@ -30,6 +30,8 @@ int main ()
 	// Load a texture from the resources directory
 	Texture wabbit = LoadTexture("wabbit_alpha.png");
 
+	Texture ui = LoadTexture("ui.png");
+
 	Loader* loader = createLoader("initial.db");
 
 	if (loader == NULL)
@@ -53,6 +55,8 @@ int main ()
 	bool advanceTime = false;
 	float worldTime = 0.f;
 	float lastTime = GetTime();
+
+	Rectangle mainScreenDest = {0, 0, (float)ui.width, (float)ui.height};
 	
 	// game loop
 	while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
@@ -62,6 +66,10 @@ int main ()
 
 		// Setup the back buffer for drawing (clear color and depth buffers)
 		ClearBackground(BLACK);
+
+		// 272x168+24+32
+		Rectangle source = {24, 32, 272, 168};		
+		DrawTexturePro(ui, source, mainScreenDest, (Vector2){0, 0}, 0.f, WHITE);
 
 		// renderOrrery(orrery);
 		RenderSystemView(systemView);
@@ -95,6 +103,7 @@ int main ()
 	cleanup:
 	// unload our texture so it can be cleaned up
 	UnloadTexture(wabbit);
+	UnloadTexture(ui);
 
 	destroySystemView(systemView);
 	destroyOrrery(orrery);
