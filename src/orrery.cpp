@@ -14,8 +14,7 @@ OrreryPtr createOrrery(Vector2 center, float scale)
 
 void Orrery::render()
 {
-    if (this->  system == NULL) return;
-    System* system = this->system;
+    if (this->  system == NULL) return;    
     // batch lines
     for (int i = 0; i < system->numPlanets; i++)
     {

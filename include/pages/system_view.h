@@ -7,7 +7,7 @@ class SystemView : public BasePage {
     Orrery* orrery;
 public:
     SystemView() : orrery(nullptr) {}
-    SystemView(Orrery* orrery) : orrery(orrery) {}
+    SystemView(Orrery* o) : orrery(o) {}
     ~SystemView() {}
 
     void input() override;

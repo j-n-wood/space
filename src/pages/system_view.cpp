@@ -8,6 +8,8 @@ extern "C" {
 }
 
 void SystemView::render() {    
+    BasePage::render();
+
     DrawText("System View", 10, 10, 20, WHITE);
     orrery->render();
 }

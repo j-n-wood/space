@@ -39,6 +39,8 @@ int main ()
 		return 1;
 	}
 
+	BasePage::mainScreenDest = {0, 0, (float)uiWidth, (float)uiHeight};
+
 	{
 		// Load a texture from the resources directory
 		TextureAsset wabbit{"wabbit_alpha.png"};
@@ -56,7 +58,8 @@ int main ()
 
 		std::unique_ptr<SystemView> systemView = std::make_unique<SystemView>(orrery.get());
 
-		Rectangle mainScreenDest = {0, 0, (float)uiWidth, (float)uiHeight};
+		Rectangle source = {304, 32, 272, 168};
+		systemView->setBackground(&ui, source);		
 
 		bool advanceTime = false;
 		float worldTime = 0.f;
@@ -75,8 +78,7 @@ int main ()
 
 			// 272x168+24+32
 			// Rectangle source = {24, 32, 272, 168};		
-			Rectangle source = {304, 32, 272, 168};
-			DrawTexturePro(ui, source, mainScreenDest, (Vector2){0, 0}, 0.f, WHITE);
+			// Rectangle source = {304, 32, 272, 168};			
 
 			currentPage->render();		
 			

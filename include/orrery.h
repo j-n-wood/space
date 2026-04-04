@@ -17,8 +17,8 @@ public:
 
     void render();
 
-    Orrery& setSystem(System* system) {
-        this->system = system;
+    Orrery& setSystem(System* s) {
+        this->system = s;
         return *this;
     }
 };
