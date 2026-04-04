@@ -5,7 +5,7 @@
 
 Loader* createLoader(const char* dbPath)
 {
-    Loader* loader = calloc(1, sizeof(Loader));
+    Loader* loader = (Loader*)calloc(1, sizeof(Loader));
     if (sqlite3_open(dbPath, &loader->db) != SQLITE_OK)
     {
         // sqlite3_open cleans up on failure, don't close

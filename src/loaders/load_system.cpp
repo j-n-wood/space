@@ -87,12 +87,12 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
     TraceLog(LOG_INFO, "Loading system %d with primary body ID %d and %d bodies", system_id, primary_id, system->numPlanets);
 
     // allocate arrays based on number of planets
-    system->planetDistances = malloc(sizeof(float) * system->numPlanets);
-    system->planetSizes = malloc(sizeof(float) * system->numPlanets);
-    system->planetColors = malloc(sizeof(Color) * system->numPlanets);
-    system->planetVelocities = malloc(sizeof(float) * system->numPlanets);
-    system->planetPositions = malloc(sizeof(Vector2) * system->numPlanets);
-    system->planetPrimaryIndexes = malloc(sizeof(int) * system->numPlanets);
+    system->planetDistances = (float*)malloc(sizeof(float) * system->numPlanets);
+    system->planetSizes = (float*)malloc(sizeof(float) * system->numPlanets);
+    system->planetColors = (Color*)malloc(sizeof(Color) * system->numPlanets);
+    system->planetVelocities = (float*)malloc(sizeof(float) * system->numPlanets);
+    system->planetPositions = (Vector2*)malloc(sizeof(Vector2) * system->numPlanets);
+    system->planetPrimaryIndexes = (int*)malloc(sizeof(int) * system->numPlanets);
 
     if (!system->planetDistances || !system->planetSizes || !system->planetColors || 
         !system->planetVelocities || !system->planetPositions || !system->planetPrimaryIndexes) {
@@ -111,7 +111,7 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
     sqlite3_bind_int(stmt, 1, system_id);
 
     // need to map primary_id to array index for that ID - build a simple lookup table first
-    int* idToIndex = malloc(sizeof(int) * system->numPlanets * 2); // pairs of (id, index)    
+    int* idToIndex = (int*)malloc(sizeof(int) * system->numPlanets * 2); // pairs of (id, index)    
     if (!idToIndex) {
         TraceLog(LOG_ERROR, "Failed to allocate ID to index mapping");
         sqlite3_finalize(stmt);

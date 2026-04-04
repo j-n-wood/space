@@ -1,10 +1,10 @@
 #include "system.h"
-#include <stdlib.h>
-#include <math.h>
+#include <cstdlib>
+#include <cmath>
 
-System* createSystem(const bool asSolSystem)
+SystemPtr createSystem(const bool asSolSystem)
 {
-    System* system = malloc(sizeof(System));
+    System* system = (System*)malloc(sizeof(System));
 
     system->numPlanets = 8;    
 
@@ -15,10 +15,10 @@ System* createSystem(const bool asSolSystem)
         system->planetVelocities = NULL;
         system->planetPositions = NULL;
         system->planetPrimaryIndexes = NULL;
-        return system;
+        return SystemPtr(system);
     } 
 
-    system->planetDistances = malloc(sizeof(float) * system->numPlanets);
+    system->planetDistances = (float*)malloc(sizeof(float) * system->numPlanets);
     system->planetDistances[0] = 80;
     system->planetDistances[1] = 110;
     system->planetDistances[2] = 165;
@@ -29,7 +29,7 @@ System* createSystem(const bool asSolSystem)
     system->planetDistances[7] = 565;
 
     // planet_velocities = {1.607f, 1.174f, 1.f, 0.802f, 0.434f, 0.323f, 0.228f, 0.182f};
-    system->planetSizes = malloc(sizeof(float) * system->numPlanets);
+    system->planetSizes = (float*)malloc(sizeof(float) * system->numPlanets);
     system->planetSizes[0] = 10;
     system->planetSizes[1] = 15;
     system->planetSizes[2] = 20;
@@ -39,7 +39,7 @@ System* createSystem(const bool asSolSystem)
     system->planetSizes[6] = 25;
     system->planetSizes[7] = 22;
 
-    system->planetColors = malloc(sizeof(Color) * system->numPlanets);
+    system->planetColors = (Color*) malloc(sizeof(Color) * system->numPlanets);
     system->planetColors[0] = (Color){115, 147, 179, 255}; // Mercury
     system->planetColors[1] = (Color){255, 87, 51, 255}; // Venus
     system->planetColors[2] = (Color){30, 144, 255, 255}; // Earth
@@ -49,7 +49,7 @@ System* createSystem(const bool asSolSystem)
     system->planetColors[6] = (Color){72, 209, 204, 255};  // Uranus
     system->planetColors[7] = (Color){65, 105, 225, 255};   // Neptune
 
-    system->planetVelocities = malloc(sizeof(float) * system->numPlanets);
+    system->planetVelocities = (float*)malloc(sizeof(float) * system->numPlanets);
     system->planetVelocities[0] = 1.607f;
     system->planetVelocities[1] = 1.174f;
     system->planetVelocities[2] = 1.f;
@@ -59,41 +59,39 @@ System* createSystem(const bool asSolSystem)
     system->planetVelocities[6] = 0.228f;
     system->planetVelocities[7] = 0.182f;
 
-    system->planetPositions = malloc(sizeof(Vector2) * system->numPlanets);
+    system->planetPositions = (Vector2*)malloc(sizeof(Vector2) * system->numPlanets);
     for (int i = 0; i < system->numPlanets; i++)
     {        
         system->planetPositions[i] = (Vector2){system->planetDistances[i], 0};
     }
 
-    system->planetPrimaryIndexes = malloc(sizeof(int) * system->numPlanets);
+    system->planetPrimaryIndexes = (int*)malloc(sizeof(int) * system->numPlanets);
     for (int i = 0; i < system->numPlanets; i++)
     {
         system->planetPrimaryIndexes[i] = -1; // all planets orbit the star in this simple sol system
     }
 
-    return system;
+    return SystemPtr(system);
 }
 
-void destroySystem(System* system)
-{
-    if (system == NULL) return;
-    free(system->planetDistances);
-    free(system->planetSizes);
-    free(system->planetColors);
-    free(system->planetVelocities);
-    free(system->planetPositions);
-    free(system->planetPrimaryIndexes);
-    free(system);
+System::~System()
+{    
+    free(this->planetDistances);
+    free(this->planetSizes);
+    free(this->planetColors);
+    free(this->planetVelocities);
+    free(this->planetPositions);
+    free(this->planetPrimaryIndexes);    
 }
 
-void updateSystem(System* system, float time)
+void System::update(float time)
 {
-for (int i = 0; i < system->numPlanets; i++)
+    for (int i = 0; i < this->numPlanets; i++)
     {        
-        float angle = time * system->planetVelocities[i];
-        system->planetPositions[i] = (Vector2){
-            system->planetDistances[i] * cosf(angle),
-            system->planetDistances[i] * sinf(angle)
+        float angle = time * this->planetVelocities[i];
+        this->planetPositions[i] = (Vector2){
+            this->planetDistances[i] * cosf(angle),
+            this->planetDistances[i] * sinf(angle)
         };
     }
 }

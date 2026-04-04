@@ -6,11 +6,12 @@ Use this as a starting point or replace it with your code.
 by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
 
 */
-#include <stdlib.h>
+#include <cstdlib>
 
-#include "raylib.h"
-
-#include "resource_dir.h"	// utility header for SearchAndSetResourceDir
+extern "C" {
+	#include "raylib.h"
+	#include "resource_dir.h"	// utility header for SearchAndSetResourceDir
+}
 
 #include "loaders/loader.h"
 #include "loaders/load_system.h"
@@ -37,20 +38,22 @@ int main ()
 	if (loader == NULL)
 	{
 		TraceLog(LOG_ERROR, "Failed to create loader");
-		goto cleanup;
+		// goto cleanup;
+		return 1;
 	}
 
-	System* system = createSystem(false);
-	if (!loadSystem(loader, 1, system))
+	SystemPtr system = createSystem(false);
+	if (!loadSystem(loader, 1, system.get()))
 	{
 		TraceLog(LOG_ERROR, "Failed to load system");
-		goto cleanup;		
+		//goto cleanup;		
+		return 2;
 	}	
 
-	Orrery* orrery = createOrrery((Vector2){640, 400}, 1.f);
-	setSystem(orrery, system);
+	OrreryPtr orrery = createOrrery((Vector2){640, 400}, 1.f);
+	orrery->setSystem(system.get());
 
-	SystemView* systemView = createSystemView(orrery);
+	std::unique_ptr<SystemView> systemView = std::make_unique<SystemView>(orrery.get());
 
 	bool advanceTime = false;
 	float worldTime = 0.f;
@@ -71,8 +74,7 @@ int main ()
 		Rectangle source = {24, 32, 272, 168};		
 		DrawTexturePro(ui, source, mainScreenDest, (Vector2){0, 0}, 0.f, WHITE);
 
-		// renderOrrery(orrery);
-		RenderSystemView(systemView);
+		systemView->render();
 		
 		// end the frame and get ready for the next one  (display frame, poll input, etc...)
 		EndDrawing();
@@ -95,7 +97,7 @@ int main ()
 		if (advanceTime)
 		{						
 			worldTime += deltaTime;
-			updateSystem(system, worldTime);
+			system->update(worldTime);
 		}
 	}
 
@@ -104,10 +106,7 @@ int main ()
 	// unload our texture so it can be cleaned up
 	UnloadTexture(wabbit);
 	UnloadTexture(ui);
-
-	destroySystemView(systemView);
-	destroyOrrery(orrery);
-	destroySystem(system);
+	
 	destroyLoader(loader);
 
 	// destroy the window and cleanup the OpenGL context

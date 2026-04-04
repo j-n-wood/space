@@ -1,9 +1,14 @@
 #pragma once
 
-#include "raylib.h"
+extern "C" {
+    #include "raylib.h"
+}
 
-typedef struct 
+#include <memory>
+
+class System
 {
+    public:
     int numPlanets;
     float* planetDistances;
     float* planetSizes;
@@ -12,8 +17,11 @@ typedef struct
     Vector2* planetPositions;
     int* planetPrimaryIndexes; // array index of primary body for each planet, -1 if primary (e.g. star)
 
-} System;
+    ~System();
 
-System* createSystem(const bool asSolSystem);
-void destroySystem(System* system);
-void updateSystem(System* system, float time);
+    void update(float time);
+};
+
+typedef std::unique_ptr<System> SystemPtr;
+
+SystemPtr createSystem(const bool asSolSystem);

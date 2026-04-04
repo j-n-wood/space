@@ -1,19 +1,28 @@
 #pragma once
 
 #include "system.h"
+#include <memory>
 
-typedef struct 
+class Orrery
 {
+public:
     Vector2 center;
     float scale;
 
     System* system;
-} Orrery;
+    
+    ~Orrery() {
+        // Note: we don't own the system pointer, so we won't free it here
+    }
 
-Orrery* createOrrery(Vector2 center, float scale);
+    void render();
 
-void setSystem(Orrery* orrery, System* system);
+    Orrery& setSystem(System* system) {
+        this->system = system;
+        return *this;
+    }
+};
 
-void renderOrrery(Orrery* orrery);
+typedef std::unique_ptr<Orrery> OrreryPtr;
 
-void destroyOrrery(Orrery* orrery);
+OrreryPtr createOrrery(Vector2 center, float scale);

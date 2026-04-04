@@ -170,6 +170,7 @@ if (downloadRaylib) then
 
     project (workspaceName)
         kind "ConsoleApp"
+        language "C++"
         location "build_files/"
         targetdir "../bin/%{cfg.buildcfg}"
 
@@ -191,12 +192,12 @@ if (downloadRaylib) then
         vpaths 
         {
             ["Header Files/*"] = { "../include/**.h",  "../include/**.hpp", "../src/**.h", "../src/**.hpp"},
-            ["Source Files/*"] = {"../src/**.c", "src/**.cpp"},
+            ["Source Files/*"] = {"../src/**.cpp"},
             ["Windows Resource Files/*"] = {"../src/**.rc", "../src/**.ico"},
             ["Game Resource Files/*"] = {"../resources/**"},
         }
         
-        files {"../src/**.c", "../src/**.cpp", "../src/**.h", "../src/**.hpp", "../include/**.h", "../include/**.hpp"}
+        files {"../src/**.cpp", "../src/**.h", "../src/**.hpp", "../include/**.h", "../include/**.hpp"}
         
         filter {"system:windows", "action:vs*"}
             files {"../src/*.rc", "../src/*.ico"}
@@ -309,10 +310,15 @@ if (downloadRaylib) then
         location "build_files/"
         targetdir "../bin/%{cfg.buildcfg}"
 
-        language "C"
-        cdialect "C17"
+        language "C++"
+        cppdialect "C++17"
 
-        files {"../tests/test_db.c", "../tests/unity.c", "../src/loaders/loader.c", "../src/loaders/load_system.c", "../src/orrery.c", "../src/system.c"}
+        files {"../tests/test_db.cpp", "../tests/unity.c", "../src/loaders/loader.cpp", "../src/loaders/load_system.cpp", "../src/orrery.cpp", "../src/system.cpp"}
+        
+        filter {"files:../tests/unity.c"}
+            compileas "C"
+        
+        filter{}
         
         includedirs { "../tests", "../src", "../include", raylib_dir .. "/src" }
 

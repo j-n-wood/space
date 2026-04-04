@@ -2,12 +2,12 @@
 
 #include "orrery.h"
 
-typedef struct {
+class SystemView {
     Orrery* orrery;
-} SystemView;
+public:
+    SystemView() : orrery(nullptr) {}
+    SystemView(Orrery* orrery) : orrery(orrery) {}
+    ~SystemView() {}
 
-SystemView* createSystemView(Orrery* orrery);
-
-void destroySystemView(SystemView* view);
-
-void RenderSystemView(SystemView* view);
+    void render();
+};
