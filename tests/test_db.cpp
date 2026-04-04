@@ -25,9 +25,9 @@ void test_DatabaseReadClose_ShouldNotCrash(void) {
     TEST_ASSERT_NOT_NULL(loader);
 
     // create a system and load from loader
-    System* system = createSystem(false);
+    SystemPtr system = createSystem(false);
     TEST_ASSERT_NOT_NULL(system);
-    TEST_ASSERT_TRUE(loadSystem(loader, 1, system));
+    TEST_ASSERT_TRUE(loadSystem(loader, 1, system.get()));
 
     // system shall have 8 planets based on our initial.db
     TEST_ASSERT_EQUAL_INT(8, system->numPlanets);
