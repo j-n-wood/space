@@ -12,28 +12,22 @@ void tearDown(void) {}
 
 void test_DatabaseClose_ShouldNotCrash(void) {
     // 1. Initialize your custom struct
-    Loader* loader = createLoader(":memory:");
-    TEST_ASSERT_NOT_NULL(loader);
-
-    // 3. The Close - If a double-free occurs, the test runner will abort here
-    destroyLoader(loader);
+    Loader loader(":memory:");
+    TEST_ASSERT_TRUE(loader.isValid());
 }
 
 void test_DatabaseReadClose_ShouldNotCrash(void) {
     // 1. Initialize your custom struct
-    Loader* loader = createLoader("./resources/initial.db");
-    TEST_ASSERT_NOT_NULL(loader);
+    Loader loader("./resources/initial.db");
+    TEST_ASSERT_TRUE(loader.isValid());
 
     // create a system and load from loader
     SystemPtr system = createSystem(false);
     TEST_ASSERT_NOT_NULL(system);
-    TEST_ASSERT_TRUE(loadSystem(loader, 1, system.get()));
+    TEST_ASSERT_TRUE(loadSystem(&loader, 1, system.get()));
 
     // system shall have 8 planets based on our initial.db
     TEST_ASSERT_EQUAL_INT(8, system->numPlanets);
-
-    // 3. The Close - If a double-free occurs, the test runner will abort here
-    destroyLoader(loader);
 }
 
 int main(void) {

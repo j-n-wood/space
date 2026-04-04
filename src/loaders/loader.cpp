@@ -3,22 +3,21 @@
 #include "loaders/loader.h"
 #include "raylib.h"
 
-Loader* createLoader(const char* dbPath)
-{
-    Loader* loader = (Loader*)calloc(1, sizeof(Loader));
-    if (sqlite3_open(dbPath, &loader->db) != SQLITE_OK)
+Loader::Loader(const char* dbPath)
+{    
+    if (sqlite3_open(dbPath, &db) != SQLITE_OK)
     {
         // sqlite3_open cleans up on failure, don't close
-        free(loader);
-        return NULL;
+        db = nullptr;
+        TraceLog(LOG_ERROR, "Failed to open database: %s", sqlite3_errmsg(db));
     }
-    return loader;
 }
 
-void destroyLoader(Loader* loader)
+Loader::~Loader()
 {
-    if (loader == NULL) return;
-    // Skip sqlite3_close - let OS cleanup handle it on process exit
-    // This avoids issues with unfinalized statements or heap corruption
-    free(loader);
+    if (db)
+    {
+        sqlite3_close(db);
+        db = nullptr;
+    }    
 }

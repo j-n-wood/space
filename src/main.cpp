@@ -32,21 +32,20 @@ int main ()
 	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
 	SearchAndSetResourceDir("resources");
 
+	Loader loader("initial.db");
+	if (!loader.isValid())
+	{
+		TraceLog(LOG_ERROR, "Failed to create loader");		
+		return 1;
+	}
+
 	{
 		// Load a texture from the resources directory
 		TextureAsset wabbit{"wabbit_alpha.png"};
-		TextureAsset ui{"ui.png"};
-
-		Loader* loader = createLoader("initial.db");
-
-		if (loader == NULL)
-		{
-			TraceLog(LOG_ERROR, "Failed to create loader");		
-			return 1;
-		}
+		TextureAsset ui{"ui.png"};		
 
 		SystemPtr system = createSystem(false);
-		if (!loadSystem(loader, 1, system.get()))
+		if (!loadSystem(&loader, 1, system.get()))
 		{
 			TraceLog(LOG_ERROR, "Failed to load system");
 			return 2;
@@ -99,9 +98,7 @@ int main ()
 				worldTime += deltaTime;
 				system->update(worldTime);
 			}
-		}	
-		
-		destroyLoader(loader);
+		}		
 	} // resource scope
 
 	// destroy the window and cleanup the OpenGL context

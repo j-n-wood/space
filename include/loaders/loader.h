@@ -4,9 +4,12 @@
 
 #include "sqlite3.h"
 
-typedef struct {
-    sqlite3* db;
-} Loader;
+class Loader {
+public:
+    explicit Loader(const char* dbPath);
+    ~Loader();
 
-Loader* createLoader(const char* dbPath);
-void destroyLoader(Loader* loader);
+    bool isValid() const { return db != nullptr; }
+
+    sqlite3* db;
+};
