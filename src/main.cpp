@@ -16,98 +16,93 @@ extern "C" {
 #include "loaders/loader.h"
 #include "loaders/load_system.h"
 #include "pages/system_view.h"
+#include "wrappers/texture.h"
 
 int main ()
 {
+	int uiWidth = 1280;
+	int uiHeight = 800;
+
 	// Tell the window to use vsync and work on high DPI displays
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
 
 	// Create the window and OpenGL context
-	InitWindow(1280, 800, "Hello Raylib");
+	InitWindow(uiWidth, uiHeight, "Hello Raylib");
 
 	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
 	SearchAndSetResourceDir("resources");
 
-	// Load a texture from the resources directory
-	Texture wabbit = LoadTexture("wabbit_alpha.png");
-
-	Texture ui = LoadTexture("ui.png");
-
-	Loader* loader = createLoader("initial.db");
-
-	if (loader == NULL)
 	{
-		TraceLog(LOG_ERROR, "Failed to create loader");
-		// goto cleanup;
-		return 1;
-	}
+		// Load a texture from the resources directory
+		TextureAsset wabbit{"wabbit_alpha.png"};
+		TextureAsset ui{"ui.png"};
 
-	SystemPtr system = createSystem(false);
-	if (!loadSystem(loader, 1, system.get()))
-	{
-		TraceLog(LOG_ERROR, "Failed to load system");
-		//goto cleanup;		
-		return 2;
-	}	
+		Loader* loader = createLoader("initial.db");
 
-	OrreryPtr orrery = createOrrery((Vector2){640, 400}, 1.f);
-	orrery->setSystem(system.get());
+		if (loader == NULL)
+		{
+			TraceLog(LOG_ERROR, "Failed to create loader");		
+			return 1;
+		}
 
-	std::unique_ptr<SystemView> systemView = std::make_unique<SystemView>(orrery.get());
+		SystemPtr system = createSystem(false);
+		if (!loadSystem(loader, 1, system.get()))
+		{
+			TraceLog(LOG_ERROR, "Failed to load system");
+			return 2;
+		}	
 
-	bool advanceTime = false;
-	float worldTime = 0.f;
-	float lastTime = GetTime();
+		OrreryPtr orrery = createOrrery((Vector2){640, 400}, 1.f);
+		orrery->setSystem(system.get());
 
-	Rectangle mainScreenDest = {0, 0, (float)ui.width, (float)ui.height};
-	
-	// game loop
-	while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
-	{
-		// drawing
-		BeginDrawing();
+		std::unique_ptr<SystemView> systemView = std::make_unique<SystemView>(orrery.get());
 
-		// Setup the back buffer for drawing (clear color and depth buffers)
-		ClearBackground(BLACK);
+		Rectangle mainScreenDest = {0, 0, (float)uiWidth, (float)uiHeight};
 
-		// 272x168+24+32
-		Rectangle source = {24, 32, 272, 168};		
-		DrawTexturePro(ui, source, mainScreenDest, (Vector2){0, 0}, 0.f, WHITE);
+		bool advanceTime = false;
+		float worldTime = 0.f;
+		float lastTime = GetTime();
 
-		systemView->render();
+		BasePage* currentPage = systemView.get();
 		
-		// end the frame and get ready for the next one  (display frame, poll input, etc...)
-		EndDrawing();
-
-		Vector2 mouseWheel = GetMouseWheelMoveV();
-		if (mouseWheel.y != 0)
+		// game loop
+		while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
 		{
-			orrery->scale += mouseWheel.y * 0.1f;
-			if (orrery->scale < 0.1f) orrery->scale = 0.1f;
-		}
+			// drawing
+			BeginDrawing();
 
-		if (IsKeyPressed(KEY_SPACE))
-		{
-			advanceTime = !advanceTime;
-		}
+			// Setup the back buffer for drawing (clear color and depth buffers)
+			ClearBackground(BLACK);
 
-		float currentTime = GetTime();
-		float deltaTime = currentTime - lastTime;
-		lastTime = currentTime;
-		if (advanceTime)
-		{						
-			worldTime += deltaTime;
-			system->update(worldTime);
-		}
-	}
+			// 272x168+24+32
+			// Rectangle source = {24, 32, 272, 168};		
+			Rectangle source = {304, 32, 272, 168};
+			DrawTexturePro(ui, source, mainScreenDest, (Vector2){0, 0}, 0.f, WHITE);
 
-	// cleanup
-	cleanup:
-	// unload our texture so it can be cleaned up
-	UnloadTexture(wabbit);
-	UnloadTexture(ui);
-	
-	destroyLoader(loader);
+			currentPage->render();		
+			
+			// end the frame and get ready for the next one  (display frame, poll input, etc...)
+			EndDrawing();
+
+			currentPage->input();
+
+			if (IsKeyPressed(KEY_SPACE))
+			{
+				advanceTime = !advanceTime;
+			}
+
+			float currentTime = GetTime();
+			float deltaTime = currentTime - lastTime;
+			lastTime = currentTime;
+			if (advanceTime)
+			{						
+				worldTime += deltaTime;
+				system->update(worldTime);
+			}
+		}	
+		
+		destroyLoader(loader);
+	} // resource scope
 
 	// destroy the window and cleanup the OpenGL context
 	CloseWindow();

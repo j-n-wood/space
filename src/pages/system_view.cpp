@@ -7,8 +7,16 @@ extern "C" {
     #include "raylib.h"
 }
 
-void SystemView::render() {
-    ClearBackground(BLACK);
+void SystemView::render() {    
     DrawText("System View", 10, 10, 20, WHITE);
     orrery->render();
 }
+
+void SystemView::input() {
+    Vector2 mouseWheel = GetMouseWheelMoveV();
+    if (mouseWheel.y != 0)
+    {
+        orrery->scale += mouseWheel.y * 0.1f;
+        if (orrery->scale < 0.1f) orrery->scale = 0.1f;
+    }
+} 
