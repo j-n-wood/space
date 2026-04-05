@@ -16,12 +16,15 @@ extern "C" {
 #include "loaders/loader.h"
 #include "loaders/load_system.h"
 #include "pages/system_view.h"
+#include "pages/earth_city.h"
+#include "assets/textures.h"
+
 #include "wrappers/texture.h"
 
 int main ()
 {
 	int uiWidth = 1280;
-	int uiHeight = 800;
+	int uiHeight = 1024;
 
 	// Tell the window to use vsync and work on high DPI displays
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
@@ -44,7 +47,6 @@ int main ()
 	{
 		// Load a texture from the resources directory
 		TextureAsset wabbit{"wabbit_alpha.png"};
-		TextureAsset ui{"ui.png"};		
 
 		SystemPtr system = createSystem(false);
 		if (!loadSystem(&loader, 1, system.get()))
@@ -56,10 +58,8 @@ int main ()
 		OrreryPtr orrery = createOrrery((Vector2){640, 400}, 1.f);
 		orrery->setSystem(system.get());
 
-		std::unique_ptr<SystemView> systemView = std::make_unique<SystemView>(orrery.get());
-
-		Rectangle source = {304, 32, 272, 168};
-		systemView->setBackground(&ui, source);		
+		std::unique_ptr<SystemView> systemView = std::make_unique<SystemView>(orrery.get());		
+		std::unique_ptr<EarthCity> earthCity = std::make_unique<EarthCity>();
 
 		bool advanceTime = false;
 		float worldTime = 0.f;
@@ -76,10 +76,6 @@ int main ()
 			// Setup the back buffer for drawing (clear color and depth buffers)
 			ClearBackground(BLACK);
 
-			// 272x168+24+32
-			// Rectangle source = {24, 32, 272, 168};		
-			// Rectangle source = {304, 32, 272, 168};			
-
 			currentPage->render();		
 			
 			// end the frame and get ready for the next one  (display frame, poll input, etc...)
@@ -92,6 +88,16 @@ int main ()
 				advanceTime = !advanceTime;
 			}
 
+			// hotkeys to switch pages
+			if (IsKeyPressed(KEY_ONE))
+			{
+				currentPage = systemView.get();
+			}
+			else if (IsKeyPressed(KEY_TWO))
+			{
+				currentPage = earthCity.get();
+			}
+
 			float currentTime = GetTime();
 			float deltaTime = currentTime - lastTime;
 			lastTime = currentTime;
@@ -100,7 +106,9 @@ int main ()
 				worldTime += deltaTime;
 				system->update(worldTime);
 			}
-		}		
+		}
+
+		TextureManager::getInstance().dispose(); // explicitly dispose of textures before exiting, to ensure proper cleanup, though the destructor should also handle this when the program exits and static objects are destroyed
 	} // resource scope
 
 	// destroy the window and cleanup the OpenGL context

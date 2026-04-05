@@ -1,26 +1,21 @@
 #pragma once
 
+#include "assets/textures.h" // easy access to predefined texture assets
+
 extern "C" {
     #include "raylib.h"
 }
 
-class TextureAsset;
-
 class BasePage
 {
 public:
-    TextureAsset* backgroundTexture;
+    const TextureAsset* backgroundTexture;
     Rectangle     backgroundSource;
 
+    BasePage();
     virtual ~BasePage() {}
     virtual void render();
     virtual void input();
-
-    BasePage& setBackground(TextureAsset* texture, Rectangle source) {
-        this->backgroundTexture = texture;
-        this->backgroundSource = source;
-        return *this;
-    }
 
     static Rectangle mainScreenDest;
 };

@@ -5,9 +5,10 @@
 
 class SystemView : public BasePage {
     Orrery* orrery;
-public:
-    SystemView() : orrery(nullptr) {}
-    SystemView(Orrery* o) : orrery(o) {}
+public:    
+    explicit SystemView(Orrery* o) : orrery(o) {
+        backgroundSource = pageBackgroundSources[PB_COCKPIT];
+    }
     ~SystemView() {}
 
     void input() override;
