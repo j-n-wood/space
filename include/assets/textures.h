@@ -8,6 +8,7 @@
 
 typedef enum {    
     TEXTURE_UI,
+    TEXTURE_UI_BUTTONS,
     TEXTURE_COUNT
 } TextureID;
 

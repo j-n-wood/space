@@ -42,7 +42,8 @@ int main ()
 		return 1;
 	}
 
-	BasePage::mainScreenDest = {0, 0, (float)uiWidth, (float)uiHeight};
+	// BasePage::mainScreenDest = {0, 0, (float)uiWidth, (float)uiHeight};
+	BasePage::setWindowSize(uiWidth, uiHeight);
 
 	{
 		// Load a texture from the resources directory

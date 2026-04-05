@@ -4,7 +4,8 @@
 // loaded from resources dir.
 
 const char* textureFileNames[TEXTURE_COUNT] = {
-    "ui.png"
+    "ui.png",
+    "ui_buttons.png"
 };
 
 TextureManager::TextureManager() {
