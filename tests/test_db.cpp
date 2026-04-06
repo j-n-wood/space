@@ -1,7 +1,7 @@
 #include "unity.h"
 #include "../include/loaders/loader.h"
 #include "../include/loaders/load_system.h"
-#include "../include/system.h"
+#include "../include/state/system.h"
 #include <sqlite3.h>
 
 // This runs before every test

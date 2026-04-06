@@ -8,7 +8,7 @@ extern "C" {
 
 class System
 {
-    public:
+public:
     int numPlanets;
     float* planetDistances;
     float* planetSizes;

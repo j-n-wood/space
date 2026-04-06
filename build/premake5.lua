@@ -313,7 +313,7 @@ if (downloadRaylib) then
         language "C++"
         cppdialect "C++20"
 
-        files {"../tests/test_db.cpp", "../tests/unity.c", "../src/loaders/loader.cpp", "../src/loaders/load_system.cpp", "../src/orrery.cpp", "../src/system.cpp"}
+        files {"../tests/test_db.cpp", "../tests/unity.c", "../src/loaders/loader.cpp", "../src/loaders/load_system.cpp", "../src/orrery.cpp", "../src/state/system.cpp"}
         
         filter {"files:../tests/unity.c"}
             compileas "C"

@@ -17,13 +17,13 @@ extern "C" {
 }
 
 #include "loaders/loader.h"
-#include "loaders/load_system.h"
 #include "pages/system_view.h"
 #include "pages/earth_city.h"
 #include "assets/textures.h"
 
 #include "wrappers/texture.h"
 #include "pages/pages.h"
+#include "state/game.h"
 
 int main ()
 {
@@ -45,17 +45,21 @@ int main ()
 		TraceLog(LOG_ERROR, "Failed to create loader");		
 		return 1;
 	}
-
-	// BasePage::mainScreenDest = {0, 0, (float)uiWidth, (float)uiHeight};
+	
 	BasePage::setWindowSize(uiWidth, uiHeight);
 
 	{
+		Game& game = Game::getInstance();
+		game.initialise(&loader);
+		System* system = game.getCurrentSystem();
+		/*
 		SystemPtr system = createSystem(false);
 		if (!loadSystem(&loader, 1, system.get()))
 		{
 			TraceLog(LOG_ERROR, "Failed to load system");
 			return 2;
-		}			
+		}
+		*/			
 
 		bool advanceTime = false;
 		float worldTime = 0.f;
@@ -63,7 +67,7 @@ int main ()
 		
 		PageManager& pageManager = PageManager::getInstance();
 		BasePage* systemView = pageManager.switchToPage(PAGE_SYSTEM_VIEW);
-		((SystemView*)systemView)->setSystem(system.get());
+		((SystemView*)systemView)->setSystem(system);
 
 		// game loop
 		while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
@@ -90,7 +94,7 @@ int main ()
 			if (IsKeyPressed(KEY_ONE))
 			{
 				BasePage* currentPage = pageManager.switchToPage(PAGE_SYSTEM_VIEW);
-				((SystemView*)currentPage)->setSystem(system.get());
+				((SystemView*)currentPage)->setSystem(system);
 			}
 			else if (IsKeyPressed(KEY_TWO))
 			{

@@ -1,6 +1,7 @@
-#include "system.h"
 #include <cstdlib>
 #include <cmath>
+
+#include "state/system.h"
 
 SystemPtr createSystem(const bool asSolSystem)
 {

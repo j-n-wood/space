@@ -1,6 +1,6 @@
 #pragma once
 
-#include "system.h"
+#include "state/system.h"
 #include <memory>
 
 class Orrery
