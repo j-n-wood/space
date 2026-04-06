@@ -62,6 +62,7 @@ BasePage* PageManager::switchToPage(Page newPage) {
 
     if (newPageInstance != nullptr && newPageInstance != currentPage) {
         currentPage = newPageInstance;
+        currentPage->activate(); // call activate on the new page to set it up
     }
     return currentPage;
 }

@@ -4,10 +4,19 @@
 #include "pages/system_view.h"
 #include "assets/ui_elements.h"
 #include "pages/pages.h"
+#include "state/game.h"
 
 extern "C" {
     #include "raylib.h"
     #include "raygui/raygui.h"
+}
+
+void SystemView::activate() {
+    // attach to current system
+    System* currentSystem = Game::getInstance().getCurrentSystem();
+    if (currentSystem) {
+        setSystem(currentSystem);
+    }
 }
 
 void SystemView::render() {    

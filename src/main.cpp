@@ -51,23 +51,14 @@ int main ()
 	{
 		Game& game = Game::getInstance();
 		game.initialise(&loader);
-		System* system = game.getCurrentSystem();
-		/*
-		SystemPtr system = createSystem(false);
-		if (!loadSystem(&loader, 1, system.get()))
-		{
-			TraceLog(LOG_ERROR, "Failed to load system");
-			return 2;
-		}
-		*/			
+		System* system = game.getCurrentSystem();		
 
 		bool advanceTime = false;
 		float worldTime = 0.f;
 		float lastTime = GetTime();		
 		
 		PageManager& pageManager = PageManager::getInstance();
-		BasePage* systemView = pageManager.switchToPage(PAGE_SYSTEM_VIEW);
-		((SystemView*)systemView)->setSystem(system);
+		pageManager.switchToPage(PAGE_SYSTEM_VIEW);
 
 		// game loop
 		while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
@@ -93,8 +84,7 @@ int main ()
 			// hotkeys to switch pages
 			if (IsKeyPressed(KEY_ONE))
 			{
-				BasePage* currentPage = pageManager.switchToPage(PAGE_SYSTEM_VIEW);
-				((SystemView*)currentPage)->setSystem(system);
+				BasePage* currentPage = pageManager.switchToPage(PAGE_SYSTEM_VIEW);				
 			}
 			else if (IsKeyPressed(KEY_TWO))
 			{
