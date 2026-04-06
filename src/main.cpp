@@ -8,9 +8,12 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 */
 #include <cstdlib>
 
+#define RAYGUI_IMPLEMENTATION // define once, must come before include
+
 extern "C" {
 	#include "raylib.h"
 	#include "resource_dir.h"	// utility header for SearchAndSetResourceDir
+	#include "raygui/raygui.h"
 }
 
 #include "loaders/loader.h"

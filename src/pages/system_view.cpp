@@ -6,6 +6,7 @@
 
 extern "C" {
     #include "raylib.h"
+    #include "raygui/raygui.h"
 }
 
 void SystemView::render() {    
@@ -15,6 +16,13 @@ void SystemView::render() {
 
     DrawText("System View", 10, 10, 20, WHITE);
     orrery->render();
+
+    UITransparentButtonState transparentButtonState; // RAII helper to set transparent button styles for the duration of this render function
+    // EC button
+    if (GuiButton((Rectangle){ 0, 1024 - 17*4, 51*4, 17 * 4 }, "")) {
+        // TODO - switch to earth city page
+        TraceLog(LOG_INFO, "ButtonClick");
+    }
 }
 
 void SystemView::input() {
