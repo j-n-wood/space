@@ -211,7 +211,7 @@ if (downloadRaylib) then
         links {"raylib"}
 
         cdialect "C17"
-        cppdialect "C++17"
+        cppdialect "C++20"
 
         includedirs {raylib_dir .. "/src" }
 
@@ -311,7 +311,7 @@ if (downloadRaylib) then
         targetdir "../bin/%{cfg.buildcfg}"
 
         language "C++"
-        cppdialect "C++17"
+        cppdialect "C++20"
 
         files {"../tests/test_db.cpp", "../tests/unity.c", "../src/loaders/loader.cpp", "../src/loaders/load_system.cpp", "../src/orrery.cpp", "../src/system.cpp"}
         

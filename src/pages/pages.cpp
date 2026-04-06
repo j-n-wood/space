@@ -4,6 +4,7 @@
 
 #include "pages/earth_city.h"
 #include "pages/system_view.h"
+#include "pages/resources.h"
 
 PageManager::PageManager() : currentPage(nullptr) {
     // initialize page resources
@@ -13,6 +14,7 @@ PageManager::PageManager() : currentPage(nullptr) {
 
     pages[PAGE_EARTH_CITY] = new EarthCity();
     pages[PAGE_SYSTEM_VIEW] = new SystemView();
+    pages[PAGE_SURFACE_RESOURCES] = new Resources();
 }   
 
 PageManager::~PageManager() {
@@ -40,15 +42,15 @@ BasePage* PageManager::switchToPage(Page newPage) {
         case PAGE_EARTH_TRAINING:
             // switch to earth training page
             break;
-        case PAGE_BODY_RESOURCES:
-            // switch to body resources page
+        case PAGE_SURFACE_RESOURCES:
+            newPageInstance = pages[PAGE_SURFACE_RESOURCES];
             break;
         case PAGE_SYSTEM_VIEW:
             // switch to system view page
             newPageInstance = pages[PAGE_SYSTEM_VIEW];
             break;
-        case PAGE_BODY_VIEW:
-            // switch to body view page
+        case PAGE_PRODUCTION:
+            // switch to production page
             break;
         case PAGE_SETTINGS:
             // switch to settings page

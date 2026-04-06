@@ -50,27 +50,16 @@ int main ()
 	BasePage::setWindowSize(uiWidth, uiHeight);
 
 	{
-		// Load a texture from the resources directory
-		TextureAsset wabbit{"wabbit_alpha.png"};
-
 		SystemPtr system = createSystem(false);
 		if (!loadSystem(&loader, 1, system.get()))
 		{
 			TraceLog(LOG_ERROR, "Failed to load system");
 			return 2;
-		}	
-		
-		/*
-		std::unique_ptr<SystemView> systemView = std::make_unique<SystemView>();
-		systemView->setSystem(system.get());
-		std::unique_ptr<EarthCity> earthCity = std::make_unique<EarthCity>();
-		*/
+		}			
 
 		bool advanceTime = false;
 		float worldTime = 0.f;
-		float lastTime = GetTime();
-
-		// BasePage* currentPage = systemView.get();
+		float lastTime = GetTime();		
 		
 		PageManager& pageManager = PageManager::getInstance();
 		BasePage* systemView = pageManager.switchToPage(PAGE_SYSTEM_VIEW);

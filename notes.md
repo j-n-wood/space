@@ -245,3 +245,5 @@ Objects (id: bounding-box centroid area mean-color):
   151: 12x16+188+256 195.1,263.5 111 srgb(0,0,0)
 
 ```
+
+define the rayGUI implementation define BEFORE include.

@@ -3,12 +3,22 @@
 #include "base_page.h"
 
 typedef enum {
+    PAGE_NONE,
     PAGE_MAIN_MENU,
     PAGE_EARTH_CITY,
     PAGE_EARTH_TRAINING,
-    PAGE_BODY_RESOURCES,
+    PAGE_EARTH_RESEARCH,
+    PAGE_PRODUCTION,
+    PAGE_ORBIT_STORES,
+    PAGE_ORBIT_SHUTTLE_BAY,
+    PAGE_ORBIT_SPACE_BAY,
     PAGE_SYSTEM_VIEW,
-    PAGE_BODY_VIEW,
+    PAGE_SURFACE_SHUTTLE_BAY,
+    PAGE_SURFACE_RESOURCES,
+    PAGE_SURFACE_STORES,
+    PAGE_SHUTTLE,
+    PAGE_COCKPIT,    
+    PAGE_SELF_DESTRUCT,    
     PAGE_SETTINGS,
     PAGE_COUNT
 } Page;
@@ -16,6 +26,8 @@ typedef enum {
 // singleton page manager, allow switching pages
 // owns page resources
 // note data objects that a page point to depend on other state
+
+class BasePage; // forward declaration
 
 class PageManager {
     // array of page implementations

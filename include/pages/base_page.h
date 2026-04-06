@@ -1,21 +1,53 @@
 #pragma once
+#include <cstdint>
 
 #include "assets/textures.h" // easy access to predefined texture assets
+#include "pages/pages.h" // for page background sources
 
 extern "C" {
     #include "raylib.h"
 }
+
+// bitfield for standard button enablement and visibility
+// EC has training and research where others have orbit marker
+
+enum StandardButton {
+    BUTTON_NONE = 0,
+    BUTTON_PRODUCTION = 1 << 0,
+    BUTTON_ORBIT_STORES = 1 << 1,
+    BUTTON_ORBIT_SHUTTLE_BAY = 1 << 2,
+    BUTTON_ORBIT_SPACE_BAY = 1 << 3,
+    BUTTON_SHUTTLE = 1 << 4,
+    BUTTON_SELF_DESTRUCT = 1 << 5,
+    BUTTON_TRAINING = 1 << 6,
+    BUTTON_RESEARCH = 1 << 7,
+    BUTTON_SURFACE_SHUTTLE_BAY = 1 << 8,
+    BUTTON_SURFACE_RESOURCES = 1 << 9,
+    BUTTON_EMPTY_10 = 1 << 10,
+    BUTTON_SURFACE_STORES = 1 << 11,    
+    // add more buttons as needed
+};
+
+const int STANDARD_BUTTON_COUNT = 12; // update this if you add more buttons
+
+// default page has all bar training and research
+const uint64_t ALL_STANDARD_BUTTONS = BUTTON_PRODUCTION | BUTTON_ORBIT_STORES | BUTTON_ORBIT_SHUTTLE_BAY | BUTTON_ORBIT_SPACE_BAY | 
+    BUTTON_SHUTTLE | BUTTON_SELF_DESTRUCT | 
+    BUTTON_SURFACE_SHUTTLE_BAY | BUTTON_SURFACE_RESOURCES | BUTTON_EMPTY_10 | BUTTON_SURFACE_STORES;
 
 class BasePage
 {
 public:
     const TextureAsset* backgroundTexture;
     Rectangle     backgroundSource;
+    uint64_t standardButtons; // bitfield to track which standard buttons are active
 
     BasePage();
     virtual ~BasePage() {}
     virtual void render();
     virtual void input();
+
+    void renderStandardButtons();
 
     static Rectangle mainScreenDest;
     static Rectangle sideBarDest;   // space for control bar
