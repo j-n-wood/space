@@ -1,0 +1,65 @@
+#include "pages/pages.h"
+
+// TODO - want to self-register pages?
+
+#include "pages/earth_city.h"
+#include "pages/system_view.h"
+
+PageManager::PageManager() : currentPage(nullptr) {
+    // initialize page resources
+    for (int i = 0; i < PAGE_COUNT; i++) {
+        pages[i] = nullptr;
+    }
+
+    pages[PAGE_EARTH_CITY] = new EarthCity();
+    pages[PAGE_SYSTEM_VIEW] = new SystemView();
+}   
+
+PageManager::~PageManager() {
+    // clean up page resources here
+    for (int i = 0; i < PAGE_COUNT; i++) {
+        delete pages[i];
+        pages[i] = nullptr;
+    }
+}
+
+BasePage* PageManager::switchToPage(Page newPage) {
+    // logic to switch to the specified page, for example by creating a new page instance and setting it as the current page
+    // this is just a placeholder, actual implementation would depend on how you manage page instances and rendering
+
+    BasePage* newPageInstance = nullptr;
+
+    switch (newPage) {
+        case PAGE_MAIN_MENU:
+            // switch to main menu page
+            break;
+        case PAGE_EARTH_CITY:
+            // switch to earth city page
+            newPageInstance = pages[PAGE_EARTH_CITY];            
+            break;
+        case PAGE_EARTH_TRAINING:
+            // switch to earth training page
+            break;
+        case PAGE_BODY_RESOURCES:
+            // switch to body resources page
+            break;
+        case PAGE_SYSTEM_VIEW:
+            // switch to system view page
+            newPageInstance = pages[PAGE_SYSTEM_VIEW];
+            break;
+        case PAGE_BODY_VIEW:
+            // switch to body view page
+            break;
+        case PAGE_SETTINGS:
+            // switch to settings page
+            break;
+        default:
+            // handle invalid page if needed
+            break;
+    }
+
+    if (newPageInstance != nullptr && newPageInstance != currentPage) {
+        currentPage = newPageInstance;
+    }
+    return currentPage;
+}

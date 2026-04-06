@@ -23,6 +23,7 @@ extern "C" {
 #include "assets/textures.h"
 
 #include "wrappers/texture.h"
+#include "pages/pages.h"
 
 int main ()
 {
@@ -58,19 +59,23 @@ int main ()
 			TraceLog(LOG_ERROR, "Failed to load system");
 			return 2;
 		}	
-
-		OrreryPtr orrery = createOrrery((Vector2){640, 400}, 1.f);
-		orrery->setSystem(system.get());
-
-		std::unique_ptr<SystemView> systemView = std::make_unique<SystemView>(orrery.get());		
+		
+		/*
+		std::unique_ptr<SystemView> systemView = std::make_unique<SystemView>();
+		systemView->setSystem(system.get());
 		std::unique_ptr<EarthCity> earthCity = std::make_unique<EarthCity>();
+		*/
 
 		bool advanceTime = false;
 		float worldTime = 0.f;
 		float lastTime = GetTime();
 
-		BasePage* currentPage = systemView.get();
+		// BasePage* currentPage = systemView.get();
 		
+		PageManager& pageManager = PageManager::getInstance();
+		BasePage* systemView = pageManager.switchToPage(PAGE_SYSTEM_VIEW);
+		((SystemView*)systemView)->setSystem(system.get());
+
 		// game loop
 		while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
 		{
@@ -80,12 +85,12 @@ int main ()
 			// Setup the back buffer for drawing (clear color and depth buffers)
 			ClearBackground(BLACK);
 
-			currentPage->render();		
+			pageManager.getCurrentPage()->render();		
 			
 			// end the frame and get ready for the next one  (display frame, poll input, etc...)
 			EndDrawing();
 
-			currentPage->input();
+			pageManager.getCurrentPage()->input();
 
 			if (IsKeyPressed(KEY_SPACE))
 			{
@@ -95,11 +100,12 @@ int main ()
 			// hotkeys to switch pages
 			if (IsKeyPressed(KEY_ONE))
 			{
-				currentPage = systemView.get();
+				BasePage* currentPage = pageManager.switchToPage(PAGE_SYSTEM_VIEW);
+				((SystemView*)currentPage)->setSystem(system.get());
 			}
 			else if (IsKeyPressed(KEY_TWO))
 			{
-				currentPage = earthCity.get();
+				pageManager.switchToPage(PAGE_EARTH_CITY);
 			}
 
 			float currentTime = GetTime();

@@ -3,6 +3,7 @@
 #include "pages/pages.h"
 #include "pages/system_view.h"
 #include "assets/ui_elements.h"
+#include "pages/pages.h"
 
 extern "C" {
     #include "raylib.h"
@@ -20,8 +21,7 @@ void SystemView::render() {
     UITransparentButtonState transparentButtonState; // RAII helper to set transparent button styles for the duration of this render function
     // EC button
     if (GuiButton((Rectangle){ 0, 1024 - 17*4, 51*4, 17 * 4 }, "")) {
-        // TODO - switch to earth city page
-        TraceLog(LOG_INFO, "ButtonClick");
+       PageManager::getInstance().switchToPage(PAGE_EARTH_CITY);
     }
 }
 

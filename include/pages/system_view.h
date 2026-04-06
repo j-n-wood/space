@@ -4,13 +4,16 @@
 #include "orrery.h"
 
 class SystemView : public BasePage {
-    Orrery* orrery;
+    std::unique_ptr<Orrery> orrery; //owned
 public:    
-    explicit SystemView(Orrery* o) : orrery(o) {
+    explicit SystemView() : orrery(createOrrery((Vector2){640, 400}, 1.f)) {
         backgroundSource = pageBackgroundSources[PB_COCKPIT];
     }
     ~SystemView() {}
-
+    
     void input() override;
     void render();
+    void setSystem(System* s) {
+        orrery->setSystem(s);
+    }
 };
