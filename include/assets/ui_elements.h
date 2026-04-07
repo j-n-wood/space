@@ -66,6 +66,8 @@ const Rectangle standardButtonDestinations[UI_BUTTON_COUNT] = {
     {24*4 + 4, 1024 - (120-85)*4, 24*4, 17*4}
 };
 
+extern const char* standardButtonTooltips[UI_BUTTON_COUNT];
+
 class UITransparentButtonState {
     public:
     // helper class to set transparent button styles, can be used in any page render function before drawing buttons to make them transparent

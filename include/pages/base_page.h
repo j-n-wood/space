@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 
 #include "assets/textures.h" // easy access to predefined texture assets
 #include "pages/pages.h" // for page background sources
@@ -41,9 +42,11 @@ public:
     const TextureAsset* backgroundTexture;
     Rectangle     backgroundSource;
     uint64_t standardButtons; // bitfield to track which standard buttons are active
+    std::string title; // page title
 
     BasePage();
     virtual ~BasePage() {}
+    virtual void activate();    // on change to this page, set any required state
     virtual void render();
     virtual void input();
 

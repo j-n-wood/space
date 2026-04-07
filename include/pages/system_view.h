@@ -8,9 +8,11 @@ class SystemView : public BasePage {
 public:    
     explicit SystemView() : orrery(createOrrery((Vector2){640, 400}, 1.f)) {
         backgroundSource = pageBackgroundSources[PB_COCKPIT];
+        title = "System View";
     }
     ~SystemView() {}
     
+    void activate() override;
     void input() override;
     void render();
     void setSystem(System* s) {

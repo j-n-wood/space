@@ -72,7 +72,33 @@ int getPrimaryBodyId(Loader* loader, int system_id) {
     return primary_id;
 }
 
+std::string queryString(Loader* loader, const char* sql, int param) {
+    sqlite3_stmt *stmt;
+    if (sqlite3_prepare_v2(loader->db, sql, -1, &stmt, 0) != SQLITE_OK) {
+        TraceLog(LOG_ERROR, "Failed to prepare query: %s", sqlite3_errmsg(loader->db));
+        return "";
+    }
+
+    sqlite3_bind_int(stmt, 1, param);
+
+    std::string result = "";
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        const unsigned char* text = sqlite3_column_text(stmt, 0);
+        if (text) {
+            result = std::string(reinterpret_cast<const char*>(text));
+        }
+    } else {
+        TraceLog(LOG_ERROR, "Failed to execute query: %s", sqlite3_errmsg(loader->db));
+    }
+
+    sqlite3_finalize(stmt);
+    return result;
+}
+
 bool loadSystem(Loader* loader, int system_id, System* system) {
+
+    // system name
+    system->name = queryString(loader, "SELECT name FROM systems WHERE id = ?", system_id);
 
     // get ID of primary body (e.g. the star) for this system
     int primary_id = getPrimaryBodyId(loader, system_id);

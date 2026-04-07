@@ -23,6 +23,7 @@ extern "C" {
 
 #include "wrappers/texture.h"
 #include "pages/pages.h"
+#include "pages/overlay.h"
 #include "state/game.h"
 
 int main ()
@@ -60,6 +61,10 @@ int main ()
 		PageManager& pageManager = PageManager::getInstance();
 		pageManager.switchToPage(PAGE_SYSTEM_VIEW);
 
+		Overlay overlay; // create the overlay instance, which will render on top of all pages
+
+		GuiEnableTooltip(); // enable tooltips for raygui
+
 		// game loop
 		while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
 		{
@@ -72,6 +77,8 @@ int main ()
 			pageManager.getCurrentPage()->render();		
 			
 			// end the frame and get ready for the next one  (display frame, poll input, etc...)
+			overlay.render(); // render the overlay after all pages
+			
 			EndDrawing();
 
 			pageManager.getCurrentPage()->input();
@@ -89,7 +96,7 @@ int main ()
 			else if (IsKeyPressed(KEY_TWO))
 			{
 				pageManager.switchToPage(PAGE_EARTH_CITY);
-			}
+			}			
 
 			float currentTime = GetTime();
 			float deltaTime = currentTime - lastTime;
@@ -99,6 +106,7 @@ int main ()
 				worldTime += deltaTime;
 				system->update(worldTime);
 			}
+			
 		}
 
 		TextureManager::getInstance().dispose(); // explicitly dispose of textures before exiting, to ensure proper cleanup, though the destructor should also handle this when the program exits and static objects are destroyed

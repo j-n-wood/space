@@ -3,21 +3,28 @@
 
 #include "state/system.h"
 
+System::System()
+    : name()
+    , numPlanets(0)
+    , planetDistances(NULL)
+    , planetSizes(NULL)
+    , planetColors(NULL)
+    , planetVelocities(NULL)
+    , planetPositions(NULL)
+    , planetPrimaryIndexes(NULL)
+{
+}
+
 SystemPtr createSystem(const bool asSolSystem)
 {
-    System* system = (System*)malloc(sizeof(System));
+    SystemPtr system = std::make_unique<System>();
 
-    system->numPlanets = 8;    
+    system->numPlanets = 8;
 
     if (!asSolSystem) {
-        system->planetColors = NULL;
-        system->planetDistances = NULL;
-        system->planetSizes = NULL;
-        system->planetVelocities = NULL;
-        system->planetPositions = NULL;
-        system->planetPrimaryIndexes = NULL;
-        return SystemPtr(system);
-    } 
+        system->name = "Sol";
+        return system;
+    }
 
     system->planetDistances = (float*)malloc(sizeof(float) * system->numPlanets);
     system->planetDistances[0] = 80;
@@ -72,7 +79,7 @@ SystemPtr createSystem(const bool asSolSystem)
         system->planetPrimaryIndexes[i] = -1; // all planets orbit the star in this simple sol system
     }
 
-    return SystemPtr(system);
+    return system;
 }
 
 System::~System()

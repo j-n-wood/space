@@ -24,7 +24,7 @@ void SystemView::render() {
 
     DrawTexturePro(*TextureManager::getInstance().getTexture(TEXTURE_UI_BUTTONS), uiElementSources[UI_CONTROLS], BasePage::sideBarDest, (Vector2){0, 0}, 0.f, WHITE);
 
-    DrawText("System View", 10, 10, 20, WHITE);
+    // DrawText("System View", 10, 10, 20, WHITE);
     orrery->render();
 
     UITransparentButtonState transparentButtonState;

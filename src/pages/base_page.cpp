@@ -66,6 +66,7 @@ void BasePage::renderStandardButtons() {
     for (int i = 0; i < STANDARD_BUTTON_COUNT; i++) {
         if (standardButtons & (1ULL << i)) {
             // button is enabled, render it
+            GuiSetTooltip(standardButtonTooltips[i]); // set tooltip for this button
             if (GuiButton(standardButtonDestinations[i], "")) { // empty text since we're using a texture, could add text if desired
                 // button was clicked, handle the event
                 // look for standard target page for this button and switch to it if valid

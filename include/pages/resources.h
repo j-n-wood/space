@@ -7,6 +7,7 @@ public:
     Resources() {
         backgroundSource =  pageBackgroundSources[PB_RESOURCES];
         standardButtons = ALL_STANDARD_BUTTONS; // example, set the standard buttons for this page
+        title = "Resources";
     }
     ~Resources() {}
 
