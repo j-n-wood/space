@@ -61,13 +61,14 @@ int main ()
 		PageManager& pageManager = PageManager::getInstance();
 		pageManager.switchToPage(PAGE_SYSTEM_VIEW);
 
-		Overlay overlay; // create the overlay instance, which will render on top of all pages
+		Overlay& overlay = Overlay::getInstance(); // create the overlay instance, which will render on top of all pages
 
 		GuiEnableTooltip(); // enable tooltips for raygui
 
 		// game loop
 		while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
 		{
+			overlay.start(); // start the overlay for this frame, can be used to reset any state tracked by the overlay at the start of each frame
 			// drawing
 			BeginDrawing();
 

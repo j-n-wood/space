@@ -1,10 +1,7 @@
 #include "pages/base_page.h"
 #include "assets/textures.h"
 #include "assets/ui_elements.h"
-
-extern "C" {    
-    #include "raygui/raygui.h"
-}
+#include "pages/overlay.h"
 
 // button behaviour - standard buttons have target pages
 const Page STANDARD_BUTTON_TARGET_PAGES[STANDARD_BUTTON_COUNT] = {
@@ -62,10 +59,22 @@ void BasePage::renderStandardButtons() {
     // loop through standard buttons and render them if enabled in the bitfield
     // source rect => row = button index / 2
 
+    Overlay& overlay = Overlay::getInstance(); // get the overlay instance to set tooltips when hovering buttons
+
     // iterate flags in standardButtons bitfield
     for (int i = 0; i < STANDARD_BUTTON_COUNT; i++) {
         if (standardButtons & (1ULL << i)) {
             // button is enabled, render it
+            if (overlay.renderButton(standardButtonDestinations[i], "", standardButtonTooltips[i], WHITE)) { // empty text since we're using a texture, could add text if desired
+                // look for standard target page for this button and switch to it if valid
+                // TODO: ensure correct context (system, body, ship)
+                Page targetPage = STANDARD_BUTTON_TARGET_PAGES[i];
+                if (targetPage != PAGE_NONE) {
+                    PageManager::getInstance().switchToPage(targetPage);   
+                }
+            }
+
+            /*
             GuiSetTooltip(standardButtonTooltips[i]); // set tooltip for this button
             if (GuiButton(standardButtonDestinations[i], "")) { // empty text since we're using a texture, could add text if desired
                 // button was clicked, handle the event
@@ -76,6 +85,7 @@ void BasePage::renderStandardButtons() {
                     PageManager::getInstance().switchToPage(targetPage);   
                 }
             }
+                */
         }
     }
 
