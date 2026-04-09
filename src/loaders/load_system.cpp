@@ -108,23 +108,10 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
     }
 
     // get number of planets in system
-    system->numPlanets = countSystemBodies(loader, system_id);
 
-    TraceLog(LOG_INFO, "Loading system %d with primary body ID %d and %d bodies", system_id, primary_id, system->numPlanets);
+    system->setNumBodies(countSystemBodies(loader, system_id));
 
-    // allocate arrays based on number of planets
-    system->planetDistances = (float*)malloc(sizeof(float) * system->numPlanets);
-    system->planetSizes = (float*)malloc(sizeof(float) * system->numPlanets);
-    system->planetColors = (Color*)malloc(sizeof(Color) * system->numPlanets);
-    system->planetVelocities = (float*)malloc(sizeof(float) * system->numPlanets);
-    system->planetPositions = (Vector2*)malloc(sizeof(Vector2) * system->numPlanets);
-    system->planetPrimaryIndexes = (int*)malloc(sizeof(int) * system->numPlanets);
-
-    if (!system->planetDistances || !system->planetSizes || !system->planetColors || 
-        !system->planetVelocities || !system->planetPositions || !system->planetPrimaryIndexes) {
-        TraceLog(LOG_ERROR, "Failed to allocate system arrays");
-        return false;
-    }
+    TraceLog(LOG_INFO, "Loading system %d with primary body ID %d and %d bodies", system_id, primary_id, system->numPlanets);    
 
     sqlite3_stmt *stmt;
 
@@ -170,6 +157,8 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
         system->planetVelocities[index] = orbital_velocity;
         system->planetPositions[index] = (Vector2){ orbital_radius * cosf(initial_angle), orbital_radius * sinf(initial_angle) };
         system->planetPrimaryIndexes[index] = local_primary_id;
+
+        auto location = system->addLocation(name, LocationType(type));
 
         // add to ID to index mapping
         idToIndex[index * 2] = id;
