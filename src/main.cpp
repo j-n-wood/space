@@ -10,10 +10,11 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 #define RAYGUI_IMPLEMENTATION // define once, must come before include
 
-extern "C" {
-	#include "raylib.h"
-	#include "resource_dir.h"	// utility header for SearchAndSetResourceDir
-	#include "raygui/raygui.h"
+extern "C"
+{
+#include "raylib.h"
+#include "resource_dir.h" // utility header for SearchAndSetResourceDir
+#include "raygui/raygui.h"
 }
 
 #include "loaders/loader.h"
@@ -26,7 +27,7 @@ extern "C" {
 #include "pages/overlay.h"
 #include "state/game.h"
 
-int main ()
+int main()
 {
 	int uiWidth = 1280;
 	int uiHeight = 1024;
@@ -43,30 +44,31 @@ int main ()
 	Loader loader("initial.db");
 	if (!loader.isValid())
 	{
-		TraceLog(LOG_ERROR, "Failed to create loader");		
+		TraceLog(LOG_ERROR, "Failed to create loader");
 		return 1;
 	}
-	
+
 	BasePage::setWindowSize(uiWidth, uiHeight);
 
 	{
-		Game& game = Game::getInstance();
+		Game &game = Game::getInstance();
 		game.initialise(&loader);
-		System* system = game.getCurrentSystem();		
+		System *system = game.getCurrentSystem();
+		game.setCurrentLocation(system->primary->children[2]);
 
 		bool advanceTime = false;
 		float worldTime = 0.f;
-		float lastTime = GetTime();		
-		
-		PageManager& pageManager = PageManager::getInstance();
+		float lastTime = GetTime();
+
+		PageManager &pageManager = PageManager::getInstance();
 		pageManager.switchToPage(PAGE_SYSTEM_VIEW);
 
-		Overlay& overlay = Overlay::getInstance(); // create the overlay instance, which will render on top of all pages
+		Overlay &overlay = Overlay::getInstance(); // create the overlay instance, which will render on top of all pages
 
 		GuiEnableTooltip(); // enable tooltips for raygui
 
 		// game loop
-		while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
+		while (!WindowShouldClose()) // run the loop until the user presses ESCAPE or presses the Close button on the window
 		{
 			overlay.start(); // start the overlay for this frame, can be used to reset any state tracked by the overlay at the start of each frame
 			// drawing
@@ -75,11 +77,11 @@ int main ()
 			// Setup the back buffer for drawing (clear color and depth buffers)
 			ClearBackground(BLACK);
 
-			pageManager.getCurrentPage()->render();		
-			
+			pageManager.getCurrentPage()->render();
+
 			// end the frame and get ready for the next one  (display frame, poll input, etc...)
 			overlay.render(); // render the overlay after all pages
-			
+
 			EndDrawing();
 
 			pageManager.getCurrentPage()->input();
@@ -92,22 +94,21 @@ int main ()
 			// hotkeys to switch pages
 			if (IsKeyPressed(KEY_ONE))
 			{
-				BasePage* currentPage = pageManager.switchToPage(PAGE_SYSTEM_VIEW);				
+				BasePage *currentPage = pageManager.switchToPage(PAGE_SYSTEM_VIEW);
 			}
 			else if (IsKeyPressed(KEY_TWO))
 			{
 				pageManager.switchToPage(PAGE_EARTH_CITY);
-			}			
+			}
 
 			float currentTime = GetTime();
 			float deltaTime = currentTime - lastTime;
 			lastTime = currentTime;
 			if (advanceTime)
-			{						
+			{
 				worldTime += deltaTime;
 				system->update(worldTime);
 			}
-			
 		}
 
 		TextureManager::getInstance().dispose(); // explicitly dispose of textures before exiting, to ensure proper cleanup, though the destructor should also handle this when the program exits and static objects are destroyed

@@ -11,20 +11,30 @@ const int GAME_MAX_SYSTEMS = 16;
 
 class Loader;
 
-class Game {
+class Game
+{
     SystemPtr systems[GAME_MAX_SYSTEMS];
 
-    System* currentSystem;
+    System *currentSystem;
+    Location *currentLocation;
+
 public:
     Game();
     ~Game();
 
-    bool initialise(Loader* loader);
+    bool initialise(Loader *loader);
 
-    System* getCurrentSystem() const { return currentSystem; }
+    System *getCurrentSystem() const { return currentSystem; }
+    inline Location *getCurrentLocation() const { return currentLocation; }
+    inline Game &setCurrentLocation(Location *l)
+    {
+        currentLocation = l;
+        return *this;
+    }
 
     // Singleton accessor
-    static Game& getInstance() {
+    static Game &getInstance()
+    {
         static Game instance;
         return instance;
     }
