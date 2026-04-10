@@ -11,6 +11,10 @@ System::System()
 
 Location* System::addLocation(const char* n, LocationType t) {
     this->locations.push_back(std::make_unique<Location>(this, n, t));
+    // if this is a star, set it as the primary location
+    if (t == LOCATION_TYPE_STAR) {
+        this->primary = this->locations.back().get();
+    }
     return this->locations.back().get();
 }
 

@@ -159,6 +159,8 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
         system->planetPrimaryIndexes[index] = local_primary_id;
 
         auto location = system->addLocation(name, LocationType(type));
+        location->id = id;
+        location->primary_id = local_primary_id;
 
         // add to ID to index mapping
         idToIndex[index * 2] = id;
@@ -184,11 +186,30 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
             system->planetPrimaryIndexes[i] = primary_index;
         }
     }
-    // now system->planetPrimaryIndexes contains the array index of the primary body for each planet, or -1 if it's a primary body itself
+    // now system->planetPrimaryIndexes contains the array index of the primary body for each planet, or -1 if it's a primary body itself    
 
     free(idToIndex);
 
     sqlite3_finalize(stmt);
+
+    // iterate Location collection, and if there is a primary_id, find the corresponding Location and add child
+    for (const auto& loc : system->locations) {
+        if (loc->primary_id != 0) {
+            // find parent location
+            Location* parent = nullptr;
+            for (const auto& potential_parent : system->locations) {
+                if (potential_parent->id == loc->primary_id) {
+                    parent = potential_parent.get();
+                    break;
+                }
+            }
+            if (parent) {
+                parent->children.push_back(loc.get());
+            } else {
+                TraceLog(LOG_WARNING, "Could not find parent location with ID %d for location %s", loc->primary_id, loc->name.c_str());
+            }
+        }
+    } // parent building
 
     return true;
 }
