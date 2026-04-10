@@ -113,35 +113,28 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
 
     TraceLog(LOG_INFO, "Loading system %d with primary body ID %d and %d bodies", system_id, primary_id, system->numPlanets);    
 
-    sqlite3_stmt *stmt;
-
-    const char *sql = "SELECT id, primary_id, name, type, orbital_radius, orbital_velocity, initial_angle, radius, color FROM bodies WHERE system_id = ? ORDER BY id";
-    if (sqlite3_prepare_v2(loader->db, sql, -1, &stmt, 0) != SQLITE_OK) {
-        TraceLog(LOG_ERROR, "Failed to fetch data: %s", sqlite3_errmsg(loader->db));
-        return false;
-    }
+    SQLiteQuery query(loader, "SELECT id, primary_id, name, type, orbital_radius, orbital_velocity, initial_angle, radius, color FROM bodies WHERE system_id = ? ORDER BY id");
     
-    sqlite3_bind_int(stmt, 1, system_id);
+    sqlite3_bind_int(query.stmt, 1, system_id);
 
     // need to map primary_id to array index for that ID - build a simple lookup table first
     int* idToIndex = (int*)malloc(sizeof(int) * system->numPlanets * 2); // pairs of (id, index)    
     if (!idToIndex) {
         TraceLog(LOG_ERROR, "Failed to allocate ID to index mapping");
-        sqlite3_finalize(stmt);
         return false;
     }
 
     int index = 0;
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        int id = sqlite3_column_int(stmt, 0);
-        int local_primary_id = sqlite3_column_int(stmt, 1);
-        const char* name = (const char*)sqlite3_column_text(stmt, 2);
-        int type = sqlite3_column_int(stmt, 3);
-        float orbital_radius = sqlite3_column_double(stmt, 4);
-        float orbital_velocity = sqlite3_column_double(stmt, 5);
-        float initial_angle = sqlite3_column_double(stmt, 6);
-        float radius = sqlite3_column_double(stmt, 7);
-        const char* color_str = (const char*)sqlite3_column_text(stmt, 8);
+    while (query.next()) {
+        int id = sqlite3_column_int(query.stmt, 0);
+        int local_primary_id = sqlite3_column_int(query.stmt, 1);
+        const char* name = (const char*)sqlite3_column_text(query.stmt, 2);
+        int type = sqlite3_column_int(query.stmt, 3);
+        float orbital_radius = sqlite3_column_double(query.stmt, 4);
+        float orbital_velocity = sqlite3_column_double(query.stmt, 5);
+        float initial_angle = sqlite3_column_double(query.stmt, 6);
+        float radius = sqlite3_column_double(query.stmt, 7);
+        const char* color_str = (const char*)sqlite3_column_text(query.stmt, 8);
 
         Color color;
         if (color_str != NULL && strlen(color_str) > 0) {
@@ -189,8 +182,6 @@ bool loadSystem(Loader* loader, int system_id, System* system) {
     // now system->planetPrimaryIndexes contains the array index of the primary body for each planet, or -1 if it's a primary body itself    
 
     free(idToIndex);
-
-    sqlite3_finalize(stmt);
 
     // iterate Location collection, and if there is a primary_id, find the corresponding Location and add child
     for (const auto& loc : system->locations) {
