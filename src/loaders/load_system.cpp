@@ -24,23 +24,15 @@ Color ColorFromHexStr(const char *hex) {
 }
 
 int queryInt(Loader* loader, const char* sql, int param) {
-    sqlite3_stmt *stmt;
-    if (sqlite3_prepare_v2(loader->db, sql, -1, &stmt, 0) != SQLITE_OK) {
-        TraceLog(LOG_ERROR, "Failed to prepare query: %s", sqlite3_errmsg(loader->db));
-        return -1;
-    }
-
-    sqlite3_bind_int(stmt, 1, param);
-
-    int result = -1;
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-        result = sqlite3_column_int(stmt, 0);
-    } else {
-        TraceLog(LOG_ERROR, "Failed to execute query: %s", sqlite3_errmsg(loader->db));
-    }
-
-    sqlite3_finalize(stmt);
-    return result;
+    SQLiteQuery q(loader, sql);
+    
+    q.bind(param);
+    
+    if (q.next()) {
+        return sqlite3_column_int(q, 0);
+    } 
+    TraceLog(LOG_ERROR, "Failed to execute query: %s", sqlite3_errmsg(loader->db));
+    return -1;
 }
 
 int countChildBodies(Loader* loader, int primary_id) {
@@ -52,46 +44,23 @@ int countSystemBodies(Loader* loader, int system_id) {
 }
 
 int getPrimaryBodyId(Loader* loader, int system_id) {
-    sqlite3_stmt *stmt;
-    const char *sql = "SELECT id FROM bodies WHERE system_id = ? AND primary_id = 0 LIMIT 1";
-    if (sqlite3_prepare_v2(loader->db, sql, -1, &stmt, 0) != SQLITE_OK) {
-        TraceLog(LOG_ERROR, "Failed to prepare primary body query: %s", sqlite3_errmsg(loader->db));
-        return -1;
-    }
-
-    sqlite3_bind_int(stmt, 1, system_id);
-
-    int primary_id = -1;
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-        primary_id = sqlite3_column_int(stmt, 0);
-    } else {
-        TraceLog(LOG_ERROR, "Failed to execute primary body query: %s", sqlite3_errmsg(loader->db));
-    }
-
-    sqlite3_finalize(stmt);
-    return primary_id;
+    return queryInt(loader, "SELECT id FROM bodies WHERE system_id = ? AND primary_id = 0 LIMIT 1", system_id);
 }
 
 std::string queryString(Loader* loader, const char* sql, int param) {
-    sqlite3_stmt *stmt;
-    if (sqlite3_prepare_v2(loader->db, sql, -1, &stmt, 0) != SQLITE_OK) {
-        TraceLog(LOG_ERROR, "Failed to prepare query: %s", sqlite3_errmsg(loader->db));
-        return "";
-    }
-
-    sqlite3_bind_int(stmt, 1, param);
-
     std::string result = "";
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-        const unsigned char* text = sqlite3_column_text(stmt, 0);
+
+    SQLiteQuery q(loader, sql);
+    
+    q.bind(param);
+    
+    if (q.next()) {
+        const unsigned char* text = sqlite3_column_text(q, 0);
         if (text) {
             result = std::string(reinterpret_cast<const char*>(text));
         }
-    } else {
-        TraceLog(LOG_ERROR, "Failed to execute query: %s", sqlite3_errmsg(loader->db));
-    }
-
-    sqlite3_finalize(stmt);
+    } 
+    TraceLog(LOG_ERROR, "Failed to execute query: %s", sqlite3_errmsg(loader->db));
     return result;
 }
 
