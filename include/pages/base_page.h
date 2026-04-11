@@ -58,11 +58,13 @@ public:
 
     static Rectangle mainScreenDest;
     static Rectangle sideBarDest; // space for control bar
+    static Rectangle timeDest;    // time display, drawn by overlay
 
     static void setWindowSize(int width, int height)
     {
         // update the static rectangles based on the new window size
         sideBarDest = {0, (float)(height - 120 * 4), 51 * 4, 120 * 4};  // keep sidebar width fixed at 192
         mainScreenDest = {192, 0, (float)(width - 192), (float)height}; // main screen takes the rest of the width
+        timeDest = {(float)(width - 100), 10, 100, 24};                 // top right
     }
 };

@@ -48,4 +48,9 @@ void Overlay::render()
         auto mp = GetMousePosition();
         DrawText(currentToolTip, mp.x + 12, mp.y + 8, 20, WHITE);
     }
+
+    // time
+    char buf[256];
+    sprintf(buf, "%d.00", game.game_time);
+    DrawText(buf, BasePage::timeDest.x, BasePage::timeDest.y, 20, WHITE);
 }

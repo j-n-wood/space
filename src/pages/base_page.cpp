@@ -26,6 +26,7 @@ const Page STANDARD_BUTTON_TARGET_PAGES[STANDARD_BUTTON_COUNT] = {
 // fit to buttom of page so 120 -> 480, top is 1024-480 = 544
 Rectangle BasePage::sideBarDest = {0, 544, 51 * 4, 120 * 4}; // default value, will be set to actual screen size in main.cpp
 Rectangle BasePage::mainScreenDest = {192, 0, 1280, 1024};   // default value, will be set to actual screen size in main.cpp
+Rectangle BasePage::timeDest = {100, 24, 1280 - 100, 10};
 
 BasePage::BasePage() : backgroundTexture(nullptr), backgroundSource({0, 0, 0, 0}), standardButtons(ALL_STANDARD_BUTTONS)
 {

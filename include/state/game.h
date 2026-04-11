@@ -20,9 +20,6 @@ class Game
     Location *currentLocation;
     Facility *currentFacility;
 
-    // game state
-    uint32_t game_time;
-
     SystemPtr systems[GAME_MAX_SYSTEMS];
 
     // owning collections of facilities
@@ -30,6 +27,9 @@ class Game
     Bases bases;
 
 public:
+    // game state
+    uint32_t game_time;
+
     Game();
     ~Game();
 
