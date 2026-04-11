@@ -3,6 +3,7 @@
 // handle wrapping SQLite handles and queries
 
 #include "sqlite3.h"
+#include <string>
 
 extern "C"
 {
@@ -69,6 +70,68 @@ public:
             return false;
         }
         return true;
+    }
+
+    bool step()
+    {
+        return step("SQLiteQuery: Failed to execute statement");
+    }
+
+    SQLiteQuery &bind(int index, int value)
+    {
+        if (!stmt || !valid)
+            return *this;
+
+        if (sqlite3_bind_int(stmt, index, value) != SQLITE_OK)
+        {
+            TraceLog(LOG_ERROR, "SQLiteQuery: Failed to bind int at index %d: %s", index, sqlite3_errmsg(db));
+            valid = false;
+        }
+        return *this;
+    }
+
+    SQLiteQuery &bind(int index, sqlite3_int64 value)
+    {
+        if (!stmt || !valid)
+            return *this;
+
+        if (sqlite3_bind_int64(stmt, index, value) != SQLITE_OK)
+        {
+            TraceLog(LOG_ERROR, "SQLiteQuery: Failed to bind int64 at index %d: %s", index, sqlite3_errmsg(db));
+            valid = false;
+        }
+        return *this;
+    }
+
+    SQLiteQuery &bind(int index, double value)
+    {
+        if (!stmt || !valid)
+            return *this;
+
+        if (sqlite3_bind_double(stmt, index, value) != SQLITE_OK)
+        {
+            TraceLog(LOG_ERROR, "SQLiteQuery: Failed to bind double at index %d: %s", index, sqlite3_errmsg(db));
+            valid = false;
+        }
+        return *this;
+    }
+
+    SQLiteQuery &bind(int index, const char *value)
+    {
+        if (!stmt || !valid)
+            return *this;
+
+        if (sqlite3_bind_text(stmt, index, value, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+        {
+            TraceLog(LOG_ERROR, "SQLiteQuery: Failed to bind text at index %d: %s", index, sqlite3_errmsg(db));
+            valid = false;
+        }
+        return *this;
+    }
+
+    SQLiteQuery &bind(int index, const std::string &value)
+    {
+        return bind(index, value.c_str());
     }
 
     inline void bind(int &param)

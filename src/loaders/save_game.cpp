@@ -225,21 +225,9 @@ int SaveGame::saveSystem(System *system)
         return -6;
     }
 
-    int rc = sqlite3_bind_int(systemQuery.stmt, 1, system->id);
-    if (rc != SQLITE_OK)
-    {
-        TraceLog(LOG_ERROR, "SaveGame: Failed to bind system id");
-        return -7;
-    }
-
-    rc = sqlite3_bind_text(systemQuery.stmt, 2, system->name.c_str(), -1, SQLITE_TRANSIENT);
-    if (rc != SQLITE_OK)
-    {
-        TraceLog(LOG_ERROR, "SaveGame: Failed to bind system name");
-        return -7;
-    }
-
-    if (!systemQuery.step("SaveGame: Failed to execute systems insert"))
+    if (!systemQuery.bind(1, system->id)
+             .bind(2, system->name)
+             .step("SaveGame: Failed to execute systems insert"))
     {
         return -8;
     }
@@ -310,18 +298,17 @@ int SaveGame::saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locati
     sqlite3_reset(bodyQuery.stmt);
     sqlite3_clear_bindings(bodyQuery.stmt);
 
-    sqlite3_bind_int(bodyQuery.stmt, 1, location->id);
-    sqlite3_bind_int64(bodyQuery.stmt, 2, systemId);
-    sqlite3_bind_int(bodyQuery.stmt, 3, location->primary_id);
-    sqlite3_bind_int(bodyQuery.stmt, 4, static_cast<int>(location->type));
-    sqlite3_bind_text(bodyQuery.stmt, 5, location->name.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_double(bodyQuery.stmt, 6, orbitalRadius);
-    sqlite3_bind_double(bodyQuery.stmt, 7, orbitalVelocity);
-    sqlite3_bind_double(bodyQuery.stmt, 8, initialAngle);
-    sqlite3_bind_double(bodyQuery.stmt, 9, radius);
-    sqlite3_bind_text(bodyQuery.stmt, 10, colorText.c_str(), -1, SQLITE_TRANSIENT);
-
-    if (!bodyQuery.step("SaveGame: Failed to insert body record"))
+    if (!bodyQuery.bind(1, location->id)
+             .bind(2, systemId)
+             .bind(3, location->primary_id)
+             .bind(4, static_cast<int>(location->type))
+             .bind(5, location->name)
+             .bind(6, orbitalRadius)
+             .bind(7, orbitalVelocity)
+             .bind(8, initialAngle)
+             .bind(9, radius)
+             .bind(10, colorText)
+             .step("SaveGame: Failed to insert body record"))
     {
         return -15;
     }
@@ -356,35 +343,11 @@ int SaveGame::saveBase(ResourceFacility *rf, int facilityId)
         return -9;
     }
 
-    int rc = sqlite3_bind_int(facilityQuery.stmt, 1, facilityId);
-    if (rc != SQLITE_OK)
-    {
-        TraceLog(LOG_ERROR, "SaveGame: Failed to bind facility id for base");
-        return -10;
-    }
-
-    rc = sqlite3_bind_int(facilityQuery.stmt, 2, rf->location->system->id);
-    if (rc != SQLITE_OK)
-    {
-        TraceLog(LOG_ERROR, "SaveGame: Failed to bind system id for base");
-        return -11;
-    }
-
-    rc = sqlite3_bind_int(facilityQuery.stmt, 3, rf->location->id);
-    if (rc != SQLITE_OK)
-    {
-        TraceLog(LOG_ERROR, "SaveGame: Failed to bind location id for base");
-        return -12;
-    }
-
-    rc = sqlite3_bind_int(facilityQuery.stmt, 4, SLOC_SURFACE);
-    if (rc != SQLITE_OK)
-    {
-        TraceLog(LOG_ERROR, "SaveGame: Failed to bind facility type for base");
-        return -13;
-    }
-
-    if (!facilityQuery.step("SaveGame: Failed to execute facility insert for base"))
+    if (!facilityQuery.bind(1, facilityId)
+             .bind(2, rf->location->system->id)
+             .bind(3, rf->location->id)
+             .bind(4, SLOC_SURFACE)
+             .step("SaveGame: Failed to execute facility insert for base"))
     {
         return -14;
     }
@@ -419,35 +382,11 @@ int SaveGame::saveOrbital(Orbital *orbital, int facilityId)
         return -9;
     }
 
-    int rc = sqlite3_bind_int(facilityQuery.stmt, 1, facilityId);
-    if (rc != SQLITE_OK)
-    {
-        TraceLog(LOG_ERROR, "SaveGame: Failed to bind facility id for orbital");
-        return -10;
-    }
-
-    rc = sqlite3_bind_int(facilityQuery.stmt, 2, orbital->location->system->id);
-    if (rc != SQLITE_OK)
-    {
-        TraceLog(LOG_ERROR, "SaveGame: Failed to bind system id for orbital");
-        return -11;
-    }
-
-    rc = sqlite3_bind_int(facilityQuery.stmt, 3, orbital->location->id);
-    if (rc != SQLITE_OK)
-    {
-        TraceLog(LOG_ERROR, "SaveGame: Failed to bind location id for orbital");
-        return -12;
-    }
-
-    rc = sqlite3_bind_int(facilityQuery.stmt, 4, SLOC_ORBIT);
-    if (rc != SQLITE_OK)
-    {
-        TraceLog(LOG_ERROR, "SaveGame: Failed to bind facility type for orbital");
-        return -13;
-    }
-
-    if (!facilityQuery.step("SaveGame: Failed to execute facility insert for orbital"))
+    if (!facilityQuery.bind(1, facilityId)
+             .bind(2, orbital->location->system->id)
+             .bind(3, orbital->location->id)
+             .bind(4, SLOC_ORBIT)
+             .step("SaveGame: Failed to execute facility insert for orbital"))
     {
         return -14;
     }
@@ -478,7 +417,7 @@ int SaveGame::saveStores(Stores *stores, int facilityId)
 
     for (int resourceId = 1; resourceId < ResourceType::Count; ++resourceId)
     {
-        uint32_t amount = stores->resources[resourceId];
+        int amount = stores->resources[resourceId];
         if (amount == 0)
         {
             continue;
@@ -487,28 +426,10 @@ int SaveGame::saveStores(Stores *stores, int facilityId)
         sqlite3_reset(storesQuery.stmt);
         sqlite3_clear_bindings(storesQuery.stmt);
 
-        int rc = sqlite3_bind_int(storesQuery.stmt, 1, facilityId);
-        if (rc != SQLITE_OK)
-        {
-            TraceLog(LOG_ERROR, "SaveGame: Failed to bind facility id for store");
-            return -10;
-        }
-
-        rc = sqlite3_bind_int(storesQuery.stmt, 2, resourceId);
-        if (rc != SQLITE_OK)
-        {
-            TraceLog(LOG_ERROR, "SaveGame: Failed to bind resource id for store");
-            return -11;
-        }
-
-        rc = sqlite3_bind_int(storesQuery.stmt, 3, amount);
-        if (rc != SQLITE_OK)
-        {
-            TraceLog(LOG_ERROR, "SaveGame: Failed to bind store amount");
-            return -12;
-        }
-
-        if (!storesQuery.step("SaveGame: Failed to execute stores insert"))
+        if (!storesQuery.bind(1, facilityId)
+                 .bind(2, resourceId)
+                 .bind(3, amount)
+                 .step("SaveGame: Failed to execute stores insert"))
         {
             return -13;
         }

@@ -52,8 +52,8 @@ public:
     System *system; // the system this location is in, e.g. Sol
 
     // persistence IDs. Decide if this is mixing concerns, having it here makes save of state have consistent IDs.
-    uint32_t id;         // unique ID for this location, used for persistence
-    uint32_t primary_id; // ID of primary body this location orbits
+    int id;         // unique ID for this location, used for persistence
+    int primary_id; // ID of primary body this location orbits
 
     std::vector<Location *> children; // e.g. moons orbiting a planet, or cities on a planet. This is not persisted, but built in memory based on the primary_id relationships
 
