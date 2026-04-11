@@ -22,6 +22,16 @@ const Systems &Game::allSystems() const
     return systems;
 }
 
+const Bases &Game::allBases() const
+{
+    return bases;
+}
+
+const Orbitals &Game::allOrbitals() const
+{
+    return orbitals;
+}
+
 ResourceFacility *Game::createResourceFacility(Location *location)
 {
     bases.emplace_back(std::make_unique<ResourceFacility>(location));

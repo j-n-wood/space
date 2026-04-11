@@ -57,6 +57,20 @@ public:
         return sqlite3_step(stmt) == SQLITE_ROW;
     }
 
+    bool step(const char *message)
+    {
+        if ((!stmt) || (!valid))
+            return false;
+
+        int result = sqlite3_step(stmt);
+        if (result != SQLITE_DONE)
+        {
+            TraceLog(LOG_ERROR, "%s: %s", message, sqlite3_errmsg(db));
+            return false;
+        }
+        return true;
+    }
+
     inline void bind(int &param)
     {
         if (sqlite3_bind_int(stmt, 1, param) != SQLITE_OK)

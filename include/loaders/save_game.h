@@ -1,5 +1,7 @@
 #pragma once
 
+#include "sqlite3.h"
+
 class System;
 class Game;
 class Location;
@@ -8,6 +10,7 @@ class Orbital;
 class Stores;
 class Factory;
 class Loader;
+class SQLiteQuery;
 
 class SaveGame
 {
@@ -16,10 +19,10 @@ class SaveGame
     int initialiseSaveFile();
     int saveSystem(System *system);
     int saveGame(Game *game);
-    int saveLocation(Location *location);
-    int saveBase(ResourceFacility *rf);
-    int saveOrbital(Orbital *orbital);
-    int saveStores(Stores *stores);
+    int saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locationIndex, sqlite3_int64 systemId);
+    int saveBase(ResourceFacility *rf, int facilityId);
+    int saveOrbital(Orbital *orbital, int facilityId);
+    int saveStores(Stores *stores, int facilityId);
 
 public:
     SaveGame();

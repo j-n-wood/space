@@ -64,6 +64,8 @@ public:
     // add game state
     System *createSystem(int id, const char *name);
     const Systems &allSystems() const;
+    const Bases &allBases() const;
+    const Orbitals &allOrbitals() const;
 
     ResourceFacility *createResourceFacility(Location *location);
     Orbital *createOrbital(Location *location);
