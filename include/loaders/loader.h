@@ -12,6 +12,8 @@ extern "C"
 
 class Game;
 
+/// Lightweight SQLite save loader.
+/// Wraps a SQLite database handle and provides the entry point for load operations.
 class Loader
 {
     Game *game;
@@ -24,9 +26,12 @@ public:
 
     sqlite3 *db;
 
+    /// Load all systems from the opened database into the current game.
     bool loadSystems();
 };
 
+/// Scoped SQLite statement wrapper.
+/// Supports chained bind(...) calls and step() to execute prepared statements cleanly.
 class SQLiteQuery
 {
 public:
