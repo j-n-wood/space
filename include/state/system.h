@@ -1,7 +1,8 @@
 #pragma once
 
-extern "C" {
-    #include "raylib.h"
+extern "C"
+{
+#include "raylib.h"
 }
 
 #include <memory>
@@ -17,11 +18,12 @@ extern "C" {
 
 class System
 {
-  
+
 public:
     System();
     ~System();
 
+    int id; // persistence ID for consistency
     std::string name;
     int numPlanets;
     std::vector<float> planetDistances;
@@ -34,15 +36,17 @@ public:
     // owning collection of locations
     std::vector<std::unique_ptr<Location>> locations; // e.g. planets, moons, asteroid belt, earth city, etc. populated based on the system data
     // primary location (star)
-    Location* primary;
+    Location *primary;
 
     void update(float time);
 
-    System& setNumBodies(int numBodies);
-    Location* addLocation(const char* name, LocationType type);
+    System &setNumBodies(int numBodies);
+    Location *addLocation(const char *name, LocationType type);
     void loadSolSystem();
 };
 
 typedef std::unique_ptr<System> SystemPtr;
+
+typedef std::vector<SystemPtr> Systems;
 
 SystemPtr createSystem(const bool asSolSystem);

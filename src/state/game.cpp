@@ -2,14 +2,24 @@
 
 Game::Game() : currentSystem(nullptr), currentLocation(nullptr), currentFacility(nullptr), game_time(0)
 {
-    for (int i = 0; i < GAME_MAX_SYSTEMS; i++)
-    {
-        systems[i] = nullptr;
-    }
 }
 
 Game::~Game()
 {
+}
+
+System *Game::createSystem(int id, const char *name)
+{
+    systems.emplace_back(std::make_unique<System>());
+    auto sys = systems.back().get();
+    sys->id = id;
+    sys->name.assign(name);
+    return sys;
+}
+
+const Systems &Game::allSystems() const
+{
+    return systems;
 }
 
 ResourceFacility *Game::createResourceFacility(Location *location)

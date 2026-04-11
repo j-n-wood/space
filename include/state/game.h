@@ -10,8 +10,6 @@
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
 
-const int GAME_MAX_SYSTEMS = 16;
-
 class Loader;
 
 class Game
@@ -22,7 +20,8 @@ class Game
     Location *currentLocation;
     Facility *currentFacility;
 
-    SystemPtr systems[GAME_MAX_SYSTEMS];
+    // owning collection of systems
+    Systems systems;
 
     // owning collections of facilities
 
@@ -63,6 +62,9 @@ public:
     }
 
     // add game state
+    System *createSystem(int id, const char *name);
+    const Systems &allSystems() const;
+
     ResourceFacility *createResourceFacility(Location *location);
     Orbital *createOrbital(Location *location);
 
