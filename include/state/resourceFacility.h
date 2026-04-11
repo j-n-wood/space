@@ -9,10 +9,9 @@ class Location;
 class ResourceFacility : public Facility
 {
 public:
-    Location *location;
     uint32_t num_derricks;
 
-    explicit ResourceFacility(Location *l) : location{l}, num_derricks{0}
+    explicit ResourceFacility(Location *l) : Facility{l}, num_derricks{0}
     {
     }
 

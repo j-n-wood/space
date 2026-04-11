@@ -4,6 +4,8 @@
 #include <memory>
 #include "state/system.h"
 #include "state/resourceFacility.h"
+#include "state/orbital.h"
+#include "state/factory.h"
 
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
@@ -23,8 +25,12 @@ class Game
     SystemPtr systems[GAME_MAX_SYSTEMS];
 
     // owning collections of facilities
-    // Facilities orbitals;
+
     Bases bases;
+    Orbitals orbitals;
+
+    // non-owning collection of factories
+    std::vector<Factory *> factories;
 
 public:
     // game state
@@ -58,9 +64,11 @@ public:
 
     // add game state
     ResourceFacility *createResourceFacility(Location *location);
+    Orbital *createOrbital(Location *location);
 
     // locate game state
     ResourceFacility *resourceFacilityAt(Location *location);
+    Orbital *orbitalAt(Location *location);
 
     // update by one tick
     void update();

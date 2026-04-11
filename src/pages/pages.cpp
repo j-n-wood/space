@@ -6,6 +6,7 @@
 #include "pages/system_view.h"
 #include "pages/resources.h"
 #include "pages/stores_view.h"
+#include "pages/factory_view.h"
 
 PageManager::PageManager() : currentPage(nullptr)
 {
@@ -18,7 +19,9 @@ PageManager::PageManager() : currentPage(nullptr)
     pages[PAGE_EARTH_CITY] = new EarthCity();
     pages[PAGE_SYSTEM_VIEW] = new SystemView();
     pages[PAGE_SURFACE_RESOURCES] = new Resources();
-    pages[PAGE_SURFACE_STORES] = new StoresView();
+    pages[PAGE_SURFACE_STORES] = new StoresView(SublocationType::SLOC_SURFACE);
+    pages[PAGE_ORBIT_STORES] = new StoresView(SublocationType::SLOC_ORBIT);
+    pages[PAGE_PRODUCTION] = new FactoryView();
 }
 
 PageManager::~PageManager()
@@ -60,8 +63,11 @@ BasePage *PageManager::switchToPage(Page newPage)
     case PAGE_SURFACE_STORES:
         newPageInstance = pages[PAGE_SURFACE_STORES];
         break;
+    case PAGE_ORBIT_STORES:
+        newPageInstance = pages[PAGE_ORBIT_STORES];
+        break;
     case PAGE_PRODUCTION:
-        // switch to production page
+        newPageInstance = pages[PAGE_PRODUCTION];
         break;
     case PAGE_SETTINGS:
         // switch to settings page

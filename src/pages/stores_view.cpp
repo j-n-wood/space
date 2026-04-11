@@ -28,8 +28,20 @@ void StoresView::render()
 void StoresView::activate()
 {
     stores = nullptr;
-    // set current stores, if any
-    auto f = Game::getInstance().getCurrentFacility();
+
+    auto l{Game::getInstance().getCurrentLocation()};
+
+    Facility *f{nullptr};
+    switch (sublocationType)
+    {
+    case SublocationType::SLOC_ORBIT:
+        f = Game::getInstance().orbitalAt(l);
+        break;
+    case SublocationType::SLOC_SURFACE:
+        f = Game::getInstance().resourceFacilityAt(l);
+        break;
+    }
+
     if (f)
     {
         stores = &f->stores;

@@ -2,7 +2,8 @@
 
 #include "base_page.h"
 
-typedef enum {
+typedef enum
+{
     PAGE_NONE,
     PAGE_MAIN_MENU,
     PAGE_EARTH_CITY,
@@ -17,8 +18,8 @@ typedef enum {
     PAGE_SURFACE_RESOURCES,
     PAGE_SURFACE_STORES,
     PAGE_SHUTTLE,
-    PAGE_COCKPIT,    
-    PAGE_SELF_DESTRUCT,    
+    PAGE_COCKPIT,
+    PAGE_SELF_DESTRUCT,
     PAGE_SETTINGS,
     PAGE_COUNT
 } Page;
@@ -29,20 +30,22 @@ typedef enum {
 
 class BasePage; // forward declaration
 
-class PageManager {
+class PageManager
+{
     // array of page implementations
-    BasePage* pages[PAGE_COUNT];
-    BasePage* currentPage; // currently active page
+    BasePage *pages[PAGE_COUNT];
+    BasePage *currentPage; // currently active page
 public:
     PageManager();
     ~PageManager();
 
-    BasePage* switchToPage(Page newPage);
-    inline BasePage* getCurrentPage() const { return currentPage; }
+    BasePage *switchToPage(Page newPage);
+    inline BasePage *getCurrentPage() const { return currentPage; }
 
     // singleton access
-    static PageManager& getInstance() {
+    static PageManager &getInstance()
+    {
         static PageManager instance; // guaranteed to be destroyed, instantiated on first use
         return instance;
-    }    
+    }
 };

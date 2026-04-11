@@ -74,6 +74,8 @@ int main()
 		game.setCurrentFacility(rf);
 		rf->num_derricks = 1;
 
+		Orbital *of{game.createOrbital(earth)};
+
 		// game loop
 		while (!WindowShouldClose()) // run the loop until the user presses ESCAPE or presses the Close button on the window
 		{

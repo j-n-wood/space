@@ -32,6 +32,28 @@ ResourceFacility *Game::resourceFacilityAt(Location *location)
     return nullptr;
 }
 
+Orbital *Game::createOrbital(Location *location)
+{
+    orbitals.emplace_back(std::make_unique<Orbital>(location));
+    auto o = orbitals.back().get();
+    factories.push_back(&o->factory);
+    return o;
+}
+
+Orbital *Game::orbitalAt(Location *location)
+{
+    // look for resource facility at given location. Initial impl is scan (yuck)
+    // avoid by e.g. lookup based on location to init UI controls, keep as UI state.
+    for (auto &orbital : orbitals)
+    {
+        if (orbital->location == location)
+        {
+            return orbital.get();
+        }
+    }
+    return nullptr;
+}
+
 void Game::update()
 {
     // update all facilities

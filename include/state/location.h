@@ -24,6 +24,13 @@ enum LocationType
     LOCATION_TYPE_EARTH_CITY
 };
 
+enum SublocationType
+{
+    SLOC_SURFACE,
+    SLOC_ORBIT,
+    SLOC_COUNT
+};
+
 class System; // forward declaration to avoid circular dependency
 class Location;
 
