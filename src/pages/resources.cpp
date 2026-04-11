@@ -22,6 +22,12 @@ void Resources::render()
     }
 }
 
+void Resources::activate()
+{
+    auto &game{Game::getInstance()};
+    facility = game.resourceFacilityAt(game.getCurrentLocation());
+}
+
 void Resources::input()
 {
     // no input handling for now, but could add some interactive elements here later
@@ -41,4 +47,9 @@ void Resources::listResources(const Location *location)
             cursor.y += 24;
         }
     }
+
+    // derricks
+    char buf[256];
+    sprintf(buf, "Derricks: %d", facility->num_derricks);
+    DrawText(buf, 400, cursor.y, 20, WHITE);
 }

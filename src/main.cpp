@@ -26,6 +26,7 @@ extern "C"
 #include "pages/pages.h"
 #include "pages/overlay.h"
 #include "state/game.h"
+#include "state/resourceFacility.h"
 
 int main()
 {
@@ -54,10 +55,12 @@ int main()
 		Game &game = Game::getInstance();
 		game.initialise(&loader);
 		System *system = game.getCurrentSystem();
-		game.setCurrentLocation(system->primary->children[2]);
+		Location *earth = system->primary->children[2];
+		game.setCurrentLocation(earth);
 
 		bool advanceTime = false;
 		float worldTime = 0.f;
+		float tickTime = 0.f;
 		float lastTime = GetTime();
 
 		PageManager &pageManager = PageManager::getInstance();
@@ -66,6 +69,10 @@ int main()
 		Overlay &overlay = Overlay::getInstance(); // create the overlay instance, which will render on top of all pages
 
 		GuiEnableTooltip(); // enable tooltips for raygui
+
+		ResourceFacility *rf{game.createResourceFacility(earth)};
+		game.setCurrentFacility(rf);
+		rf->num_derricks = 1;
 
 		// game loop
 		while (!WindowShouldClose()) // run the loop until the user presses ESCAPE or presses the Close button on the window
@@ -108,6 +115,14 @@ int main()
 			{
 				worldTime += deltaTime;
 				system->update(worldTime);
+
+				// every second of world time, update game state by one tick
+				tickTime += deltaTime;
+				if (tickTime >= 1.0f)
+				{
+					game.update();
+					tickTime -= 1.0f;
+				}
 			}
 		}
 

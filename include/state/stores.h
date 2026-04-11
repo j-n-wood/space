@@ -12,4 +12,6 @@ class Stores
 {
 public:
     uint32_t resources[ResourceType::Count];
+
+    Stores();
 };

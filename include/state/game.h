@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include "state/system.h"
+#include "state/resourceFacility.h"
 
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
@@ -13,10 +14,20 @@ class Loader;
 
 class Game
 {
-    SystemPtr systems[GAME_MAX_SYSTEMS];
 
+    // TODO this state is more UI
     System *currentSystem;
     Location *currentLocation;
+    Facility *currentFacility;
+
+    // game state
+    uint32_t game_time;
+
+    SystemPtr systems[GAME_MAX_SYSTEMS];
+
+    // owning collections of facilities
+    // Facilities orbitals;
+    Bases bases;
 
 public:
     Game();
@@ -31,6 +42,12 @@ public:
         currentLocation = l;
         return *this;
     }
+    inline Facility *getCurrentFacility() const { return currentFacility; }
+    inline Game &setCurrentFacility(Facility *f)
+    {
+        currentFacility = f;
+        return *this;
+    }
 
     // Singleton accessor
     static Game &getInstance()
@@ -38,4 +55,13 @@ public:
         static Game instance;
         return instance;
     }
+
+    // add game state
+    ResourceFacility *createResourceFacility(Location *location);
+
+    // locate game state
+    ResourceFacility *resourceFacilityAt(Location *location);
+
+    // update by one tick
+    void update();
 };
