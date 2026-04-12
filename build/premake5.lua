@@ -240,7 +240,7 @@ if (downloadRaylib) then
             links {"wayland-client", "wayland-cursor", "wayland-egl", "xkbcommon"}
 
         filter "system:macosx"
-            links {"OpenGL.framework", "Cocoa.framework", "IOKit.framework", "CoreFoundation.framework", "CoreAudio.framework", "CoreVideo.framework", "AudioToolbox.framework"}
+            links {"OpenGL.framework", "Cocoa.framework", "IOKit.framework", "CoreFoundation.framework", "CoreAudio.framework", "CoreVideo.framework", "AudioToolbox.framework", "sqlite3"}
 
         filter{}
         
@@ -328,5 +328,8 @@ if (downloadRaylib) then
 
         filter "system:linux"
             links {"pthread", "m", "dl", "rt", "sqlite3"}
+
+        filter "system:macosx"
+            links {"OpenGL.framework", "Cocoa.framework", "IOKit.framework", "CoreFoundation.framework", "CoreAudio.framework", "CoreVideo.framework", "AudioToolbox.framework", "sqlite3"}
 
         filter {}
