@@ -12,9 +12,6 @@ void Resources::render()
 {
     BasePage::render();
 
-    // controls
-    DrawTexturePro(*TextureManager::getInstance().getTexture(TEXTURE_UI_BUTTONS), uiElementSources[UI_CONTROLS], BasePage::sideBarDest, (Vector2){0, 0}, 0.f, WHITE);
-
     // location resources
     if (auto location{Game::getCurrent()->getCurrentLocation()})
     {
