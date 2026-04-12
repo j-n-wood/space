@@ -41,6 +41,9 @@ class SaveGame
     /// Persist store state belonging to a facility.
     int saveStores(Stores *stores, int facilityId);
 
+    /// Persist item definitions
+    int saveItems(Game *game);
+
 public:
     SaveGame();
     ~SaveGame();

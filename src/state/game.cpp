@@ -60,7 +60,7 @@ Orbital *Game::createOrbital(Location *location)
 {
     orbitals.emplace_back(std::make_unique<Orbital>(location));
     auto o = orbitals.back().get();
-    factories.push_back(&o->factory);
+    factories.push_back(o->factory.get());
     return o;
 }
 

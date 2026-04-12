@@ -155,3 +155,52 @@ bool Loader::loadStores()
 
     return true;
 }
+
+bool Loader::loadItems()
+{
+    game->items.clear();
+
+    {
+        SQLiteQuery query(this, "SELECT id, name, description, tool, researched, tech_level, orbital, mass, research_time, research_progress, production_time FROM items ORDER BY id");
+
+        while (query.next())
+        {
+            Item item;
+            item.id = sqlite3_column_int(query, 0);
+            item.name = std::string((char *)sqlite3_column_text(query, 1));
+            item.description = std::string((char *)sqlite3_column_text(query, 2));
+            item.tool = sqlite3_column_int(query, 3) > 0;
+            item.researched = sqlite3_column_int(query, 4) > 0;
+            item.tech_level = sqlite3_column_int(query, 5);
+            item.orbital = sqlite3_column_int(query, 6) > 0;
+            item.mass = sqlite3_column_int(query, 7);
+            item.research_time = sqlite3_column_int(query, 8);
+            item.research_progress = sqlite3_column_int(query, 9);
+            item.production_time = sqlite3_column_int(query, 10);
+            game->items.push_back(item);
+        }
+    }
+
+    auto n_items{game->items.size()};
+
+    {
+        SQLiteQuery query(this, "SELECT item_id, resource_id, amount FROM item_build_requirements");
+        while (query.next())
+        {
+            int item_id = sqlite3_column_int(query, 0);
+            int resource_id = sqlite3_column_int(query, 1);
+            int amount = sqlite3_column_int(query, 2);
+
+            if (item_id < n_items)
+            {
+                game->items[item_id].requirements.emplace_back(BuildRequirement{ResourceType(resource_id), amount});
+            }
+            else
+            {
+                TraceLog(LOG_ERROR, "Invalid item ID", item_id);
+            }
+        }
+    }
+
+    return true;
+}

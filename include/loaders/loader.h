@@ -41,6 +41,9 @@ public:
     /// Load stores (resource inventories) for all facilities.
     bool loadStores();
 
+    /// Load item definitions
+    bool loadItems();
+
 private:
     Location *findLocation(int system_id, int location_id);
 };
@@ -152,6 +155,19 @@ public:
     SQLiteQuery &bind(int index, const std::string &value)
     {
         return bind(index, value.c_str());
+    }
+
+    SQLiteQuery &bind(int index, bool value)
+    {
+        if (!stmt || !valid)
+            return *this;
+
+        if (sqlite3_bind_int(stmt, index, value ? 1 : 0) != SQLITE_OK)
+        {
+            TraceLog(LOG_ERROR, "SQLiteQuery: Failed to bind bool at index %d: %s", index, sqlite3_errmsg(db));
+            valid = false;
+        }
+        return *this;
     }
 
     inline void bind(int &param)

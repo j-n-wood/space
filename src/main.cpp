@@ -34,7 +34,7 @@ void takeDefaultFocus()
 	System *system = game->getCurrentSystem();
 	Location *earth = system->primary->children[2];
 	game->setCurrentLocation(earth);
-	game->setCurrentFacility(game->resourceFacilityAt(earth));
+	game->setCurrentFacility(game->orbitalAt(earth));
 }
 
 int main()

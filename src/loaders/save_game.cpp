@@ -60,9 +60,11 @@ Schema:
 
 CREATE TABLE bodies ( id INTEGER PRIMARY key, system_id INT, primary_id INT, type INT, name text, orbital_radius float, orbital_velocity float, initial_angle float, radius float, color text )
 CREATE TABLE systems ( id INTEGER primary key, name text )
-CREATE TABLE facility ( id int, system_id int, location_id int, type int )
+CREATE TABLE facilities ( id int, system_id int, location_id int, type int )
 CREATE TABLE stores ( facility_id int, resource_id int, amount int )
 CREATE TABLE game ( game_time FLOAT )
+CREATE TABLE items ( id int, name text, description text, tool int, researched int, tech_level int, orbital int, mass int, research_time int, research_progress int, production_time int);
+CREATE TABLE item_build_requirements ( item_id int, resource_id int, amount int);
 */
 
 SaveGame::SaveGame()
@@ -138,6 +140,8 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT);"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT );"
+        "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, tool int, researched int, tech_level int, orbital int, mass int, research_time int, research_progress int, production_time int);"
+        "CREATE TABLE IF NOT EXISTS item_build_requirements ( item_id int, resource_id int, amount int);"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -209,7 +213,12 @@ int SaveGame::saveGame(Game *game)
         }
     }
 
-    return 0; // TODO: Implement full game save logic
+    if (saveItems(game) != 0)
+    {
+        return -10;
+    }
+
+    return 0;
 }
 
 int SaveGame::saveSystem(System *system)
@@ -444,5 +453,52 @@ int SaveGame::saveStores(Stores *stores, int facilityId)
         }
     }
 
+    return 0;
+}
+
+int SaveGame::saveItems(Game *game)
+{
+    int idx{0};
+
+    struct ItemBuildRequirement
+    {
+        int item_id;
+        int resource_id;
+        int amount;
+    };
+
+    std::vector<ItemBuildRequirement> reqs;
+    {
+        SQLiteQuery itemQ(loader, "INSERT INTO items (id, name, description, tool, researched, tech_level, orbital, mass, research_time, research_progress, production_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        for (auto &item : game->items)
+        {
+            sqlite3_reset(itemQ.stmt);
+            sqlite3_clear_bindings(itemQ.stmt);
+            if (!itemQ.bind(1, idx).bind(2, item.name).bind(3, item.description).bind(4, item.tool).bind(5, item.researched).bind(6, item.tech_level).bind(7, item.orbital).bind(8, item.mass).bind(9, item.research_time).bind(10, item.research_progress).bind(11, item.production_time).step("SaveGame: Failed to save item"))
+            {
+                return -15;
+            }
+
+            for (auto &br : item.requirements)
+            {
+                reqs.emplace_back(ItemBuildRequirement{idx, br.resource, br.amount});
+            }
+
+            ++idx;
+        }
+    }
+
+    {
+        SQLiteQuery reqQ(loader, "INSERT INTO item_build_requirements (item_id, resource_id, amount) VALUES (?, ?, ?)");
+        for (auto &br : reqs)
+        {
+            sqlite3_reset(reqQ.stmt);
+            sqlite3_clear_bindings(reqQ.stmt);
+            if (!reqQ.bind(1, br.item_id).bind(2, br.resource_id).bind(3, br.amount).step("SaveGame: Failed to save build req"))
+            {
+                return -16;
+            }
+        }
+    }
     return 0;
 }

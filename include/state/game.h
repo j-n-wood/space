@@ -6,6 +6,7 @@
 #include "state/resourceFacility.h"
 #include "state/orbital.h"
 #include "state/factory.h"
+#include "state/item.h"
 
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
@@ -24,7 +25,6 @@ class Game
     Systems systems;
 
     // owning collections of facilities
-
     Bases bases;
     Orbitals orbitals;
 
@@ -37,6 +37,9 @@ class Game
 public:
     // game state
     float game_time;
+
+    // item definitions - array of instances as not passed around
+    std::vector<Item> items;
 
     Game();
     ~Game();

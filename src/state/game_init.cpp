@@ -33,6 +33,12 @@ bool Game::initialise(Loader *loader)
         return false;
     }
 
+    if (!loader->loadItems())
+    {
+        TraceLog(LOG_ERROR, "Failed to load items");
+        return false;
+    }
+
     currentSystem = systems[0].get();
 
     return true;

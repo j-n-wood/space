@@ -410,3 +410,4 @@ Makefile
 # temp files
 temp
 reference
+resources/quicksave.db

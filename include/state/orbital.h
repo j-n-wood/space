@@ -7,8 +7,6 @@ class Orbital : public Facility
 {
 
 public:
-    Factory factory;
-
     explicit Orbital(Location *l);
 
     virtual void update() override;
