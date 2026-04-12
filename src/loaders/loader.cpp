@@ -1,10 +1,15 @@
 #include <stdlib.h>
 
 #include "loaders/loader.h"
+#include "loaders/load_system.h"
 #include "raylib.h"
 #include "state/game.h"
+#include "state/location.h"
+#include "state/resourceFacility.h"
+#include "state/orbital.h"
+#include "state/resources.h"
 
-Loader::Loader(const char *dbPath)
+Loader::Loader(const char *dbPath) : game(nullptr)
 {
     if (sqlite3_open(dbPath, &db) != SQLITE_OK)
     {
@@ -12,8 +17,6 @@ Loader::Loader(const char *dbPath)
         db = nullptr;
         TraceLog(LOG_ERROR, "Failed to open database: %s", sqlite3_errmsg(db));
     }
-
-    game = &Game::getInstance();
 }
 
 Loader::~Loader()
@@ -23,4 +26,132 @@ Loader::~Loader()
         sqlite3_close(db);
         db = nullptr;
     }
+}
+
+bool Loader::loadGame()
+{
+    SQLiteQuery query(this, "SELECT game_time FROM game LIMIT 1");
+
+    if (query.next())
+    {
+        game->game_time = sqlite3_column_double(query, 0);
+        return true;
+    }
+
+    TraceLog(LOG_ERROR, "Failed to load game state");
+    return false;
+}
+
+Location *Loader::findLocation(int system_id, int location_id)
+{
+    for (auto &sys : game->allSystems())
+    {
+        if (sys->id == system_id)
+        {
+            for (auto &loc : sys->locations)
+            {
+                if (loc->id == location_id)
+                {
+                    return loc.get();
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+
+bool Loader::loadFacilities()
+{
+    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks FROM facilities ORDER BY id");
+
+    while (query.next())
+    {
+        int id = sqlite3_column_int(query, 0);
+        int system_id = sqlite3_column_int(query, 1);
+        int location_id = sqlite3_column_int(query, 2);
+        int type = sqlite3_column_int(query, 3);
+        int num_derricks = sqlite3_column_int(query, 4);
+
+        Location *loc = findLocation(system_id, location_id);
+        if (!loc)
+        {
+            TraceLog(LOG_ERROR, "Failed to find location %d in system %d for facility %d", location_id, system_id, id);
+            return false;
+        }
+
+        Facility *fac = nullptr;
+        if (type == 0) // SLOC_SURFACE
+        {
+            auto rf = game->createResourceFacility(loc);
+            rf->num_derricks = num_derricks;
+            fac = rf;
+        }
+        else if (type == 1) // SLOC_ORBIT
+        {
+            fac = game->createOrbital(loc);
+        }
+        else
+        {
+            TraceLog(LOG_ERROR, "Unknown facility type %d for facility %d", type, id);
+            return false;
+        }
+
+        if (fac)
+        {
+            fac->id = id;
+        }
+    }
+
+    return true;
+}
+
+bool Loader::loadStores()
+{
+    SQLiteQuery query(this, "SELECT facility_id, resource_id, amount FROM stores");
+
+    while (query.next())
+    {
+        int facility_id = sqlite3_column_int(query, 0);
+        int resource_id = sqlite3_column_int(query, 1);
+        int amount = sqlite3_column_int(query, 2);
+
+        Facility *fac = nullptr;
+        // Find facility by id
+        for (auto &base : game->allBases())
+        {
+            if (base->id == facility_id)
+            {
+                fac = base.get();
+                break;
+            }
+        }
+        if (!fac)
+        {
+            for (auto &orb : game->allOrbitals())
+            {
+                if (orb->id == facility_id)
+                {
+                    fac = orb.get();
+                    break;
+                }
+            }
+        }
+
+        if (!fac)
+        {
+            TraceLog(LOG_ERROR, "Failed to find facility with id %d for stores", facility_id);
+            return false;
+        }
+
+        if (resource_id >= 0 && resource_id < ResourceType::Count)
+        {
+            fac->stores.resources[resource_id] = amount;
+        }
+        else
+        {
+            TraceLog(LOG_ERROR, "Invalid resource_id %d for facility %d", resource_id, facility_id);
+        }
+    }
+
+    return true;
 }

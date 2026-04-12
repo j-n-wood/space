@@ -6,7 +6,7 @@ void FactoryView::activate()
 {
     factory = nullptr;
     // set current stores, if any
-    auto f = Game::getInstance().getCurrentFacility();
+    auto f = Game::getCurrent()->getCurrentFacility();
     if (f)
     {
         factory = f->factory;

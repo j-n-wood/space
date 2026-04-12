@@ -1,6 +1,10 @@
 #include "state/game.h"
 
-Game::Game() : currentSystem(nullptr), currentLocation(nullptr), currentFacility(nullptr), game_time(0)
+std::unique_ptr<Game> Game::current;
+
+const float MAX_TIMESTEP = 1.0f;
+
+Game::Game() : currentSystem(nullptr), currentLocation(nullptr), currentFacility(nullptr), game_time(0.0f)
 {
 }
 
@@ -74,13 +78,36 @@ Orbital *Game::orbitalAt(Location *location)
     return nullptr;
 }
 
-void Game::update()
+void Game::update(float delta)
+{
+    // add to time, if ticks over one second call advanceTick
+    if (delta > MAX_TIMESTEP)
+    {
+        delta = MAX_TIMESTEP;
+    }
+
+    int prior{static_cast<int>(game_time)};
+    game_time += delta;
+
+    // start with updating all systems - could only update visible ones
+    for (auto &system : systems)
+    {
+        system->update(game_time);
+    }
+
+    int difference = static_cast<int>(game_time) - prior;
+    while (difference > 0)
+    {
+        advanceTick();
+        --difference;
+    }
+}
+
+void Game::advanceTick()
 {
     // update all facilities
     for (auto &base : bases)
     {
         base->update();
     }
-
-    ++game_time;
 }

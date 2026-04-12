@@ -11,6 +11,7 @@ extern "C"
 }
 
 class Game;
+class Location;
 
 /// Lightweight SQLite save loader.
 /// Wraps a SQLite database handle and provides the entry point for load operations.
@@ -26,8 +27,22 @@ public:
 
     sqlite3 *db;
 
+    void setGame(Game *g) { game = g; }
+
     /// Load all systems from the opened database into the current game.
     bool loadSystems();
+
+    /// Load game state (e.g., game_time) from the database.
+    bool loadGame();
+
+    /// Load all facilities (bases and orbitals) and attach them to their locations.
+    bool loadFacilities();
+
+    /// Load stores (resource inventories) for all facilities.
+    bool loadStores();
+
+private:
+    Location *findLocation(int system_id, int location_id);
 };
 
 /// Scoped SQLite statement wrapper.

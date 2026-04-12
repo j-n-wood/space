@@ -6,20 +6,24 @@
 #include "pages/pages.h"
 #include "state/game.h"
 
-extern "C" {
-    #include "raylib.h"
-    #include "raygui/raygui.h"
+extern "C"
+{
+#include "raylib.h"
+#include "raygui/raygui.h"
 }
 
-void SystemView::activate() {
+void SystemView::activate()
+{
     // attach to current system
-    System* currentSystem = Game::getInstance().getCurrentSystem();
-    if (currentSystem) {
+    System *currentSystem = Game::getCurrent()->getCurrentSystem();
+    if (currentSystem)
+    {
         setSystem(currentSystem);
     }
 }
 
-void SystemView::render() {    
+void SystemView::render()
+{
     BasePage::render();
 
     DrawTexturePro(*TextureManager::getInstance().getTexture(TEXTURE_UI_BUTTONS), uiElementSources[UI_CONTROLS], BasePage::sideBarDest, (Vector2){0, 0}, 0.f, WHITE);
@@ -29,16 +33,19 @@ void SystemView::render() {
 
     UITransparentButtonState transparentButtonState;
     // EC button
-    if (GuiButton((Rectangle){ 0, 1024 - 17*4, 51*4, 17 * 4 }, "")) {
-       PageManager::getInstance().switchToPage(PAGE_EARTH_CITY);
+    if (GuiButton((Rectangle){0, 1024 - 17 * 4, 51 * 4, 17 * 4}, ""))
+    {
+        PageManager::getInstance().switchToPage(PAGE_EARTH_CITY);
     }
 }
 
-void SystemView::input() {
+void SystemView::input()
+{
     Vector2 mouseWheel = GetMouseWheelMoveV();
     if (mouseWheel.y != 0)
     {
         orrery->scale += mouseWheel.y * 0.1f;
-        if (orrery->scale < 0.1f) orrery->scale = 0.1f;
+        if (orrery->scale < 0.1f)
+            orrery->scale = 0.1f;
     }
-} 
+}

@@ -18,7 +18,7 @@ void StoresView::render()
     DrawTexturePro(*TextureManager::getInstance().getTexture(TEXTURE_UI_BUTTONS), uiElementSources[UI_CONTROLS], BasePage::sideBarDest, (Vector2){0, 0}, 0.f, WHITE);
 
     // location resources
-    if (auto location{Game::getInstance().getCurrentLocation()})
+    if (auto location{Game::getCurrent()->getCurrentLocation()})
     {
         // what are the current stores?
         listResources();
@@ -29,16 +29,18 @@ void StoresView::activate()
 {
     stores = nullptr;
 
-    auto l{Game::getInstance().getCurrentLocation()};
+    auto game{Game::getCurrent()};
+
+    auto l{game->getCurrentLocation()};
 
     Facility *f{nullptr};
     switch (sublocationType)
     {
     case SublocationType::SLOC_ORBIT:
-        f = Game::getInstance().orbitalAt(l);
+        f = game->orbitalAt(l);
         break;
     case SublocationType::SLOC_SURFACE:
-        f = Game::getInstance().resourceFacilityAt(l);
+        f = game->resourceFacilityAt(l);
         break;
     }
 

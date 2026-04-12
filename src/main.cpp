@@ -18,15 +18,24 @@ extern "C"
 }
 
 #include "loaders/loader.h"
-#include "pages/system_view.h"
-#include "pages/earth_city.h"
 #include "assets/textures.h"
+#include "pages/pages.h"
 
 #include "wrappers/texture.h"
 #include "pages/pages.h"
 #include "pages/overlay.h"
 #include "state/game.h"
 #include "state/resourceFacility.h"
+#include "loaders/save_game.h"
+
+void takeDefaultFocus()
+{
+	Game *game = Game::getCurrent();
+	System *system = game->getCurrentSystem();
+	Location *earth = system->primary->children[2];
+	game->setCurrentLocation(earth);
+	game->setCurrentFacility(game->resourceFacilityAt(earth));
+}
 
 int main()
 {
@@ -42,25 +51,33 @@ int main()
 	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
 	SearchAndSetResourceDir("resources");
 
-	Loader loader("initial.db");
-	if (!loader.isValid())
-	{
-		TraceLog(LOG_ERROR, "Failed to create loader");
-		return 1;
-	}
+	Game *game = Game::createCurrent();
 
 	BasePage::setWindowSize(uiWidth, uiHeight);
 
 	{
-		Game &game = Game::getInstance();
-		game.initialise(&loader);
-		System *system = game.getCurrentSystem();
+		{
+			Loader loader("initial.db");
+			if (!loader.isValid())
+			{
+				TraceLog(LOG_ERROR, "Failed to create loader");
+				return 1;
+			}
+
+			if (!game->initialise(&loader))
+			{
+				TraceLog(LOG_ERROR, "Failed to initialise game data");
+				return 2;
+			}
+		}
+
+		System *system = game->getCurrentSystem();
 		Location *earth = system->primary->children[2];
-		game.setCurrentLocation(earth);
+		ResourceFacility *rf{game->createResourceFacility(earth)};
+		rf->num_derricks = 1;
+		Orbital *of{game->createOrbital(earth)};
 
 		bool advanceTime = false;
-		float worldTime = 0.f;
-		float tickTime = 0.f;
 		float lastTime = GetTime();
 
 		PageManager &pageManager = PageManager::getInstance();
@@ -68,13 +85,8 @@ int main()
 
 		Overlay &overlay = Overlay::getInstance(); // create the overlay instance, which will render on top of all pages
 
-		GuiEnableTooltip(); // enable tooltips for raygui
-
-		ResourceFacility *rf{game.createResourceFacility(earth)};
-		game.setCurrentFacility(rf);
-		rf->num_derricks = 1;
-
-		Orbital *of{game.createOrbital(earth)};
+		// set game UI state to focus on default selection
+		takeDefaultFocus();
 
 		// game loop
 		while (!WindowShouldClose()) // run the loop until the user presses ESCAPE or presses the Close button on the window
@@ -110,21 +122,46 @@ int main()
 				pageManager.switchToPage(PAGE_EARTH_CITY);
 			}
 
+			// test save/load
+			if (IsKeyPressed(KEY_F5))
+			{
+				// save to quicksave.db
+				SaveGame savegame;
+				if (savegame.save("./quicksave.db") != 0)
+				{
+					TraceLog(LOG_ERROR, "Quicksave failed");
+				}
+			}
+
+			if (IsKeyPressed(KEY_F8))
+			{
+				// load from quicksave.db into a new gameState
+				std::unique_ptr<Game> tempGame = std::make_unique<Game>();
+				Loader quickload("./quicksave.db");
+				if (tempGame->initialise(&quickload))
+				{
+					// reset current values
+					game = Game::setCurrent(tempGame);
+					takeDefaultFocus();
+					system = game->getCurrentSystem();
+
+					// force UI pages to reset
+					PageManager::getInstance().getCurrentPage()->activate();
+				}
+				else
+				{
+					// bork!
+					TraceLog(LOG_ERROR, "Quickload failed");
+				}
+			}
+
 			float currentTime = GetTime();
 			float deltaTime = currentTime - lastTime;
 			lastTime = currentTime;
 			if (advanceTime)
 			{
-				worldTime += deltaTime;
-				system->update(worldTime);
-
-				// every second of world time, update game state by one tick
-				tickTime += deltaTime;
-				if (tickTime >= 1.0f)
-				{
-					game.update();
-					tickTime -= 1.0f;
-				}
+				game->update(deltaTime);
+				// system->update(worldTime); // worldTime used for system animation - save if we want to keep consistent
 			}
 		}
 

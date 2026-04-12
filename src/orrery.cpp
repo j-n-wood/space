@@ -4,7 +4,7 @@
 
 OrreryPtr createOrrery(Vector2 center, float scale)
 {
-    Orrery* orrery = new Orrery();
+    Orrery *orrery = new Orrery();
     orrery->center = center;
     orrery->scale = scale;
     orrery->system = NULL;
@@ -14,7 +14,8 @@ OrreryPtr createOrrery(Vector2 center, float scale)
 
 void Orrery::render()
 {
-    if (this->  system == NULL) return;    
+    if (this->system == NULL)
+        return;
     // batch lines
     for (int i = 0; i < system->numPlanets; i++)
     {
@@ -24,16 +25,15 @@ void Orrery::render()
     for (int i = 0; i < system->numPlanets; i++)
     {
         int parent_id = system->planetPrimaryIndexes[i];
-        Vector2 parent_pos = { 0.0f, 0.0f };
+        Vector2 parent_pos = {0.0f, 0.0f};
         if (parent_id > 0)
         {
             parent_pos.x = system->planetPositions[parent_id].x;
             parent_pos.y = system->planetPositions[parent_id].y;
         }
         Vector2 planet_pos = {
-            this->center.x + ( parent_pos.x + system->planetPositions[i].x ) * this->scale,
-            this->center.y + ( parent_pos.y + system->planetPositions[i].y ) * this->scale
-        };
+            this->center.x + (parent_pos.x + system->planetPositions[i].x) * this->scale,
+            this->center.y + (parent_pos.y + system->planetPositions[i].y) * this->scale};
         DrawCircleV(planet_pos, system->planetSizes[i] * this->scale, system->planetColors[i]);
     }
 }

@@ -31,9 +31,12 @@ class Game
     // non-owning collection of factories
     std::vector<Factory *> factories;
 
+    // current game instance
+    static std::unique_ptr<Game> current;
+
 public:
     // game state
-    uint32_t game_time;
+    float game_time;
 
     Game();
     ~Game();
@@ -54,11 +57,22 @@ public:
         return *this;
     }
 
-    // Singleton accessor
-    static Game &getInstance()
+    // Singleton accessors
+    static Game *getCurrent()
     {
-        static Game instance;
-        return instance;
+        return current.get();
+    }
+
+    static Game *setCurrent(std::unique_ptr<Game> &newGame)
+    {
+        Game::current = std::move(newGame);
+        return current.get();
+    }
+
+    static Game *createCurrent()
+    {
+        Game::current = std::make_unique<Game>();
+        return current.get();
     }
 
     // add game state
@@ -74,6 +88,7 @@ public:
     ResourceFacility *resourceFacilityAt(Location *location);
     Orbital *orbitalAt(Location *location);
 
-    // update by one tick
-    void update();
+    // update by delta
+    void update(float delta);
+    void advanceTick();
 };

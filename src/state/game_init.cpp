@@ -7,18 +7,29 @@ bool Game::initialise(Loader *loader)
 
     TraceLog(LOG_INFO, "Initialising game");
 
-    /*
-    this->systems[0] = createSystem(false);
-    if (!loadSystem(loader, 1, systems[0].get()))
-    {
-        TraceLog(LOG_ERROR, "Failed to load system");
-        return false;
-    }
-    currentSystem = systems[0].get();
-    */
+    loader->setGame(this);
+
     if (!loader->loadSystems())
     {
         TraceLog(LOG_ERROR, "Failed to load systems");
+        return false;
+    }
+
+    if (!loader->loadGame())
+    {
+        TraceLog(LOG_ERROR, "Failed to load game state");
+        return false;
+    }
+
+    if (!loader->loadFacilities())
+    {
+        TraceLog(LOG_ERROR, "Failed to load facilities");
+        return false;
+    }
+
+    if (!loader->loadStores())
+    {
+        TraceLog(LOG_ERROR, "Failed to load stores");
         return false;
     }
 

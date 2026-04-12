@@ -79,9 +79,6 @@ std::string queryString(Loader *loader, const char *sql, int param)
 bool loadSystem(Loader *loader, int system_id, System *system)
 {
 
-    // system name
-    system->name = queryString(loader, "SELECT name FROM systems WHERE id = ?", system_id);
-
     // get ID of primary body (e.g. the star) for this system
     int primary_id = getPrimaryBodyId(loader, system_id);
     if (primary_id == -1)
@@ -209,13 +206,15 @@ bool loadSystem(Loader *loader, int system_id, System *system)
 bool Loader::loadSystems()
 {
     // query systems table and populate Game instance
-    SQLiteQuery query(this, "SELECT id, name FROM systems ORDER BY id");
-
-    while (query.next())
     {
-        int id = sqlite3_column_int(query.stmt, 0);
-        const char *name = (const char *)sqlite3_column_text(query.stmt, 1);
-        auto system = game->createSystem(id, name);
+        SQLiteQuery query(this, "SELECT id, name FROM systems ORDER BY id");
+
+        while (query.next())
+        {
+            int id = sqlite3_column_int(query.stmt, 0);
+            const char *name = (const char *)sqlite3_column_text(query.stmt, 1);
+            auto system = game->createSystem(id, name);
+        }
     }
 
     // now load the system content

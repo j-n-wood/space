@@ -62,7 +62,7 @@ CREATE TABLE bodies ( id INTEGER PRIMARY key, system_id INT, primary_id INT, typ
 CREATE TABLE systems ( id INTEGER primary key, name text )
 CREATE TABLE facility ( id int, system_id int, location_id int, type int )
 CREATE TABLE stores ( facility_id int, resource_id int, amount int )
-CREATE TABLE game ( game_time int )
+CREATE TABLE game ( game_time FLOAT )
 */
 
 SaveGame::SaveGame()
@@ -86,6 +86,17 @@ int SaveGame::save(const char *filename)
         return -1;
     }
 
+    // clobber existing file
+    if (FileExists(filename))
+    {
+        TraceLog(LOG_WARNING, "SaveGame: Removing existing file");
+        if (remove(filename) != 0)
+        {
+            // failed to remove
+            TraceLog(LOG_ERROR, "SaveGame: Failed to remove existing file");
+        }
+    }
+
     delete loader;
     loader = new Loader(filename);
     if (!loader->isValid())
@@ -102,11 +113,8 @@ int SaveGame::save(const char *filename)
         return initResult;
     }
 
-    // Get the game instance
-    Game &game = Game::getInstance();
-
     // Save game state
-    int result = saveGame(&game);
+    int result = saveGame(Game::getCurrent());
     if (result != 0)
     {
         return result;
@@ -127,9 +135,9 @@ int SaveGame::initialiseSaveFile()
         "BEGIN TRANSACTION;"
         "CREATE TABLE IF NOT EXISTS bodies ( id INTEGER, system_id INT, primary_id INT, type INT, name TEXT, orbital_radius FLOAT, orbital_velocity FLOAT, initial_angle FLOAT, radius FLOAT, color TEXT );"
         "CREATE TABLE IF NOT EXISTS systems ( id INTEGER, name TEXT );"
-        "CREATE TABLE IF NOT EXISTS facility ( id INT, system_id INT, location_id INT, type INT );"
+        "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT);"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
-        "CREATE TABLE IF NOT EXISTS game ( game_time INT );"
+        "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT );"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -160,7 +168,7 @@ int SaveGame::saveGame(Game *game)
 
     ScopedSqliteError errorMessage;
     char sql[256];
-    const char *clearSql = "DELETE FROM game; DELETE FROM stores; DELETE FROM facility; DELETE FROM bodies; DELETE FROM systems;";
+    const char *clearSql = "DELETE FROM game; DELETE FROM stores; DELETE FROM facilities; DELETE FROM bodies; DELETE FROM systems;";
     int rc = sqlite3_exec(loader->db, clearSql, nullptr, nullptr, errorMessage);
     if (rc != SQLITE_OK)
     {
@@ -168,7 +176,7 @@ int SaveGame::saveGame(Game *game)
         return -5;
     }
 
-    std::snprintf(sql, sizeof(sql), "INSERT INTO game (game_time) VALUES (%u);", game->game_time);
+    std::snprintf(sql, sizeof(sql), "INSERT INTO game (game_time) VALUES (%f);", game->game_time);
     rc = sqlite3_exec(loader->db, sql, nullptr, nullptr, errorMessage);
     if (rc != SQLITE_OK)
     {
@@ -336,7 +344,7 @@ int SaveGame::saveBase(ResourceFacility *rf, int facilityId)
         return -8;
     }
 
-    SQLiteQuery facilityQuery(loader, "INSERT INTO facility (id, system_id, location_id, type) VALUES (?, ?, ?, ?);");
+    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks) VALUES (?, ?, ?, ?, ?);");
     if (!facilityQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare facility insert for base");
@@ -347,6 +355,7 @@ int SaveGame::saveBase(ResourceFacility *rf, int facilityId)
              .bind(2, rf->location->system->id)
              .bind(3, rf->location->id)
              .bind(4, SLOC_SURFACE)
+             .bind(5, (int)rf->num_derricks)
              .step("SaveGame: Failed to execute facility insert for base"))
     {
         return -14;
@@ -375,7 +384,7 @@ int SaveGame::saveOrbital(Orbital *orbital, int facilityId)
         return -8;
     }
 
-    SQLiteQuery facilityQuery(loader, "INSERT INTO facility (id, system_id, location_id, type) VALUES (?, ?, ?, ?);");
+    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type) VALUES (?, ?, ?, ?);");
     if (!facilityQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare facility insert for orbital");

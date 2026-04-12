@@ -16,7 +16,7 @@ void Resources::render()
     DrawTexturePro(*TextureManager::getInstance().getTexture(TEXTURE_UI_BUTTONS), uiElementSources[UI_CONTROLS], BasePage::sideBarDest, (Vector2){0, 0}, 0.f, WHITE);
 
     // location resources
-    if (auto location{Game::getInstance().getCurrentLocation()})
+    if (auto location{Game::getCurrent()->getCurrentLocation()})
     {
         listResources(location);
     }
@@ -24,8 +24,8 @@ void Resources::render()
 
 void Resources::activate()
 {
-    auto &game{Game::getInstance()};
-    facility = game.resourceFacilityAt(game.getCurrentLocation());
+    auto game{Game::getCurrent()};
+    facility = game->resourceFacilityAt(game->getCurrentLocation());
 }
 
 void Resources::input()
