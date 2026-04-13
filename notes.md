@@ -54,6 +54,20 @@ If ASan doesn't give you enough info, use Valgrind. On Ubuntu:
 
 Valgrind will tell you if the "double free" is actually happening inside libsqlite3.so (which usually means you didn't finalize a statement) or in your own code.
 
+## Macos
+
+```shell
+brew install premake
+
+cd build
+
+premake5 gmake
+
+cd ..
+
+make
+```
+
 ## Image processing
 
 ### Magenta -> transparent
