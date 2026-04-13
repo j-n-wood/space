@@ -2,6 +2,7 @@
 
 enum ResourceType
 {
+    Unknown = 0,
     Iron = 1,
     Titanium = 2,
     Aluminium = 3,

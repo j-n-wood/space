@@ -27,7 +27,6 @@ void StoresView::activate()
     stores = nullptr;
 
     auto game{Game::getCurrent()};
-
     auto l{game->getCurrentLocation()};
 
     Facility *f{nullptr};

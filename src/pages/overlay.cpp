@@ -29,6 +29,16 @@ int Overlay::renderButton(const Rectangle &buttonRect, const char *buttonText, c
     return GuiButton(buttonRect, buttonText);
 }
 
+// render a button with a hover callback if should be in hover state
+int Overlay::renderButtonHover(const Rectangle &buttonRect, const char *buttonText, const Color &color, onHover hover, void *state)
+{
+    if (CheckCollisionPointRec(GetMousePosition(), buttonRect))
+    {
+        hover(state);
+    }
+    return GuiButton(buttonRect, buttonText);
+}
+
 void Overlay::render()
 {
     // common status indicators, hover text, etc. that should be drawn on top of all pages can be rendered here
