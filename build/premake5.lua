@@ -140,6 +140,9 @@ workspace (workspaceName)
     platforms { "x64", "x86", "ARM64"}
 
     defaultplatform ("x64")
+    
+    filter "system:linux"        
+    filter ""    
 
     filter "configurations:Debug"
         defines { "DEBUG" }
@@ -186,9 +189,12 @@ if (downloadRaylib) then
             debugdir "$(SolutionDir)"
 
         filter {"action:gmake*"} -- Uncoment if you need to force StaticLib
---          buildoptions { "-static" }
-            buildoptions { "-fdiagnostics-absolute-paths" }
+--          buildoptions { "-static" }            
         filter{}
+
+        filter "toolset:clang"
+            buildoptions { "-fdiagnostics-absolute-paths" }
+        filter {}
 
         vpaths 
         {
@@ -199,7 +205,10 @@ if (downloadRaylib) then
         }
         
         files {"../src/**.cpp", "../src/**.h", "../src/**.hpp", "../include/**.h", "../include/**.hpp"}
-        
+                
+        local found_files = os.matchfiles("../src/**.cpp")
+        print("Found " .. #found_files .. " source files")
+
         filter {"system:windows", "action:vs*"}
             files {"../src/*.rc", "../src/*.ico"}
             files {"../resources/**"}
@@ -313,10 +322,10 @@ if (downloadRaylib) then
 
         language "C++"
         cppdialect "C++20"
-
-        filter {"action:gmake*"}
+        
+        filter "toolset:clang"
             buildoptions { "-fdiagnostics-absolute-paths" }
-        filter{}
+        filter {}
 
         files {"../src/**.cpp", "../tests/**.cpp"}
         removefiles {"../src/main.cpp"}
