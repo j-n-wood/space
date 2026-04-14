@@ -19,5 +19,5 @@ public:
 
     void activate() override;
     void input() override;
-    void render();
+    void render() override;
 };

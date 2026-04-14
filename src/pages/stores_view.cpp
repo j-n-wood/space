@@ -38,6 +38,8 @@ void StoresView::activate()
     case SublocationType::SLOC_SURFACE:
         f = game->resourceFacilityAt(l);
         break;
+    default:
+        break;
     }
 
     if (f)
