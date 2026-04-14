@@ -318,12 +318,8 @@ if (downloadRaylib) then
             buildoptions { "-fdiagnostics-absolute-paths" }
         filter{}
 
-        files {"../src/**.cpp"}
-
-        filter {"files:../tests/unity.c"}
-            compileas "C"
-
-        filter{}
+        files {"../src/**.cpp", "../tests/**.cpp"}
+        removefiles {"../src/main.cpp"}
 
         includedirs { "../tests", "../src", "../include", raylib_dir .. "/src" }
 
