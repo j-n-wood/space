@@ -44,10 +44,10 @@ void Overlay::render()
     // common status indicators, hover text, etc. that should be drawn on top of all pages can be rendered here
     // renders after the current page is rendered, so will appear on top of page content
 
-    auto game{Game::getCurrent()};
+    auto &pm{PageManager::getInstance()};
 
-    DrawText(game->getCurrentSystem()->name.c_str(), 10, 10, 20, WHITE);
-    if (auto location = game->getCurrentLocation())
+    DrawText(pm.viewState.getCurrentSystem()->name.c_str(), 10, 10, 20, WHITE);
+    if (auto location = pm.viewState.getCurrentLocation())
     {
         DrawText(location->name.c_str(), 100, 10, 20, WHITE);
     }
@@ -60,6 +60,8 @@ void Overlay::render()
     }
 
     // time
+    auto game{Game::getCurrent()};
+
     char buf[256];
     sprintf(buf, "%.2f", game->game_time);
     DrawText(buf, BasePage::timeDest.x, BasePage::timeDest.y, 20, WHITE);

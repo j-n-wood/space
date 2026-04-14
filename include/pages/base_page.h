@@ -4,6 +4,7 @@
 
 #include "assets/textures.h" // easy access to predefined texture assets
 #include "pages/pages.h"     // for page background sources
+#include "pages/view_state.h"
 
 extern "C"
 {
@@ -50,7 +51,7 @@ public:
 
     BasePage();
     virtual ~BasePage() {}
-    virtual void activate(); // on change to this page, set any required state
+    virtual void activate(ViewState &viewState); // on change to this page, set any required state
     virtual void render();
     virtual void input();
 

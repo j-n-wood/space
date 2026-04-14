@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_page.h"
+#include "view_state.h"
 
 typedef enum
 {
@@ -35,7 +36,11 @@ class PageManager
     // array of page implementations
     BasePage *pages[PAGE_COUNT];
     BasePage *currentPage; // currently active page
+
 public:
+    // UI state
+    ViewState viewState;
+
     PageManager();
     ~PageManager();
 

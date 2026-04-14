@@ -4,6 +4,7 @@
 #include "assets/ui_elements.h"
 #include "state/game.h"
 #include "state/stores.h"
+#include "pages/base_page.h"
 
 extern "C"
 {
@@ -15,19 +16,19 @@ void StoresView::render()
     BasePage::render();
 
     // location resources
-    if (auto location{Game::getCurrent()->getCurrentLocation()})
+    if (auto location{PageManager::getInstance().viewState.getCurrentLocation()})
     {
         // what are the current stores?
         listResources();
     }
 }
 
-void StoresView::activate()
+void StoresView::activate(ViewState &viewState)
 {
     stores = nullptr;
 
     auto game{Game::getCurrent()};
-    auto l{game->getCurrentLocation()};
+    auto l{viewState.getCurrentLocation()};
 
     Facility *f{nullptr};
     switch (sublocationType)

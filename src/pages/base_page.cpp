@@ -34,7 +34,7 @@ BasePage::BasePage() : backgroundTexture(nullptr), backgroundSource({0, 0, 0, 0}
     backgroundTexture = TextureManager::getInstance().getTexture(TEXTURE_UI); // example, could set a default background here if desired
 }
 
-void BasePage::activate()
+void BasePage::activate(ViewState &viewState)
 {
     // default implementation does nothing, override in derived classes as needed
 }

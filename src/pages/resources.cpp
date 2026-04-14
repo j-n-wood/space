@@ -13,16 +13,14 @@ void Resources::render()
     BasePage::render();
 
     // location resources
-    if (auto location{Game::getCurrent()->getCurrentLocation()})
-    {
-        listResources(location);
-    }
+    listResources();
 }
 
-void Resources::activate()
+void Resources::activate(ViewState &viewState)
 {
     auto game{Game::getCurrent()};
-    facility = game->resourceFacilityAt(game->getCurrentLocation());
+    location = viewState.getCurrentLocation();
+    facility = game->resourceFacilityAt(location);
 }
 
 void Resources::input()
@@ -30,8 +28,12 @@ void Resources::input()
     // no input handling for now, but could add some interactive elements here later
 }
 
-void Resources::listResources(const Location *location)
+void Resources::listResources()
 {
+    if (!location)
+    {
+        return;
+    }
     Vector2 cursor{400, 64};
 
     // iterate available resources at location

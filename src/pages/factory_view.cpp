@@ -2,13 +2,14 @@
 #include "state/game.h"
 #include "assets/ui_elements.h"
 #include "pages/overlay.h"
+#include "pages/pages.h"
 #include <string>
 
-void FactoryView::activate()
+void FactoryView::activate(ViewState &viewState)
 {
     factory = nullptr;
     // set current stores, if any
-    auto f = Game::getCurrent()->getCurrentFacility();
+    auto f = viewState.getCurrentFacility();
     if (f)
     {
         factory = f->factory.get();

@@ -12,11 +12,10 @@ extern "C"
 #include "raygui/raygui.h"
 }
 
-void SystemView::activate()
+void SystemView::activate(ViewState &viewState)
 {
     // attach to current system
-    System *currentSystem = Game::getCurrent()->getCurrentSystem();
-    if (currentSystem)
+    if (System *currentSystem = PageManager::getInstance().viewState.getCurrentSystem())
     {
         setSystem(currentSystem);
     }
