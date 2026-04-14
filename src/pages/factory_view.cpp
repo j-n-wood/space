@@ -24,6 +24,8 @@ struct hoverState
 {
     Factory *factory;
     Item *item;
+
+    explicit hoverState(Factory *f) : factory{f}, item{nullptr} {}
 };
 
 void renderPlanHover(void *state)
@@ -62,7 +64,7 @@ void FactoryView::render()
     auto game{Game::getCurrent()};
     int y = 100;
     auto &overlay{Overlay::getInstance()};
-    hoverState hoverState{factory : factory};
+    hoverState hoverState{factory};
     for (auto &item : game->items)
     {
         if (item.researched && factory->canBuild(item.id))
