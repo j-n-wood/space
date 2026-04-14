@@ -7,6 +7,7 @@ class ResourceFacility;
 class Resources : public BasePage
 {
     ResourceFacility *facility;
+    Location *location;
 
 public:
     Resources() : facility{nullptr}
@@ -17,9 +18,9 @@ public:
     }
     ~Resources() {}
 
-    void activate() override;
+    void activate(ViewState &viewState) override;
     void input() override;
     void render() override;
 
-    void listResources(const Location *location);
+    void listResources();
 };

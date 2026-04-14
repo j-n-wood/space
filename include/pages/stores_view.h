@@ -19,7 +19,7 @@ public:
     }
     ~StoresView() {}
 
-    void activate() override;
+    void activate(ViewState &viewState) override;
     void input() override;
     void render() override;
 

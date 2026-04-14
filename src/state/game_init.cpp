@@ -39,7 +39,5 @@ bool Game::initialise(Loader *loader)
         return false;
     }
 
-    currentSystem = systems[0].get();
-
     return true;
 }

@@ -15,12 +15,6 @@ class Loader;
 
 class Game
 {
-
-    // TODO this state is more UI
-    System *currentSystem;
-    Location *currentLocation;
-    Facility *currentFacility;
-
     // owning collection of systems
     Systems systems;
 
@@ -45,20 +39,6 @@ public:
     ~Game();
 
     bool initialise(Loader *loader);
-
-    System *getCurrentSystem() const { return currentSystem; }
-    inline Location *getCurrentLocation() const { return currentLocation; }
-    inline Game &setCurrentLocation(Location *l)
-    {
-        currentLocation = l;
-        return *this;
-    }
-    inline Facility *getCurrentFacility() const { return currentFacility; }
-    inline Game &setCurrentFacility(Facility *f)
-    {
-        currentFacility = f;
-        return *this;
-    }
 
     // Singleton accessors
     static Game *getCurrent()

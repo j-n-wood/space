@@ -4,7 +4,7 @@ std::unique_ptr<Game> Game::current;
 
 const float MAX_TIMESTEP = 1.0f;
 
-Game::Game() : currentSystem(nullptr), currentLocation(nullptr), currentFacility(nullptr), game_time(0.0f)
+Game::Game() : game_time(0.0f)
 {
 }
 

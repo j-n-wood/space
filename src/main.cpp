@@ -30,11 +30,22 @@ extern "C"
 
 void takeDefaultFocus()
 {
+	auto &pm{PageManager::getInstance()};
 	Game *game = Game::getCurrent();
-	System *system = game->getCurrentSystem();
+	System *system = game->allSystems()[0].get();
 	Location *earth = system->primary->children[2];
-	game->setCurrentLocation(earth);
-	game->setCurrentFacility(game->orbitalAt(earth));
+	pm.viewState.setCurrentSystem(system);
+	pm.viewState.setCurrentLocation(earth);
+	pm.viewState.setCurrentFacility(game->orbitalAt(earth));
+}
+
+void buildTestData(Game *game)
+{
+	System *system = game->allSystems()[0].get();
+	Location *earth = system->primary->children[2];
+	ResourceFacility *rf{game->createResourceFacility(earth)};
+	rf->num_derricks = 1;
+	Orbital *of{game->createOrbital(earth)};
 }
 
 int main()
@@ -69,13 +80,11 @@ int main()
 				TraceLog(LOG_ERROR, "Failed to initialise game data");
 				return 2;
 			}
+			buildTestData(game);
 		}
 
-		System *system = game->getCurrentSystem();
-		Location *earth = system->primary->children[2];
-		ResourceFacility *rf{game->createResourceFacility(earth)};
-		rf->num_derricks = 1;
-		Orbital *of{game->createOrbital(earth)};
+		// set game UI state to focus on default selection
+		takeDefaultFocus();
 
 		bool advanceTime = false;
 		float lastTime = GetTime();
@@ -84,9 +93,6 @@ int main()
 		pageManager.switchToPage(PAGE_SYSTEM_VIEW);
 
 		Overlay &overlay = Overlay::getInstance(); // create the overlay instance, which will render on top of all pages
-
-		// set game UI state to focus on default selection
-		takeDefaultFocus();
 
 		// game loop
 		while (!WindowShouldClose()) // run the loop until the user presses ESCAPE or presses the Close button on the window
@@ -143,10 +149,10 @@ int main()
 					// reset current values
 					game = Game::setCurrent(tempGame);
 					takeDefaultFocus();
-					system = game->getCurrentSystem();
 
 					// force UI pages to reset
-					PageManager::getInstance().getCurrentPage()->activate();
+					auto pm{PageManager::getInstance()};
+					pm.getCurrentPage()->activate(pm.viewState); // TODO ugly
 				}
 				else
 				{
@@ -161,7 +167,6 @@ int main()
 			if (advanceTime)
 			{
 				game->update(deltaTime);
-				// system->update(worldTime); // worldTime used for system animation - save if we want to keep consistent
 			}
 		}
 
