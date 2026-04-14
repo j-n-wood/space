@@ -8,41 +8,59 @@
             "type": "process",
             "command": "make",
             "windows": {
-                "command": "mingw32-make.exe",
+                "command": "mingw32-make.exe"
             },
             "osx": {
                 "args": [
                     "config=debug_arm64"
-                ],
+                ]
             },
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "dependsOn":["UpdateMake"]
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(.*?):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            },
+            "dependsOn": ["UpdateMake"]
         },
         {
             "label": "build debug no premake",
             "type": "process",
             "command": "make",
             "windows": {
-                "command": "mingw32-make.exe",
+                "command": "mingw32-make.exe"
             },
             "osx": {
                 "args": [
                     "config=debug_arm64"
-                ],
+                ]
             },
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": [
-                "$gcc"
-            ]
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(.*?):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            }
         },
         {
             "label": "build release",
@@ -52,23 +70,32 @@
                 "command": "mingw32-make.exe",
                 "args": [
                     "config=release_x64"
-                ],
+                ]
             },
             "linux": {
                 "args": [
                     "config=release_x64"
-                ],
+                ]
             },
             "osx": {
                 "args": [
                     "config=release_arm64"
-                ],
+                ]
             },
             "group": "build",
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "dependsOn":["UpdateMake"]
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(.*?):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            },
+            "dependsOn": ["UpdateMake"]
         },
         {
             "label": "Clean",
@@ -78,23 +105,21 @@
                 "command": "mingw32-make.exe",
                 "args": [
                     "clean"
-                ],
+                ]
             },
             "linux": {
                 "args": [
                     "clean"
-                ],
+                ]
             },
             "osx": {
                 "args": [
                     "clean"
-                ],
+                ]
             },
             "group": "build",
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "dependsOn":["UpdateMake"]
+            "problemMatcher": [],
+            "dependsOn": ["UpdateMake"]
         },
         {
             "label": "UpdateMake",

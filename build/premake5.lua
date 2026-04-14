@@ -187,6 +187,7 @@ if (downloadRaylib) then
 
         filter {"action:gmake*"} -- Uncoment if you need to force StaticLib
 --          buildoptions { "-static" }
+            buildoptions { "-fdiagnostics-absolute-paths" }
         filter{}
 
         vpaths 
@@ -313,13 +314,17 @@ if (downloadRaylib) then
         language "C++"
         cppdialect "C++20"
 
+        filter {"action:gmake*"}
+            buildoptions { "-fdiagnostics-absolute-paths" }
+        filter{}
+
         files {"../src/**.cpp"}
-        
+
         filter {"files:../tests/unity.c"}
             compileas "C"
-        
+
         filter{}
-        
+
         includedirs { "../tests", "../src", "../include", raylib_dir .. "/src" }
 
         links {"raylib"}
