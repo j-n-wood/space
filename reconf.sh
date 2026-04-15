@@ -1,3 +1,3 @@
 #!/bin/bash
 
-premake5 --file=build/premake5.lua gmake
+build/premake5.osx gmake

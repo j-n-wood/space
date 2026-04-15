@@ -396,16 +396,18 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
-build_files
-raylib-master
-Makefile
+/Makefile
 /*.sln
+
+# Premake generated build files
+/build/*.make
+/build/obj/
 
 # Vi and Vim
 *.swp
 *.swo
 *.swn
-/build/compile_commands.json
+/compile_commands.json
 
 # temp files
 temp
