@@ -8,11 +8,11 @@ Space colonization strategy game (C++20, Raylib, SQLite3). Inspired by Utopia �
 
 ## Build Commands
 
-Build system is Premake5 → GNU Make. Raylib is auto-downloaded on first configure.
+Build system is Premake5 → GNU Make. Raylib is a git submodule in `build/external/raylib`.
 
 ```bash
 # Configure (only needed once, or after editing premake5.lua)
-./reconf.sh                    # runs: premake5 --file=build/premake5.lua gmake
+./reconf.sh                    # runs: build/premake5.osx gmake
 
 # Build
 make                           # debug_x64 (default)

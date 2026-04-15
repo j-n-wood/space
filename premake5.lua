@@ -1,5 +1,5 @@
 -- Export Compile Commands module for clangd support
-require "ecc/ecc"
+require "build/ecc/ecc"
 
 newoption
 {
@@ -42,35 +42,6 @@ newoption
     },
     default = "off"
 }
-
-function download_progress(total, current)
-    local ratio = current / total;
-    ratio = math.min(math.max(ratio, 0), 1);
-    local percent = math.floor(ratio * 100);
-    print("Download progress (" .. percent .. "%/100%)")
-end
-
-function check_raylib()
-    os.chdir("external")
-    if(os.isdir("raylib-master") == false) then
-        if(not os.isfile("raylib-master.zip")) then
-            print("Raylib not found, downloading from github")
-            local result_str, response_code = http.download("https://github.com/raysan5/raylib/archive/refs/heads/master.zip", "raylib-master.zip", {
-                progress = download_progress,
-                headers = { "From: Premake", "Referer: Premake" }
-            })
-        end
-        print("Unzipping to " ..  os.getcwd())
-        zip.extract("raylib-master.zip", os.getcwd())
-        os.remove("raylib-master.zip")
-    end
-    os.chdir("../")
-end
-
-function build_externals()
-     print("calling externals")
-     check_raylib()
-end
 
 function platform_defines()
      filter {"options:backend=glfw"}
@@ -115,34 +86,26 @@ function platform_defines()
     filter {}
 end
 
--- if you don't want to download raylib, then set this to false, and set the raylib dir to where you want raylib to be pulled from, must be full sources.
-downloadRaylib = true
-raylib_dir = "external/raylib-master"
+raylib_dir = "build/external/raylib"
+
+-- For prebuild commands that run from the makefile directory (build/)
+local raylib_build_dir = "external/raylib"
 
 workspaceName = 'MyGame'
-baseName = path.getbasename(path.getdirectory(os.getcwd()));
+baseName = path.getbasename(os.getcwd())
 
 --if (baseName ~= 'raylib-quickstart') then
     workspaceName = baseName
 --end
 
-if (os.isdir('build_files') == false) then
-    os.mkdir('build_files')
-end
-
-if (os.isdir('external') == false) then
-    os.mkdir('external')
-end
-
 workspace (workspaceName)
-    location "../"
     configurations { "Debug", "Release"}
     platforms { "x64", "x86", "ARM64"}
 
     defaultplatform ("x64")
-    
-    filter "system:linux"        
-    filter ""    
+
+    filter "system:linux"
+    filter ""
 
     filter "configurations:Debug"
         defines { "DEBUG" }
@@ -165,17 +128,13 @@ workspace (workspaceName)
 
     targetdir "bin/%{cfg.buildcfg}/"
 
-if (downloadRaylib) then
-    build_externals()
-    end
-
     startproject(workspaceName)
 
     project (workspaceName)
         kind "ConsoleApp"
         language "C++"
-        location "build_files/"
-        targetdir "../bin/%{cfg.buildcfg}"
+        location "build/"
+        targetdir "bin/%{cfg.buildcfg}"
 
         filter {"system:windows", "configurations:Release", "action:gmake*"}
             kind "WindowedApp"
@@ -189,34 +148,38 @@ if (downloadRaylib) then
             debugdir "$(SolutionDir)"
 
         filter {"action:gmake*"} -- Uncoment if you need to force StaticLib
---          buildoptions { "-static" }            
+--          buildoptions { "-static" }
         filter{}
 
         filter "toolset:clang"
             buildoptions { "-fdiagnostics-absolute-paths" }
         filter {}
 
-        vpaths 
+        filter "toolset:gcc"
+            buildoptions { "-ffile-prefix-map=../=" }
+        filter {}
+
+        vpaths
         {
-            ["Header Files/*"] = { "../include/**.h",  "../include/**.hpp", "../src/**.h", "../src/**.hpp"},
-            ["Source Files/*"] = {"../src/**.cpp"},
-            ["Windows Resource Files/*"] = {"../src/**.rc", "../src/**.ico"},
-            ["Game Resource Files/*"] = {"../resources/**"},
+            ["Header Files/*"] = { "include/**.h",  "include/**.hpp", "src/**.h", "src/**.hpp"},
+            ["Source Files/*"] = {"src/**.cpp"},
+            ["Windows Resource Files/*"] = {"src/**.rc", "src/**.ico"},
+            ["Game Resource Files/*"] = {"resources/**"},
         }
-        
-        files {"../src/**.cpp", "../src/**.h", "../src/**.hpp", "../include/**.h", "../include/**.hpp"}
-                
-        local found_files = os.matchfiles("../src/**.cpp")
+
+        files {"src/**.cpp", "src/**.h", "src/**.hpp", "include/**.h", "include/**.hpp"}
+
+        local found_files = os.matchfiles("src/**.cpp")
         print("Found " .. #found_files .. " source files")
 
         filter {"system:windows", "action:vs*"}
-            files {"../src/*.rc", "../src/*.ico"}
-            files {"../resources/**"}
+            files {"src/*.rc", "src/*.ico"}
+            files {"resources/**"}
 
         filter{}
-        
-        includedirs { "../src" }
-        includedirs { "../include" }
+
+        includedirs { "src" }
+        includedirs { "include" }
 
         links {"raylib"}
 
@@ -238,7 +201,7 @@ if (downloadRaylib) then
         filter "system:windows"
             defines{"_WIN32"}
             links {"winmm", "gdi32", "opengl32"}
-            libdirs {"../bin/%{cfg.buildcfg}"}
+            libdirs {"bin/%{cfg.buildcfg}"}
 
         filter "system:linux"
             links {"pthread", "m", "dl", "rt", "sqlite3"}
@@ -253,17 +216,17 @@ if (downloadRaylib) then
             links {"OpenGL.framework", "Cocoa.framework", "IOKit.framework", "CoreFoundation.framework", "CoreAudio.framework", "CoreVideo.framework", "AudioToolbox.framework", "sqlite3"}
 
         filter{}
-        
+
 
     project "raylib"
         kind "StaticLib"
-    
+
         platform_defines()
 
-        location "build_files/"
+        location "build/"
 
         language "C"
-        targetdir "../bin/%{cfg.buildcfg}"
+        targetdir "bin/%{cfg.buildcfg}"
 
 
         filter {"options:wayland=on"}
@@ -273,25 +236,25 @@ if (downloadRaylib) then
             prebuildcommands {
                 "@echo Generating Wayland protocols...",
                 -- Core Wayland & Shell
-                "@wayland-scanner client-header ../" .. raylib_dir .. "/src/external/glfw/deps/wayland/wayland.xml ../" .. raylib_dir .. "/src/wayland-client-protocol.h",
-                "@wayland-scanner client-header ../" .. raylib_dir .. "/src/external/glfw/deps/wayland/xdg-shell.xml ../" .. raylib_dir .. "/src/xdg-shell-client-protocol.h",
-                "@wayland-scanner client-header ../" .. raylib_dir .. "/src/external/glfw/deps/wayland/xdg-decoration-unstable-v1.xml ../" .. raylib_dir .. "/src/xdg-decoration-unstable-v1-client-protocol.h",
+                "@wayland-scanner client-header " .. raylib_build_dir .. "/src/external/glfw/deps/wayland/wayland.xml " .. raylib_build_dir .. "/src/wayland-client-protocol.h",
+                "@wayland-scanner client-header " .. raylib_build_dir .. "/src/external/glfw/deps/wayland/xdg-shell.xml " .. raylib_build_dir .. "/src/xdg-shell-client-protocol.h",
+                "@wayland-scanner client-header " .. raylib_build_dir .. "/src/external/glfw/deps/wayland/xdg-decoration-unstable-v1.xml " .. raylib_build_dir .. "/src/xdg-decoration-unstable-v1-client-protocol.h",
 
                 -- Viewporter
-                "@wayland-scanner client-header ../" .. raylib_dir .. "/src/external/glfw/deps/wayland/viewporter.xml ../" .. raylib_dir .. "/src/viewporter-client-protocol.h",
+                "@wayland-scanner client-header " .. raylib_build_dir .. "/src/external/glfw/deps/wayland/viewporter.xml " .. raylib_build_dir .. "/src/viewporter-client-protocol.h",
 
                 -- Relative Pointer
-                "@wayland-scanner client-header ../" .. raylib_dir .. "/src/external/glfw/deps/wayland/relative-pointer-unstable-v1.xml ../" .. raylib_dir .. "/src/relative-pointer-unstable-v1-client-protocol.h",
+                "@wayland-scanner client-header " .. raylib_build_dir .. "/src/external/glfw/deps/wayland/relative-pointer-unstable-v1.xml " .. raylib_build_dir .. "/src/relative-pointer-unstable-v1-client-protocol.h",
                 -- Pointer Constraints
-                "@wayland-scanner client-header ../" .. raylib_dir .. "/src/external/glfw/deps/wayland/pointer-constraints-unstable-v1.xml ../" .. raylib_dir .. "/src/pointer-constraints-unstable-v1-client-protocol.h",
+                "@wayland-scanner client-header " .. raylib_build_dir .. "/src/external/glfw/deps/wayland/pointer-constraints-unstable-v1.xml " .. raylib_build_dir .. "/src/pointer-constraints-unstable-v1-client-protocol.h",
 
                 -- Fractional Scale
-                "@wayland-scanner client-header ../" .. raylib_dir .. "/src/external/glfw/deps/wayland/fractional-scale-v1.xml ../" .. raylib_dir .. "/src/fractional-scale-v1-client-protocol.h",
+                "@wayland-scanner client-header " .. raylib_build_dir .. "/src/external/glfw/deps/wayland/fractional-scale-v1.xml " .. raylib_build_dir .. "/src/fractional-scale-v1-client-protocol.h",
 
                 -- XDG Activation
-                "@wayland-scanner client-header ../" .. raylib_dir .. "/src/external/glfw/deps/wayland/xdg-activation-v1.xml ../" .. raylib_dir .. "/src/xdg-activation-v1-client-protocol.h",
+                "@wayland-scanner client-header " .. raylib_build_dir .. "/src/external/glfw/deps/wayland/xdg-activation-v1.xml " .. raylib_build_dir .. "/src/xdg-activation-v1-client-protocol.h",
                 -- Idle Inhibit
-                "@wayland-scanner client-header ../" .. raylib_dir .. "/src/external/glfw/deps/wayland/idle-inhibit-unstable-v1.xml ../" .. raylib_dir .. "/src/idle-inhibit-unstable-v1-client-protocol.h",
+                "@wayland-scanner client-header " .. raylib_build_dir .. "/src/external/glfw/deps/wayland/idle-inhibit-unstable-v1.xml " .. raylib_build_dir .. "/src/idle-inhibit-unstable-v1-client-protocol.h",
             }
         filter {}
 
@@ -317,20 +280,24 @@ if (downloadRaylib) then
         filter{}
     project "tests"
         kind "ConsoleApp"
-        location "build_files/"
-        targetdir "../bin/%{cfg.buildcfg}"
+        location "build/"
+        targetdir "bin/%{cfg.buildcfg}"
 
         language "C++"
         cppdialect "C++20"
-        
+
         filter "toolset:clang"
             buildoptions { "-fdiagnostics-absolute-paths" }
         filter {}
 
-        files {"../src/**.cpp", "../tests/**.cpp"}
-        removefiles {"../src/main.cpp"}
+        filter "toolset:gcc"
+            buildoptions { "-ffile-prefix-map=../=" }
+        filter {}
 
-        includedirs { "../tests", "../src", "../include", raylib_dir .. "/src" }
+        files {"src/**.cpp", "tests/**.cpp"}
+        removefiles {"src/main.cpp"}
+
+        includedirs { "tests", "src", "include", raylib_dir .. "/src" }
 
         links {"raylib"}
 

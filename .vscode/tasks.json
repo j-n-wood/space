@@ -20,7 +20,7 @@
             },
             "problemMatcher": {
                 "owner": "cpp",
-                "fileLocation": "absolute",
+                "fileLocation": ["autoDetect", "${workspaceFolder}"],
                 "pattern": {
                     "regexp": "^(.*?):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
                     "file": 1,
@@ -45,7 +45,7 @@
             "group": "build",
             "problemMatcher": {
                 "owner": "cpp",
-                "fileLocation": "absolute",
+                "fileLocation": ["autoDetect", "${workspaceFolder}"],
                 "pattern": {
                     "regexp": "^(.*?):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
                     "file": 1,
@@ -75,7 +75,7 @@
             "group": "build",
             "problemMatcher": {
                 "owner": "cpp",
-                "fileLocation": "absolute",
+                "fileLocation": ["autoDetect", "${workspaceFolder}"],
                 "pattern": {
                     "regexp": "^(.*?):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
                     "file": 1,
@@ -113,21 +113,18 @@
         {
             "label": "UpdateMake",
             "type": "process",
-            "command": "./premake5",
-            "options": {
-                "cwd": "${workspaceFolder}/build/"
-            },
+            "command": "./build/premake5",
             "args": [
                 "gmake"
             ],
             "windows": {
-                "command": "./premake5.exe"
+                "command": "./build/premake5.exe"
             },
             "linux": {
-                "command": "./premake5"
+                "command": "./build/premake5"
             },
             "osx": {
-                "command": "premake5.osx"
+                "command": "./build/premake5.osx"
             },
             "group": "build",
             "dependsOn": ["Generate compile_commands.json"]
@@ -135,21 +132,18 @@
         {
             "label": "Generate compile_commands.json",
             "type": "process",
-            "command": "./premake5",
-            "options": {
-                "cwd": "${workspaceFolder}/build/"
-            },
+            "command": "./build/premake5",
             "args": [
                 "ecc"
             ],
             "windows": {
-                "command": "./premake5.exe"
+                "command": "./build/premake5.exe"
             },
             "linux": {
-                "command": "./premake5"
+                "command": "./build/premake5"
             },
             "osx": {
-                "command": "premake5.osx"
+                "command": "./build/premake5.osx"
             },
             "group": "build",
             "problemMatcher": []
