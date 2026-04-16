@@ -43,6 +43,22 @@ newoption
     default = "off"
 }
 
+function link_os_deps()
+    filter "system:linux"
+        links {"pthread", "m", "dl", "rt", "sqlite3"}
+        filter {"options:wayland=off"}
+            links {"X11"}
+        filter {"options:wayland=on"}
+            links {"wayland-client", "wayland-cursor", "wayland-egl", "xkbcommon"}
+    
+    filter "system:macosx"
+        links {"OpenGL.framework", "Cocoa.framework", "IOKit.framework", "CoreFoundation.framework", "CoreAudio.framework", "CoreVideo.framework", "AudioToolbox.framework", "sqlite3"}
+
+    filter "system:windows"
+        links {"winmm", "gdi32", "opengl32"}
+    filter {}
+end
+
 function platform_defines()
      filter {"options:backend=glfw"}
         defines{"PLATFORM_DESKTOP"}
@@ -203,17 +219,7 @@ workspace (workspaceName)
             links {"winmm", "gdi32", "opengl32"}
             libdirs {"bin/%{cfg.buildcfg}"}
 
-        filter "system:linux"
-            links {"pthread", "m", "dl", "rt", "sqlite3"}
-
-        filter {"system:linux", "options:wayland=off"}
-            links {"X11"}
-
-        filter {"system:linux", "options:wayland=on"}
-            links {"wayland-client", "wayland-cursor", "wayland-egl", "xkbcommon"}
-
-        filter "system:macosx"
-            links {"OpenGL.framework", "Cocoa.framework", "IOKit.framework", "CoreFoundation.framework", "CoreAudio.framework", "CoreVideo.framework", "AudioToolbox.framework", "sqlite3"}
+        link_os_deps()
 
         filter{}
 
@@ -303,10 +309,6 @@ workspace (workspaceName)
 
         platform_defines()
 
-        filter "system:linux"
-            links {"pthread", "m", "dl", "rt", "sqlite3"}
-
-        filter "system:macosx"
-            links {"OpenGL.framework", "Cocoa.framework", "IOKit.framework", "CoreFoundation.framework", "CoreAudio.framework", "CoreVideo.framework", "AudioToolbox.framework", "sqlite3"}
+        link_os_deps()
 
         filter {}
