@@ -6,4 +6,9 @@ Stores::Stores()
     {
         resources[idx] = 0;
     }
+
+    for (int idx = 0; idx < MAX_ITEM_TYPE; ++idx)
+    {
+        items[idx] = 0;
+    }
 }

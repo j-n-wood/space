@@ -110,4 +110,10 @@ void Game::advanceTick()
     {
         base->update();
     }
+
+    // update factories
+    for (auto factory : factories)
+    {
+        factory->update();
+    }
 }

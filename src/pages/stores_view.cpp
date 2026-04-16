@@ -20,6 +20,7 @@ void StoresView::render()
     {
         // what are the current stores?
         listResources();
+        listItems();
     }
 }
 
@@ -71,5 +72,27 @@ void StoresView::listResources()
         sprintf(buf, "%d", stores->resources[idx]);
         DrawText(buf, cursor.x + 120, cursor.y, 20, WHITE);
         cursor.y += 24;
+    }
+}
+
+void StoresView::listItems()
+{
+    if (!stores)
+    {
+        return;
+    }
+    Vector2 cursor{800, 64};
+
+    // iterate available stores at facility
+    char buf[256];
+    int idx = 0;
+    for (auto &item : Game::getCurrent()->items)
+    {
+        // emit the resource name
+        DrawText(item.name.c_str(), cursor.x, cursor.y, 20, WHITE);
+        sprintf(buf, "%d", stores->items[idx]);
+        DrawText(buf, cursor.x + 120, cursor.y, 20, WHITE);
+        cursor.y += 24;
+        ++idx;
     }
 }
