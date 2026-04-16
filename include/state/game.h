@@ -71,6 +71,8 @@ public:
     ResourceFacility *resourceFacilityAt(Location *location);
     Orbital *orbitalAt(Location *location);
 
+    Factory *createFactory(Facility *facility);
+
     // update by delta
     void update(float delta);
     void advanceTick();

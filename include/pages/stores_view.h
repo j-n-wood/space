@@ -15,7 +15,7 @@ public:
     {
         backgroundSource = pageBackgroundSources[PB_RESEARCH];
         standardButtons = ALL_STANDARD_BUTTONS; // example, set the standard buttons for this page
-        title = "Stores";
+        title = SublocationTypeName[slt] + std::string(" Stores");
     }
     ~StoresView() {}
 

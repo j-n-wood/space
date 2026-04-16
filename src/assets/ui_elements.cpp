@@ -1,6 +1,6 @@
 #include "assets/ui_elements.h"
 
-const char* standardButtonTooltips[UI_BUTTON_COUNT] = {
+const char *standardButtonTooltips[UI_BUTTON_COUNT] = {
     "Production",
     "Orbit Stores",
     "Orbit Shuttle Bay",
@@ -11,6 +11,5 @@ const char* standardButtonTooltips[UI_BUTTON_COUNT] = {
     "Research",
     "Surface Shuttle Bay",
     "Surface Resources",
-    "",
-    "Surface Stores"
-};
+    "Surface Production",
+    "Surface Stores"};

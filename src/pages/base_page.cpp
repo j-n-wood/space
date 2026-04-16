@@ -2,6 +2,7 @@
 #include "assets/textures.h"
 #include "assets/ui_elements.h"
 #include "pages/overlay.h"
+#include "state/game.h"
 
 // button behaviour - standard buttons have target pages
 const Page STANDARD_BUTTON_TARGET_PAGES[STANDARD_BUTTON_COUNT] = {
@@ -15,7 +16,7 @@ const Page STANDARD_BUTTON_TARGET_PAGES[STANDARD_BUTTON_COUNT] = {
     PAGE_EARTH_RESEARCH,
     PAGE_SURFACE_SHUTTLE_BAY,
     PAGE_SURFACE_RESOURCES,
-    PAGE_NONE,
+    PAGE_SURFACE_PRODUCTION,
     PAGE_SURFACE_STORES};
 
 // note - original button strip on left is 48 px wide from 320x256 screen size
@@ -70,12 +71,63 @@ void BasePage::renderStandardButtons()
 
     Overlay &overlay = Overlay::getInstance(); // get the overlay instance to set tooltips when hovering buttons
 
+    // conditional enablement depends on focus location
+    auto &vs{PageManager::getInstance().viewState};
+    Location *location{vs.getCurrentLocation()};
+
+    // can have orbital and/or surface facility
+    Orbital *orbital{nullptr};
+    ResourceFacility *surface{nullptr};
+    if (location)
+    {
+        orbital = Game::getCurrent()->orbitalAt(location);
+        surface = Game::getCurrent()->resourceFacilityAt(location);
+    }
+
     // iterate flags in standardButtons bitfield
     for (int i = 0; i < STANDARD_BUTTON_COUNT; i++)
     {
-        if (standardButtons & (1ULL << i))
+        unsigned long long flag{1ULL << i};
+        if (standardButtons & flag)
         {
+            // conditional enablement
+            bool enabled{false};
+
+            switch (flag)
+            {
+            case BUTTON_PRODUCTION:
+            case BUTTON_ORBIT_STORES:
+            case BUTTON_ORBIT_SPACE_BAY:
+            case BUTTON_ORBIT_SHUTTLE_BAY:
+                enabled = (orbital != nullptr);
+                break;
+            case BUTTON_SURFACE_PRODUCTION:
+                enabled = (surface != nullptr) && (surface->factory.get());
+                break;
+            case BUTTON_SHUTTLE:
+                // must have one or other facility and a shuttle
+                enabled = false; // (location != nullptr);
+                break;
+            case BUTTON_SURFACE_SHUTTLE_BAY:
+            case BUTTON_SURFACE_RESOURCES:
+            case BUTTON_SURFACE_STORES:
+                enabled = (surface != nullptr);
+                break;
+            }
+
+            if (!enabled)
+            {
+                continue;
+            }
+
             // button is enabled, render it
+
+            // render image
+
+            // render button then tooltip
+            int icon_index = standardButtonIcons[i];
+            DrawTexturePro(*TextureManager::getInstance().getTexture(TEXTURE_UI_BUTTONS), facilityIconSources[icon_index], standardButtonDestinations[i], (Vector2){0, 0}, 0.f, WHITE);
+
             if (overlay.renderButton(standardButtonDestinations[i], "", standardButtonTooltips[i], WHITE))
             { // empty text since we're using a texture, could add text if desired
                 // look for standard target page for this button and switch to it if valid

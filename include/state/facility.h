@@ -22,6 +22,8 @@ public:
 
     // advance time one tick
     virtual void update();
+
+    Factory *createFactory();
 };
 
 typedef std::unique_ptr<Facility> FacilityPtr;
