@@ -7,12 +7,20 @@
             "label": "build debug",
             "type": "process",
             "command": "make",
-            "args": ["-j10"],
+            "args": [
+                "-j10"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
             "windows": {
                 "command": "mingw32-make.exe"
             },
             "osx": {
-                "args": ["-j10", "config=debug_arm64"]
+                "args": [
+                    "-j10",
+                    "config=debug_arm64"
+                ]
             },
             "group": {
                 "kind": "build",
@@ -20,7 +28,10 @@
             },
             "problemMatcher": {
                 "owner": "cpp",
-                "fileLocation": ["autoDetect", "${workspaceFolder}"],
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}/build"
+                ],
                 "pattern": {
                     "regexp": "^(.*?):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
                     "file": 1,
@@ -35,17 +46,25 @@
             "label": "build debug (reconfigure)",
             "type": "process",
             "command": "make",
-            "args": ["-j10"],
+            "args": [
+                "-j10"
+            ],
             "windows": {
                 "command": "mingw32-make.exe"
             },
             "osx": {
-                "args": ["-j10", "config=debug_arm64"]
+                "args": [
+                    "-j10",
+                    "config=debug_arm64"
+                ]
             },
             "group": "build",
             "problemMatcher": {
                 "owner": "cpp",
-                "fileLocation": ["autoDetect", "${workspaceFolder}"],
+                "fileLocation": [
+                    "autoDetect",
+                    "${workspaceFolder}"
+                ],
                 "pattern": {
                     "regexp": "^(.*?):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
                     "file": 1,
@@ -55,27 +74,43 @@
                     "message": 5
                 }
             },
-            "dependsOn": ["UpdateMake"]
+            "dependsOn": [
+                "UpdateMake"
+            ]
         },
         {
             "label": "build release",
             "type": "process",
             "command": "make",
-            "args": ["-j10"],
+            "args": [
+                "-j10"
+            ],
             "windows": {
                 "command": "mingw32-make.exe",
-                "args": ["-j10", "config=release_x64"]
+                "args": [
+                    "-j10",
+                    "config=release_x64"
+                ]
             },
             "linux": {
-                "args": ["-j10", "config=release_x64"]
+                "args": [
+                    "-j10",
+                    "config=release_x64"
+                ]
             },
             "osx": {
-                "args": ["-j10", "config=release_arm64"]
+                "args": [
+                    "-j10",
+                    "config=release_arm64"
+                ]
             },
             "group": "build",
             "problemMatcher": {
                 "owner": "cpp",
-                "fileLocation": ["autoDetect", "${workspaceFolder}"],
+                "fileLocation": [
+                    "autoDetect",
+                    "${workspaceFolder}"
+                ],
                 "pattern": {
                     "regexp": "^(.*?):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
                     "file": 1,
@@ -85,7 +120,9 @@
                     "message": 5
                 }
             },
-            "dependsOn": ["UpdateMake"]
+            "dependsOn": [
+                "UpdateMake"
+            ]
         },
         {
             "label": "Clean",
@@ -127,7 +164,9 @@
                 "command": "./build/premake5.osx"
             },
             "group": "build",
-            "dependsOn": ["Generate compile_commands.json"]
+            "dependsOn": [
+                "Generate compile_commands.json"
+            ]
         },
         {
             "label": "Generate compile_commands.json",

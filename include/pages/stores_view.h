@@ -24,4 +24,5 @@ public:
     void render() override;
 
     void listResources();
+    void listItems();
 };

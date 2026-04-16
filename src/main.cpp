@@ -46,6 +46,10 @@ void buildTestData(Game *game)
 	ResourceFacility *rf{game->createResourceFacility(earth)};
 	rf->num_derricks = 1;
 	Orbital *of{game->createOrbital(earth)};
+	for (int idx = ResourceType::Iron; idx <= ResourceType::Silica; ++idx)
+	{
+		of->stores.resources[idx] = 128;
+	}
 }
 
 int main()

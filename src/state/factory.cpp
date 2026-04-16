@@ -1,3 +1,5 @@
+#include <algorithm> // std::rotate vector
+
 #include "state/factory.h"
 #include "state/game.h"
 
@@ -39,6 +41,55 @@ void Factory::repeatQueueItem(const int index, const bool r)
 
 void Factory::update()
 {
+    // progress on current queue, if any
+    // update by one tick
+    if (!queue.empty())
+    {
+        auto &queueItem{queue[0]};
+
+        if (!queueItem.progress)
+        {
+            // starting, see if we can get resources
+            auto &item{Game::getCurrent()->items[queueItem.item_id]};
+
+            bool buildable = true;
+            for (auto &req : item.requirements)
+            {
+                if (stores->resources[req.resource] < req.amount)
+                {
+                    buildable = false; // need feedback - hover shows
+                }
+            }
+
+            if (buildable)
+            {
+                for (auto &req : item.requirements)
+                {
+                    stores->resources[req.resource] -= req.amount;
+                }
+            }
+        }
+
+        if (++queueItem.progress >= queueItem.build_time)
+        {
+            ++stores->items[queueItem.item_id];
+            // done!
+            if (queueItem.repeat)
+            {
+                queueItem.progress = 0;
+                if (queue.size() > 1)
+                {
+                    // move to back of queue
+                    std::rotate(queue.begin(), queue.begin() + 1, queue.end());
+                }
+            }
+            else
+            {
+                // pop from front of queue - may want to change to a list
+                queue.erase(queue.begin());
+            }
+        }
+    }
 }
 
 bool Factory::canBuild(const int item_id) const

@@ -5,6 +5,9 @@
 #include "pages/pages.h"
 #include <string>
 
+Rectangle itemImageTarget = {400, 140, 256, 224};
+Rectangle docImageTarget = {560, 240, 192, 192};
+
 void FactoryView::activate(ViewState &viewState)
 {
     factory = nullptr;
@@ -31,11 +34,13 @@ struct hoverState
 
 void renderPlanHover(void *state)
 {
+    auto docImageTexture = TextureManager::getInstance().getTexture(TEXTURE_ITEMS);
+
     hoverState *hs = static_cast<hoverState *>(state);
     // set overlay tooltip
     Overlay::getInstance().setCurrentToolTip(hs->item->description.c_str());
 
-    Vector2 reqsCursor{240, 200};
+    Vector2 reqsCursor{240, 500};
 
     for (auto &req : hs->item->requirements)
     {
@@ -49,6 +54,11 @@ void renderPlanHover(void *state)
         }
         DrawText(amount.c_str(), reqsCursor.x + 100, reqsCursor.y, 20, textColour);
         reqsCursor.y += 20;
+    }
+
+    if (hs->item->doc_image_index > -1)
+    {
+        DrawTexturePro(*docImageTexture, itemImageSources[hs->item->doc_image_index], docImageTarget, (Vector2){0, 0}, 0.f, WHITE);
     }
 }
 
@@ -92,5 +102,20 @@ void FactoryView::render()
             factory->dropQueueItem((int)idx);
         }
         y += 20;
+    }
+
+    // TODO share and load once
+    auto docImageTexture = TextureManager::getInstance().getTexture(TEXTURE_ITEMS);
+
+    // current queue item
+    if (!factory->queue.empty())
+    {
+        auto &qi{factory->queue[0]};
+        auto &item{game->items[qi.item_id]};
+        // determine progress
+        if (item.production_image_index > -1)
+        {
+            DrawTexturePro(*docImageTexture, itemImageSources[item.production_image_index], itemImageTarget, (Vector2){0, 0}, 0.f, WHITE);
+        }
     }
 }

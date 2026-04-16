@@ -67,5 +67,7 @@ public:
     int research_time;
     int research_progress;
     int production_time;
+    int doc_image_index;
+    int production_image_index;
     std::vector<BuildRequirement> requirements;
 };
