@@ -21,7 +21,8 @@ PageManager::PageManager() : currentPage(nullptr)
     pages[PAGE_SURFACE_RESOURCES] = new Resources();
     pages[PAGE_SURFACE_STORES] = new StoresView(SublocationType::SLOC_SURFACE);
     pages[PAGE_ORBIT_STORES] = new StoresView(SublocationType::SLOC_ORBIT);
-    pages[PAGE_PRODUCTION] = new FactoryView();
+    pages[PAGE_PRODUCTION] = new FactoryView(SublocationType::SLOC_ORBIT);
+    pages[PAGE_SURFACE_PRODUCTION] = new FactoryView(SublocationType::SLOC_SURFACE);
 }
 
 PageManager::~PageManager()
@@ -68,6 +69,9 @@ BasePage *PageManager::switchToPage(Page newPage)
         break;
     case PAGE_PRODUCTION:
         newPageInstance = pages[PAGE_PRODUCTION];
+        break;
+    case PAGE_SURFACE_PRODUCTION:
+        newPageInstance = pages[PAGE_SURFACE_PRODUCTION];
         break;
     case PAGE_SETTINGS:
         // switch to settings page

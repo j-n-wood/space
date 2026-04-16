@@ -28,12 +28,14 @@ void SystemView::render()
     // DrawText("System View", 10, 10, 20, WHITE);
     orrery->render();
 
+    /*
     UITransparentButtonState transparentButtonState;
     // EC button
     if (GuiButton((Rectangle){0, 1024 - 17 * 4, 51 * 4, 17 * 4}, ""))
     {
         PageManager::getInstance().switchToPage(PAGE_EARTH_CITY);
     }
+        */
 }
 
 void SystemView::input()

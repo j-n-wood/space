@@ -44,13 +44,16 @@ ResourceFacility *Game::createResourceFacility(Location *location)
 
 ResourceFacility *Game::resourceFacilityAt(Location *location)
 {
-    // look for resource facility at given location. Initial impl is scan (yuck)
-    // avoid by e.g. lookup based on location to init UI controls, keep as UI state.
-    for (auto &base : bases)
+    if (location)
     {
-        if (base->location == location)
+        // look for resource facility at given location. Initial impl is scan (yuck)
+        // avoid by e.g. lookup based on location to init UI controls, keep as UI state.
+        for (auto &base : bases)
         {
-            return base.get();
+            if (base->location == location)
+            {
+                return base.get();
+            }
         }
     }
     return nullptr;
@@ -60,22 +63,31 @@ Orbital *Game::createOrbital(Location *location)
 {
     orbitals.emplace_back(std::make_unique<Orbital>(location));
     auto o = orbitals.back().get();
-    factories.push_back(o->factory.get());
     return o;
 }
 
 Orbital *Game::orbitalAt(Location *location)
 {
-    // look for resource facility at given location. Initial impl is scan (yuck)
-    // avoid by e.g. lookup based on location to init UI controls, keep as UI state.
-    for (auto &orbital : orbitals)
+    if (location)
     {
-        if (orbital->location == location)
+        // look for resource facility at given location. Initial impl is scan (yuck)
+        // avoid by e.g. lookup based on location to init UI controls, keep as UI state.
+        for (auto &orbital : orbitals)
         {
-            return orbital.get();
+            if (orbital->location == location)
+            {
+                return orbital.get();
+            }
         }
     }
     return nullptr;
+}
+
+Factory *Game::createFactory(Facility *facility)
+{
+    Factory *f{facility->createFactory()};
+    factories.push_back(f);
+    return f;
 }
 
 void Game::update(float delta)

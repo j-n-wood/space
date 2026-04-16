@@ -4,15 +4,29 @@
 #include "pages/overlay.h"
 #include "pages/pages.h"
 #include <string>
+#include <cmath>
 
-Rectangle itemImageTarget = {400, 140, 256, 224};
+Rectangle itemImageTarget = {250, 140, 256, 224};
 Rectangle docImageTarget = {560, 240, 192, 192};
 
 void FactoryView::activate(ViewState &viewState)
 {
     factory = nullptr;
-    // set current stores, if any
-    auto f = viewState.getCurrentFacility();
+
+    auto game{Game::getCurrent()};
+    Facility *f{nullptr};
+    switch (sublocationType)
+    {
+    case SublocationType::SLOC_ORBIT:
+        f = game->orbitalAt(viewState.getCurrentLocation());
+        break;
+    case SublocationType::SLOC_SURFACE:
+        f = game->resourceFacilityAt(viewState.getCurrentLocation());
+        break;
+    default:
+        break;
+    }
+
     if (f)
     {
         factory = f->factory.get();
@@ -82,7 +96,7 @@ void FactoryView::render()
         {
             // can we build it here? tech level, orbital requirement
             hoverState.item = &item;
-            if (overlay.renderButtonHover(Rectangle{1000, (float)y, 100, 20}, item.name.c_str(), WHITE, renderPlanHover, &hoverState))
+            if (overlay.renderButtonHover(Rectangle{1100, (float)y, 100, 20}, item.name.c_str(), WHITE, renderPlanHover, &hoverState))
             {
                 // trigger production
                 factory->queueItem(item.id);
@@ -92,11 +106,11 @@ void FactoryView::render()
     }
 
     // list queue
-    y = 500;
+    y = 600;
     for (size_t idx = 0, imax = factory->queue.size(); idx < imax; ++idx)
     {
         auto &q{factory->queue[idx]};
-        if (GuiButton(Rectangle{1000, (float)y, 100, 20}, game->items[q.item_id].name.c_str()))
+        if (GuiButton(Rectangle{1100, (float)y, 100, 20}, game->items[q.item_id].name.c_str()))
         {
             // drop from queue
             factory->dropQueueItem((int)idx);
@@ -112,10 +126,18 @@ void FactoryView::render()
     {
         auto &qi{factory->queue[0]};
         auto &item{game->items[qi.item_id]};
-        // determine progress
+
         if (item.production_image_index > -1)
         {
-            DrawTexturePro(*docImageTexture, itemImageSources[item.production_image_index], itemImageTarget, (Vector2){0, 0}, 0.f, WHITE);
+            // determine progress
+            int imagine_index = II_PROD_CRATE; // finished
+            auto frac = floor(3.0 * (float)(qi.progress) / (float)(qi.build_time));
+            if (frac < 4.0)
+            {
+                imagine_index = (int)frac + item.production_image_index;
+            }
+
+            DrawTexturePro(*docImageTexture, itemImageSources[imagine_index], itemImageTarget, (Vector2){0, 0}, 0.f, WHITE);
         }
     }
 }

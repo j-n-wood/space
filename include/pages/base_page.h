@@ -29,7 +29,7 @@ enum StandardButton
     BUTTON_RESEARCH = 1 << 7,
     BUTTON_SURFACE_SHUTTLE_BAY = 1 << 8,
     BUTTON_SURFACE_RESOURCES = 1 << 9,
-    BUTTON_EMPTY_10 = 1 << 10,
+    BUTTON_SURFACE_PRODUCTION = 1 << 10,
     BUTTON_SURFACE_STORES = 1 << 11,
     // add more buttons as needed
 };
@@ -39,7 +39,7 @@ const int STANDARD_BUTTON_COUNT = 12; // update this if you add more buttons
 // default page has all bar training and research
 const uint64_t ALL_STANDARD_BUTTONS = BUTTON_PRODUCTION | BUTTON_ORBIT_STORES | BUTTON_ORBIT_SHUTTLE_BAY | BUTTON_ORBIT_SPACE_BAY |
                                       BUTTON_SHUTTLE | BUTTON_SELF_DESTRUCT |
-                                      BUTTON_SURFACE_SHUTTLE_BAY | BUTTON_SURFACE_RESOURCES | BUTTON_EMPTY_10 | BUTTON_SURFACE_STORES;
+                                      BUTTON_SURFACE_SHUTTLE_BAY | BUTTON_SURFACE_RESOURCES | BUTTON_SURFACE_PRODUCTION | BUTTON_SURFACE_STORES;
 
 class BasePage
 {

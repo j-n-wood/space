@@ -44,11 +44,20 @@ void buildTestData(Game *game)
 	System *system = game->allSystems()[0].get();
 	Location *earth = system->primary->children[2];
 	ResourceFacility *rf{game->createResourceFacility(earth)};
+	game->createFactory(rf); // EC production
 	rf->num_derricks = 1;
 	Orbital *of{game->createOrbital(earth)};
+
+	// test resources
 	for (int idx = ResourceType::Iron; idx <= ResourceType::Silica; ++idx)
 	{
 		of->stores.resources[idx] = 128;
+	}
+
+	// test research
+	for (auto &item : game->items)
+	{
+		item.researched = true;
 	}
 }
 

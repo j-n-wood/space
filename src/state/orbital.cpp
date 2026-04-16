@@ -1,8 +1,9 @@
 #include "state/orbital.h"
+#include "state/game.h"
 
 Orbital::Orbital(Location *l) : Facility{l}
 {
-    factory = std::make_unique<Factory>(&stores);
+    Game::getCurrent()->createFactory(this);
 }
 
 void Orbital::update()

@@ -22,6 +22,7 @@ typedef enum
     PAGE_COCKPIT,
     PAGE_SELF_DESTRUCT,
     PAGE_SETTINGS,
+    PAGE_SURFACE_PRODUCTION,
     PAGE_COUNT
 } Page;
 

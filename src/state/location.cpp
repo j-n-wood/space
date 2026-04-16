@@ -1,5 +1,10 @@
 #include "state/location.h"
 
+const char *SublocationTypeName[SLOC_COUNT] = {
+    "Surface",
+    "Orbital",
+};
+
 Location::Location(System *s, const char *n, LocationType t) : system(s),
                                                                name(n),
                                                                type(t)

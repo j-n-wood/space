@@ -31,6 +31,8 @@ enum SublocationType
     SLOC_COUNT
 };
 
+extern const char *SublocationTypeName[SLOC_COUNT];
+
 class System; // forward declaration to avoid circular dependency
 class Location;
 
