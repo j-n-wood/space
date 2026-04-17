@@ -3,7 +3,7 @@
 #include "assets/ui_elements.h"
 #include "pages/overlay.h"
 #include "pages/pages.h"
-#include <string>
+#include <cstdio>
 #include <cmath>
 
 Rectangle itemImageTarget = {250, 140, 256, 224};
@@ -52,7 +52,7 @@ void renderPlanHover(void *state)
 
     hoverState *hs = static_cast<hoverState *>(state);
     // set overlay tooltip
-    Overlay::getInstance().setCurrentToolTip(hs->item->description.c_str());
+    Overlay::getInstance().setCurrentToolTip(hs->item->description);
 
     Vector2 reqsCursor{240, 500};
 
@@ -60,13 +60,14 @@ void renderPlanHover(void *state)
     {
         // list required resources
         DrawText(ResourceName[req.resource], reqsCursor.x, reqsCursor.y, 20, YELLOW);
-        std::string amount = std::to_string(req.amount);
+        char amount[16];
+        std::snprintf(amount, sizeof amount, "%d", req.amount);
         Color textColour = YELLOW;
         if (hs->factory->stores->resources[req.resource] < req.amount)
         {
             textColour = RED;
         }
-        DrawText(amount.c_str(), reqsCursor.x + 100, reqsCursor.y, 20, textColour);
+        DrawText(amount, reqsCursor.x + 100, reqsCursor.y, 20, textColour);
         reqsCursor.y += 20;
     }
 
@@ -96,7 +97,7 @@ void FactoryView::render()
         {
             // can we build it here? tech level, orbital requirement
             hoverState.item = &item;
-            if (overlay.renderButtonHover(Rectangle{1100, (float)y, 100, 20}, item.name.c_str(), WHITE, renderPlanHover, &hoverState))
+            if (overlay.renderButtonHover(Rectangle{1100, (float)y, 100, 20}, item.name, WHITE, renderPlanHover, &hoverState))
             {
                 // trigger production
                 factory->queueItem(item.id);
@@ -110,7 +111,7 @@ void FactoryView::render()
     for (size_t idx = 0, imax = factory->queue.size(); idx < imax; ++idx)
     {
         auto &q{factory->queue[idx]};
-        if (GuiButton(Rectangle{1100, (float)y, 100, 20}, game->items[q.item_id].name.c_str()))
+        if (GuiButton(Rectangle{1100, (float)y, 100, 20}, game->items[q.item_id].name))
         {
             // drop from queue
             factory->dropQueueItem((int)idx);

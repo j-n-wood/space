@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdio>
+
 #include "base_page.h"
 
 class EarthCity : public BasePage
@@ -9,7 +11,7 @@ public:
     {
         backgroundSource = pageBackgroundSources[PB_EARTH_CITY];
         standardButtons = ALL_STANDARD_BUTTONS | BUTTON_TRAINING | BUTTON_RESEARCH; // example, set the standard buttons for this page
-        title = "Earth City";
+        std::snprintf(title, sizeof title, "Earth City");
     }
     ~EarthCity() {}
 

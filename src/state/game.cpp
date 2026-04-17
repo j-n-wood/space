@@ -1,3 +1,4 @@
+#include "loaders/loader.h"
 #include "state/game.h"
 
 std::unique_ptr<Game> Game::current;
@@ -17,7 +18,7 @@ System *Game::createSystem(int id, const char *name)
     systems.emplace_back(std::make_unique<System>());
     auto sys = systems.back().get();
     sys->id = id;
-    sys->name.assign(name);
+    copyFixed(sys->name, sizeof sys->name, name);
     return sys;
 }
 

@@ -1,3 +1,4 @@
+#include "loaders/loader.h"
 #include "state/location.h"
 
 const char *SublocationTypeName[SLOC_COUNT] = {
@@ -6,9 +7,9 @@ const char *SublocationTypeName[SLOC_COUNT] = {
 };
 
 Location::Location(System *s, const char *n, LocationType t) : system(s),
-                                                               name(n),
                                                                type(t)
 {
+    copyFixed(name, sizeof name, n);
     // set some default resource availability
     resources.availability[ResourceType::Iron] = 1;
     resources.availability[ResourceType::Titanium] = 1;

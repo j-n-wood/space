@@ -46,12 +46,12 @@ void Overlay::render()
 
     auto &pm{PageManager::getInstance()};
 
-    DrawText(pm.viewState.getCurrentSystem()->name.c_str(), 10, 10, 20, WHITE);
+    DrawText(pm.viewState.getCurrentSystem()->name, 10, 10, 20, WHITE);
     if (auto location = pm.viewState.getCurrentLocation())
     {
-        DrawText(location->name.c_str(), 100, 10, 20, WHITE);
+        DrawText(location->name, 100, 10, 20, WHITE);
     }
-    DrawText((PageManager::getInstance()).getCurrentPage()->title.c_str(), 200, 10, 20, WHITE);
+    DrawText((PageManager::getInstance()).getCurrentPage()->title, 200, 10, 20, WHITE);
 
     if (currentToolTip)
     {

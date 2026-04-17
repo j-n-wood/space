@@ -1,10 +1,10 @@
 #pragma once
 #include <cstdint>
-#include <string>
 
 #include "assets/textures.h" // easy access to predefined texture assets
 #include "pages/pages.h"     // for page background sources
 #include "pages/view_state.h"
+#include "state/string_caps.h"
 
 extern "C"
 {
@@ -47,7 +47,7 @@ public:
     const TextureAsset *backgroundTexture;
     Rectangle backgroundSource;
     uint64_t standardButtons; // bitfield to track which standard buttons are active
-    std::string title;        // page title
+    char title[NAME_MAX_LEN]; // page title
 
     BasePage();
     virtual ~BasePage() {}

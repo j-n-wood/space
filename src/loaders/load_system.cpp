@@ -56,26 +56,6 @@ int getPrimaryBodyId(Loader *loader, int system_id)
     return queryInt(loader, "SELECT id FROM bodies WHERE system_id = ? AND primary_id = 0 LIMIT 1", system_id);
 }
 
-std::string queryString(Loader *loader, const char *sql, int param)
-{
-    std::string result = "";
-
-    SQLiteQuery q(loader, sql);
-
-    q.bind(param);
-
-    if (q.next())
-    {
-        const unsigned char *text = sqlite3_column_text(q, 0);
-        if (text)
-        {
-            result = std::string(reinterpret_cast<const char *>(text));
-        }
-    }
-    TraceLog(LOG_ERROR, "Failed to execute query: %s", sqlite3_errmsg(loader->db));
-    return result;
-}
-
 bool loadSystem(Loader *loader, int system_id, System *system)
 {
 
@@ -195,7 +175,7 @@ bool loadSystem(Loader *loader, int system_id, System *system)
             }
             else
             {
-                TraceLog(LOG_WARNING, "Could not find parent location with ID %d for location %s", loc->primary_id, loc->name.c_str());
+                TraceLog(LOG_WARNING, "Could not find parent location with ID %d for location %s", loc->primary_id, loc->name);
             }
         }
     } // parent building

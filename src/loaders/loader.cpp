@@ -167,8 +167,8 @@ bool Loader::loadItems()
         {
             Item item;
             item.id = sqlite3_column_int(query, 0);
-            item.name = std::string((char *)sqlite3_column_text(query, 1));
-            item.description = std::string((char *)sqlite3_column_text(query, 2));
+            copyFixed(item.name, sizeof item.name, (const char *)sqlite3_column_text(query, 1));
+            copyFixed(item.description, sizeof item.description, (const char *)sqlite3_column_text(query, 2));
             item.tool = sqlite3_column_int(query, 3) > 0;
             item.researched = sqlite3_column_int(query, 4) > 0;
             item.tech_level = sqlite3_column_int(query, 5);

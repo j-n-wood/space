@@ -13,6 +13,9 @@
 #include "../include/state/resources.h"
 #include <sqlite3.h>
 #include <cstdio>
+#include <cstring>
+
+#define CHECK_STREQ(a, b) CHECK(std::strcmp((a), (b)) == 0)
 
 static const char *DB_PATH = "./resources/initial.db";
 static const char *SAVE_PATH = "./test_save.db";
@@ -53,21 +56,21 @@ TEST_CASE("loadSystem populates system from database")
     SUBCASE("first location is the star Sol")
     {
         REQUIRE(system->locations.size() > 0);
-        CHECK(system->locations[0]->name == "Sol");
+        CHECK_STREQ(system->locations[0]->name, "Sol");
         CHECK(system->locations[0]->type == LOCATION_TYPE_STAR);
     }
 
     SUBCASE("planets are loaded in order")
     {
         REQUIRE(system->locations.size() >= 9);
-        CHECK(system->locations[1]->name == "Mercury");
-        CHECK(system->locations[2]->name == "Venus");
-        CHECK(system->locations[3]->name == "Earth");
-        CHECK(system->locations[4]->name == "Mars");
-        CHECK(system->locations[5]->name == "Jupiter");
-        CHECK(system->locations[6]->name == "Saturn");
-        CHECK(system->locations[7]->name == "Uranus");
-        CHECK(system->locations[8]->name == "Neptune");
+        CHECK_STREQ(system->locations[1]->name, "Mercury");
+        CHECK_STREQ(system->locations[2]->name, "Venus");
+        CHECK_STREQ(system->locations[3]->name, "Earth");
+        CHECK_STREQ(system->locations[4]->name, "Mars");
+        CHECK_STREQ(system->locations[5]->name, "Jupiter");
+        CHECK_STREQ(system->locations[6]->name, "Saturn");
+        CHECK_STREQ(system->locations[7]->name, "Uranus");
+        CHECK_STREQ(system->locations[8]->name, "Neptune");
     }
 
     SUBCASE("planets have correct location type")
@@ -83,14 +86,14 @@ TEST_CASE("loadSystem populates system from database")
     {
         REQUIRE(system->locations.size() >= 12);
         // Luna (id=10) orbits Earth (id=4)
-        CHECK(system->locations[9]->name == "Luna");
+        CHECK_STREQ(system->locations[9]->name, "Luna");
         CHECK(system->locations[9]->type == LOCATION_TYPE_MOON);
         CHECK(system->locations[9]->primary_id == 4); // Earth's body id
 
         // Phobos and Deimos orbit Mars (id=5)
-        CHECK(system->locations[10]->name == "Phobos");
+        CHECK_STREQ(system->locations[10]->name, "Phobos");
         CHECK(system->locations[10]->primary_id == 5);
-        CHECK(system->locations[11]->name == "Deimos");
+        CHECK_STREQ(system->locations[11]->name, "Deimos");
         CHECK(system->locations[11]->primary_id == 5);
     }
 
@@ -102,7 +105,7 @@ TEST_CASE("loadSystem populates system from database")
         CHECK(earth->children.size() == 1);
         if (!earth->children.empty())
         {
-            CHECK(earth->children[0]->name == "Luna");
+            CHECK_STREQ(earth->children[0]->name, "Luna");
         }
 
         // Mars should have Phobos and Deimos
@@ -137,7 +140,7 @@ TEST_CASE("Game::initialise loads full game state")
     {
         auto &systems = game.allSystems();
         REQUIRE(systems.size() == 1);
-        CHECK(systems[0]->name == "Sol");
+        CHECK_STREQ(systems[0]->name, "Sol");
         CHECK(systems[0]->id == 1);
     }
 
@@ -151,7 +154,7 @@ TEST_CASE("Game::initialise loads full game state")
         REQUIRE(game.items.size() == 1);
 
         auto &derrick = game.items[0];
-        CHECK(derrick.name == "Derrick");
+        CHECK_STREQ(derrick.name, "Derrick");
         CHECK(derrick.id == 0);
         CHECK(derrick.tech_level == 1);
         CHECK(derrick.production_time == 8);
@@ -188,7 +191,7 @@ TEST_CASE("SQLiteQuery basic operations")
         SQLiteQuery q(&loader, "SELECT id, name FROM test ORDER BY id");
         REQUIRE(q.next());
         CHECK(sqlite3_column_int(q, 0) == 1);
-        CHECK(std::string((char *)sqlite3_column_text(q, 1)) == "alpha");
+        CHECK(std::strcmp((const char *)sqlite3_column_text(q, 1), "alpha") == 0);
         REQUIRE(q.next());
         CHECK(sqlite3_column_int(q, 0) == 2);
         CHECK_FALSE(q.next());
@@ -199,7 +202,7 @@ TEST_CASE("SQLiteQuery basic operations")
         SQLiteQuery q(&loader, "SELECT name FROM test WHERE id = ?");
         q.bind(1, 2);
         REQUIRE(q.next());
-        CHECK(std::string((char *)sqlite3_column_text(q, 0)) == "beta");
+        CHECK(std::strcmp((const char *)sqlite3_column_text(q, 0), "beta") == 0);
         CHECK_FALSE(q.next());
     }
 
@@ -216,7 +219,7 @@ TEST_CASE("SQLiteQuery basic operations")
         SQLiteQuery q(&loader, "SELECT name FROM test WHERE value > ?");
         q.bind(1, 2.0);
         REQUIRE(q.next());
-        CHECK(std::string((char *)sqlite3_column_text(q, 0)) == "beta");
+        CHECK(std::strcmp((const char *)sqlite3_column_text(q, 0), "beta") == 0);
     }
 
     SUBCASE("step executes non-SELECT statements")
@@ -234,7 +237,7 @@ TEST_CASE("SQLiteQuery basic operations")
         SQLiteQuery q(&loader, "SELECT name FROM test WHERE id = ? AND value > ?");
         q.bind(1, 2).bind(2, 2.0);
         REQUIRE(q.next());
-        CHECK(std::string((char *)sqlite3_column_text(q, 0)) == "beta");
+        CHECK(std::strcmp((const char *)sqlite3_column_text(q, 0), "beta") == 0);
     }
 
     SUBCASE("invalid SQL sets valid to false")
@@ -300,7 +303,7 @@ TEST_CASE("SaveGame produces a loadable database")
     {
         auto &systems = loaded.allSystems();
         REQUIRE(systems.size() == 1);
-        CHECK(systems[0]->name == "Sol");
+        CHECK_STREQ(systems[0]->name, "Sol");
         CHECK(systems[0]->id == 1);
     }
 
@@ -310,11 +313,11 @@ TEST_CASE("SaveGame produces a loadable database")
         CHECK(sys->locations.size() == 12);
 
         // spot-check a few
-        CHECK(sys->locations[0]->name == "Sol");
+        CHECK_STREQ(sys->locations[0]->name, "Sol");
         CHECK(sys->locations[0]->type == LOCATION_TYPE_STAR);
-        CHECK(sys->locations[3]->name == "Earth");
+        CHECK_STREQ(sys->locations[3]->name, "Earth");
         CHECK(sys->locations[3]->type == LOCATION_TYPE_PLANET);
-        CHECK(sys->locations[9]->name == "Luna");
+        CHECK_STREQ(sys->locations[9]->name, "Luna");
         CHECK(sys->locations[9]->type == LOCATION_TYPE_MOON);
     }
 
@@ -337,7 +340,7 @@ TEST_CASE("SaveGame produces a loadable database")
 
         auto &rf = bases[0];
         CHECK(rf->location != nullptr);
-        CHECK(rf->location->name == "Earth");
+        CHECK_STREQ(rf->location->name, "Earth");
         CHECK(rf->num_derricks == 3);
     }
 
@@ -346,7 +349,7 @@ TEST_CASE("SaveGame produces a loadable database")
         auto &orbitals = loaded.allOrbitals();
         REQUIRE(orbitals.size() == 1);
         CHECK(orbitals[0]->location != nullptr);
-        CHECK(orbitals[0]->location->name == "Earth");
+        CHECK_STREQ(orbitals[0]->location->name, "Earth");
     }
 
     SUBCASE("round-trips facility stores")
@@ -365,7 +368,7 @@ TEST_CASE("SaveGame produces a loadable database")
     {
         REQUIRE(loaded.items.size() == 1);
         auto &item = loaded.items[0];
-        CHECK(item.name == "Derrick");
+        CHECK_STREQ(item.name, "Derrick");
         CHECK(item.tech_level == 1);
         CHECK(item.production_time == 8);
     }
