@@ -164,7 +164,7 @@ int main()
 					takeDefaultFocus();
 
 					// force UI pages to reset
-					auto pm{PageManager::getInstance()};
+					auto &pm{PageManager::getInstance()};
 					pm.getCurrentPage()->activate(pm.viewState); // TODO ugly
 				}
 				else
