@@ -45,6 +45,10 @@ public:
     PageManager();
     ~PageManager();
 
+    // prevent copy - there can be only one
+    PageManager(const PageManager &) = delete;
+    PageManager &operator=(const PageManager &) = delete;
+
     BasePage *switchToPage(Page newPage);
     inline BasePage *getCurrentPage() const { return currentPage; }
 
