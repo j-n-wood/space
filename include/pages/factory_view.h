@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdio>
+
 #include "pages/base_page.h"
 #include "state/location.h"
 
@@ -15,7 +17,7 @@ public:
     {
         backgroundSource = pageBackgroundSources[PB_FACTORY];
         standardButtons = ALL_STANDARD_BUTTONS; // example, set the standard buttons for this page
-        title = SublocationTypeName[slt] + std::string(" Factory");
+        std::snprintf(title, sizeof title, "%s Factory", SublocationTypeName[slt]);
     }
     ~FactoryView() {}
 

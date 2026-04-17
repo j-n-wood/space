@@ -11,7 +11,6 @@
 #include <cstdio>
 #include <cstring>
 #include <cmath>
-#include <string>
 
 extern "C"
 {
@@ -43,11 +42,9 @@ namespace
         }
     };
 
-    std::string ColorToHexString(const Color &color)
+    void ColorToHexString(const Color &color, char (&out)[9])
     {
-        char buffer[16];
-        std::snprintf(buffer, sizeof(buffer), "%02X%02X%02X%02X", color.r, color.g, color.b, color.a);
-        return std::string(buffer);
+        std::snprintf(out, sizeof out, "%02X%02X%02X%02X", color.r, color.g, color.b, color.a);
     }
 }
 
@@ -310,7 +307,15 @@ int SaveGame::saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locati
     const float orbitalVelocity = locationIndex < system->planetVelocities.size() ? system->planetVelocities[locationIndex] : 0.0f;
     const float initialAngle = locationIndex < system->planetPositions.size() ? atan2f(system->planetPositions[locationIndex].y, system->planetPositions[locationIndex].x) : 0.0f;
     const float radius = locationIndex < system->planetSizes.size() ? system->planetSizes[locationIndex] : 0.0f;
-    const std::string colorText = locationIndex < system->planetColors.size() ? ColorToHexString(system->planetColors[locationIndex]) : std::string("FFFFFFFF");
+    char colorText[9];
+    if (locationIndex < system->planetColors.size())
+    {
+        ColorToHexString(system->planetColors[locationIndex], colorText);
+    }
+    else
+    {
+        std::snprintf(colorText, sizeof colorText, "FFFFFFFF");
+    }
 
     sqlite3_reset(bodyQuery.stmt);
     sqlite3_clear_bindings(bodyQuery.stmt);

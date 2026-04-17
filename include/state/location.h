@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 #include <vector>
 
 #include "state/resources.h"
+#include "state/string_caps.h"
 
 // a location such as planet, moon, etc
 // various of the standard actions are available when at a body
@@ -49,7 +49,7 @@ public:
 class Location
 {
 public:
-    std::string name;
+    char name[NAME_MAX_LEN];
     LocationType type;
     System *system; // the system this location is in, e.g. Sol
 

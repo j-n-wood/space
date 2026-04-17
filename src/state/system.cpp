@@ -1,10 +1,11 @@
 #include <cstdlib>
 #include <cmath>
 
+#include "loaders/loader.h"
 #include "state/system.h"
 
 System::System()
-    : name()
+    : name{}
     , numPlanets(0)
 {
 }
@@ -20,8 +21,8 @@ Location* System::addLocation(const char* n, LocationType t) {
 
 void System::loadSolSystem()
 {
-    setNumBodies(8);    
-    this->name = "Sol";
+    setNumBodies(8);
+    copyFixed(this->name, sizeof this->name, "Sol");
 
     this->planetDistances = std::vector<float>(this->numPlanets);
     this->planetDistances[0] = 80;

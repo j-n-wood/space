@@ -6,10 +6,10 @@ extern "C"
 }
 
 #include <memory>
-#include <string>
 #include <vector> // decision - use this from STL until we know there is a problem. Can use std::unique_ptr<T[]>.
 
 #include "state/location.h"
+#include "state/string_caps.h"
 
 // Star system
 // embedded data is planets, moons etc
@@ -24,7 +24,7 @@ public:
     ~System();
 
     int id; // persistence ID for consistency
-    std::string name;
+    char name[NAME_MAX_LEN];
     int numPlanets;
     std::vector<float> planetDistances;
     std::vector<float> planetSizes;

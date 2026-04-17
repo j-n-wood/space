@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdio>
+
 #include "base_page.h"
 
 class ResourceFacility;
@@ -14,7 +16,7 @@ public:
     {
         backgroundSource = pageBackgroundSources[PB_RESOURCES];
         standardButtons = ALL_STANDARD_BUTTONS; // example, set the standard buttons for this page
-        title = "Resources";
+        std::snprintf(title, sizeof title, "Resources");
     }
     ~Resources() {}
 

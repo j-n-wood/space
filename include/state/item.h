@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
 #include <vector>
 
 #include "state/resources.h"
+#include "state/string_caps.h"
 /*
 enum ItemType
 {
@@ -57,8 +57,8 @@ class Item
 {
 public:
     int id;
-    std::string name;
-    std::string description;
+    char name[NAME_MAX_LEN];
+    char description[DESC_MAX_LEN];
     bool tool;       // can tool pod
     bool researched; // can produce
     int tech_level;  // required to produce

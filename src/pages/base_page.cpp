@@ -31,6 +31,7 @@ Rectangle BasePage::timeDest = {100, 24, 1280 - 100, 10};
 
 BasePage::BasePage() : backgroundTexture(nullptr), backgroundSource({0, 0, 0, 0}), standardButtons(ALL_STANDARD_BUTTONS)
 {
+    title[0] = '\0';
     // use textureManager to obtain default background texture
     backgroundTexture = TextureManager::getInstance().getTexture(TEXTURE_UI); // example, could set a default background here if desired
 }

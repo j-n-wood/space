@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdio>
+
 #include "base_page.h"
 #include "orrery.h"
 
@@ -10,7 +12,7 @@ public:
     explicit SystemView() : orrery(createOrrery((Vector2){640, 400}, 1.f))
     {
         backgroundSource = pageBackgroundSources[PB_COCKPIT];
-        title = "System View";
+        std::snprintf(title, sizeof title, "System View");
     }
     ~SystemView() {}
 

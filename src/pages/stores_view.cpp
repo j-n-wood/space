@@ -89,7 +89,7 @@ void StoresView::listItems()
     for (auto &item : Game::getCurrent()->items)
     {
         // emit the resource name
-        DrawText(item.name.c_str(), cursor.x, cursor.y, 20, WHITE);
+        DrawText(item.name, cursor.x, cursor.y, 20, WHITE);
         sprintf(buf, "%d", stores->items[idx]);
         DrawText(buf, cursor.x + 120, cursor.y, 20, WHITE);
         cursor.y += 24;
