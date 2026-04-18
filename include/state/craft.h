@@ -20,6 +20,12 @@ typedef enum
     CS_COUNT
 } CraftState;
 
+// default state times
+const float CSTD_ASCENT = 4.0f;
+const float CSTD_DESCENT = 2.0f;
+const float CSTD_LAUNCH = 0.3f;
+const float CSTD_DOCK = 0.3f;
+
 typedef enum
 {
     AS_DISABLED, // not available
@@ -51,7 +57,7 @@ class Craft
 public:
     char name[NAME_MAX_LEN];
     CraftState state;
-    int state_timer;
+    float state_timer;
 
     // crew
 
@@ -67,5 +73,5 @@ public:
     // current location if any
     Location *location;
 
-    Craft(CraftState cs, uint8_t mp, Location *loc) : state{cs}, state_timer{0}, max_pods{mp}, drive{false}, location{loc} {};
+    Craft(CraftState cs, uint8_t mp, Location *loc) : state{cs}, state_timer{0.0f}, max_pods{mp}, drive{false}, location{loc} {};
 };

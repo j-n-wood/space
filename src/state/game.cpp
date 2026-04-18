@@ -131,6 +131,12 @@ void Game::update(float delta)
         system->update(game_time);
     }
 
+    // update shuttles - use realtime as start of state changes is not tick aligned
+    for (auto shuttle : shuttles)
+    {
+        shuttle->update(dt);
+    }
+
     int difference = static_cast<int>(game_time) - prior;
     while (difference > 0)
     {
@@ -151,11 +157,5 @@ void Game::advanceTick()
     for (auto factory : factories)
     {
         factory->update();
-    }
-
-    // update shuttles
-    for (auto shuttle : shuttles)
-    {
-        shuttle->update();
     }
 }

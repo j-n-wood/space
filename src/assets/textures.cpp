@@ -6,7 +6,11 @@
 const char *textureFileNames[TEXTURE_COUNT] = {
     "ui.png",
     "ui_buttons.png",
-    "Items.png"};
+    "Items.png",
+    "bodies.png"};
+
+const bool textureSmoothing[TEXTURE_COUNT] = {
+    false, false, false, true};
 
 TextureManager::TextureManager()
 {
@@ -14,6 +18,11 @@ TextureManager::TextureManager()
     for (int i = 0; i < TEXTURE_COUNT; ++i)
     {
         textures[i] = new TextureAsset(textureFileNames[i]);
+        if (textureSmoothing[i])
+        {
+
+            SetTextureFilter(Texture2D(*textures[i]), TEXTURE_FILTER_BILINEAR);
+        }
     }
 }
 

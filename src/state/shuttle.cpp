@@ -1,15 +1,17 @@
 #include "state/shuttle.h"
 #include "state/game.h"
 
-void Shuttle::update()
+void Shuttle::update(float delta)
 {
     // state transitions
 
     // timed states
-    if (state_timer > 0)
+    if (state_timer > 0.0f)
     {
-        if (--state_timer == 0)
+        state_timer -= delta;
+        if (state_timer <= 0)
         {
+            state_timer = 0.0f;
             // done
             switch (state)
             {
@@ -33,27 +35,18 @@ void Shuttle::update()
                     state = CS_SURFACE;
                 }
                 break;
+            case CS_SURFACE_LAUNCH:
+                state = CS_ASCENDING;
+                state_timer = CSTD_ASCENT; // variable?
+                break;
+            case CS_ORBIT_LAUNCH:
+                state = CS_ORBIT;
+                break;
+            case CS_ORBIT_DOCKING:
+                state = CS_ORBIT_DOCKED;
+                break;
             }
         }
 
     } // timed state
-    else
-    {
-        // single tick states
-        switch (state)
-        {
-        case CS_SURFACE_LAUNCH:
-            state = CS_ASCENDING;
-            state_timer = 3; // variable?
-            break;
-        case CS_ORBIT_LAUNCH:
-            state = CS_ORBIT;
-            break;
-        case CS_ORBIT_DOCKING:
-            state = CS_ORBIT_DOCKED;
-            break;
-        default:
-            break;
-        }
-    }
 }
