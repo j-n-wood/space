@@ -7,6 +7,7 @@
 #include "pages/resources.h"
 #include "pages/stores_view.h"
 #include "pages/factory_view.h"
+#include "pages/shuttle_view.h"
 
 PageManager::PageManager() : currentPage(nullptr)
 {
@@ -23,6 +24,7 @@ PageManager::PageManager() : currentPage(nullptr)
     pages[PAGE_ORBIT_STORES] = new StoresView(SublocationType::SLOC_ORBIT);
     pages[PAGE_PRODUCTION] = new FactoryView(SublocationType::SLOC_ORBIT);
     pages[PAGE_SURFACE_PRODUCTION] = new FactoryView(SublocationType::SLOC_SURFACE);
+    pages[PAGE_SHUTTLE] = new ShuttleView();
 }
 
 PageManager::~PageManager()
@@ -40,8 +42,9 @@ BasePage *PageManager::switchToPage(Page newPage)
     // logic to switch to the specified page, for example by creating a new page instance and setting it as the current page
     // this is just a placeholder, actual implementation would depend on how you manage page instances and rendering
 
-    BasePage *newPageInstance = nullptr;
+    BasePage *newPageInstance = pages[newPage];
 
+    /*
     switch (newPage)
     {
     case PAGE_MAIN_MENU:
@@ -73,6 +76,9 @@ BasePage *PageManager::switchToPage(Page newPage)
     case PAGE_SURFACE_PRODUCTION:
         newPageInstance = pages[PAGE_SURFACE_PRODUCTION];
         break;
+    case PAGE_SHUTTLE:
+        newPageInstance = pages[PAGE_SHUTTLE];
+        break;
     case PAGE_SETTINGS:
         // switch to settings page
         break;
@@ -80,6 +86,7 @@ BasePage *PageManager::switchToPage(Page newPage)
         // handle invalid page if needed
         break;
     }
+    */
 
     if (newPageInstance != nullptr && newPageInstance != currentPage)
     {

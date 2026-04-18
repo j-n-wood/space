@@ -35,7 +35,7 @@ void SystemView::render()
     {
         PageManager::getInstance().switchToPage(PAGE_EARTH_CITY);
     }
-        */
+    */
 }
 
 void SystemView::input()

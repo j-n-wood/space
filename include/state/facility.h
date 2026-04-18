@@ -5,18 +5,18 @@
 
 #include "state/stores.h"
 #include "state/factory.h"
-
-class Location;
+#include "state/location.h"
 
 class Facility
 {
 public:
     int id; // database ID for loading/saving
     Location *location;
+    SublocationType sublocation;
     Stores stores;
     std::unique_ptr<Factory> factory; // RF bases typically do not have factory, orbitals do
 
-    explicit Facility(Location *l) : id{0}, location{l}
+    explicit Facility(Location *l) : id{0}, location{l}, sublocation{SLOC_ORBIT}
     {
     }
 

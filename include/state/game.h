@@ -7,6 +7,7 @@
 #include "state/orbital.h"
 #include "state/factory.h"
 #include "state/item.h"
+#include "state/shuttle.h"
 
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
@@ -25,12 +26,16 @@ class Game
     // non-owning collection of factories
     std::vector<Factory *> factories;
 
+    // non-owning collection of shuttles
+    std::vector<Shuttle *> shuttles;
+
     // current game instance
     static std::unique_ptr<Game> current;
 
 public:
     // game state
     float game_time;
+    float time_rate;
 
     // item definitions - array of instances as not passed around
     std::vector<Item> items;
@@ -72,6 +77,8 @@ public:
     Orbital *orbitalAt(Location *location);
 
     Factory *createFactory(Facility *facility);
+
+    Shuttle *createShuttle(Facility *facility);
 
     // update by delta
     void update(float delta);

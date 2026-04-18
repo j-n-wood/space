@@ -3,6 +3,7 @@
 
 Orbital::Orbital(Location *l) : Facility{l}
 {
+    sublocation = SLOC_ORBIT; // default, but make sure
     Game::getCurrent()->createFactory(this);
 }
 

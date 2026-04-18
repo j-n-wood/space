@@ -59,6 +59,10 @@ void buildTestData(Game *game)
 	{
 		item.researched = true;
 	}
+
+	Shuttle *sh = game->createShuttle(of); // create shuttle at earth orbital
+	sh->drive = true;
+	sh->fuel = 250;
 }
 
 int main()
