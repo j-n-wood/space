@@ -81,6 +81,51 @@ void ShuttleView::input()
     }
 }
 
+const char *statusText(Craft *craft, Location *location, char *status, size_t len)
+{
+    switch (craft->state)
+    {
+    case CS_SURFACE: // surface no dock
+        std::snprintf(status, len, "On surface of %s", location->name);
+        break;
+    case CS_SURFACE_DOCKED:
+        std::snprintf(status, len, "Docked at %s station", location->name);
+        break;
+    case CS_SURFACE_WORK:
+        std::snprintf(status, len, "Working on %s surface", location->name);
+        break;
+    case CS_SURFACE_LAUNCH:
+        std::snprintf(status, len, "Launching from %s", location->name);
+        break;
+    case CS_ASCENDING:
+        std::snprintf(status, len, "Ascending from %s", location->name);
+        break;
+    case CS_ORBIT:
+        std::snprintf(status, len, "Orbiting %s", location->name);
+        break;
+    case CS_ORBIT_DOCKING:
+        std::snprintf(status, len, "Docking with %s orbital", location->name);
+        break;
+    case CS_ORBIT_DOCKED:
+        std::snprintf(status, len, "Docked at %s orbital", location->name);
+        break;
+    case CS_ORBIT_WORK:
+        std::snprintf(status, len, "Working in %s orbit", location->name);
+        break;
+    case CS_ORBIT_LAUNCH:
+        std::snprintf(status, len, "Launching from %s orbital", location->name);
+        break;
+    case CS_DESCENDING:
+        std::snprintf(status, len, "Descending to %s", location->name);
+        break;
+    case CS_TRANSIT:
+        std::snprintf(status, len, "In transit");
+        break;
+    }
+
+    return status;
+}
+
 void ShuttleView::render()
 {
     BasePage::render();
@@ -111,45 +156,14 @@ void ShuttleView::render()
     }
 
     char status[128];
-    switch (shuttle->state)
-    {
-    case CS_SURFACE: // surface no dock
-        std::snprintf(status, sizeof status, "On surface of %s", location->name);
-        break;
-    case CS_SURFACE_DOCKED:
-        std::snprintf(status, sizeof status, "Docked at %s station", location->name);
-        break;
-    case CS_SURFACE_WORK:
-        std::snprintf(status, sizeof status, "Working on %s surface", location->name);
-        break;
-    case CS_SURFACE_LAUNCH:
-        std::snprintf(status, sizeof status, "Launching from %s", location->name);
-        break;
-    case CS_ASCENDING:
-        std::snprintf(status, sizeof status, "Ascending from %s", location->name);
-        break;
-    case CS_ORBIT:
-        std::snprintf(status, sizeof status, "Orbiting %s", location->name);
-        break;
-    case CS_ORBIT_DOCKING:
-        std::snprintf(status, sizeof status, "Docking with %s orbital", location->name);
-        break;
-    case CS_ORBIT_DOCKED:
-        std::snprintf(status, sizeof status, "Docked at %s orbital", location->name);
-        break;
-    case CS_ORBIT_WORK:
-        std::snprintf(status, sizeof status, "Working in %s orbit", location->name);
-        break;
-    case CS_ORBIT_LAUNCH:
-        std::snprintf(status, sizeof status, "Launching from %s orbital", location->name);
-        break;
-    case CS_DESCENDING:
-        std::snprintf(status, sizeof status, "Descending to %s", location->name);
-        break;
-    case CS_TRANSIT:
-        std::snprintf(status, sizeof status, "In transit");
-        break;
-    }
 
-    DrawText(status, 320, 160, 20, YELLOW);
+    DrawText(statusText(shuttle, location, status, sizeof status), 320, 160, 20, YELLOW);
+
+    // pods
+    float y{160};
+    for (int idx = 0; idx < shuttle->max_pods; ++idx)
+    {
+        DrawText(shuttle->pods[idx].description(status, sizeof status), 900, y, 20, YELLOW);
+        y += 24;
+    }
 }
