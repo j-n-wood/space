@@ -1,4 +1,5 @@
 #include "pages/shuttle_view.h"
+#include "state/game.h"
 #include "state/location.h"
 
 // original images 208 x 120 -> 832 x 480
@@ -85,12 +86,20 @@ void ShuttleView::render()
     BasePage::render();
 
     // render viewport
-    if (bodyTexture)
+    if (bodyTexture && (shuttle->state == CS_ORBIT))
     {
         // test rendering 1/4 of a body, 256 x 256
         Rectangle source{128, 128, 128, 128};
         Rectangle dest{320, 200, 512, 512};
         DrawTexturePro(*bodyTexture, source, dest, (Vector2){0, 0}, 0.f, WHITE);
+
+        // orbital?
+        if (Game::getCurrent()->orbitalAt(shuttle->location))
+        {
+            Rectangle ssource{1229, 179, 82, 72};
+            Rectangle sdest{600, 460, 320, 280};
+            DrawTexturePro(*backgroundTexture, ssource, sdest, (Vector2){0, 0}, 0.f, WHITE);
+        }
     }
 
     if (backgroundTexture)
