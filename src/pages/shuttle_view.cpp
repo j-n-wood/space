@@ -54,10 +54,12 @@ void ShuttleView::input()
         if (shuttle->state == CS_ORBIT_DOCKED)
         {
             shuttle->state = CS_ORBIT_LAUNCH;
+            shuttle->state_timer = CSTD_LAUNCH;
         }
-        else if (shuttle->state = CS_ORBIT)
+        else if (shuttle->state == CS_ORBIT)
         {
             shuttle->state = CS_ORBIT_DOCKING;
+            shuttle->state_timer = CSTD_DOCK;
         }
     }
     if (IsKeyPressed(KEY_A))
@@ -67,11 +69,12 @@ void ShuttleView::input()
         {
         case CS_ORBIT:
             shuttle->state = CS_DESCENDING;
-            shuttle->state_timer = 2;
+            shuttle->state_timer = CSTD_DESCENT;
             break;
         case CS_SURFACE:
         case CS_SURFACE_DOCKED:
             shuttle->state = CS_SURFACE_LAUNCH;
+            shuttle->state_timer = CSTD_LAUNCH;
             break;
         }
     }
@@ -82,9 +85,20 @@ void ShuttleView::render()
     BasePage::render();
 
     // render viewport
+    if (bodyTexture)
+    {
+        // test rendering 1/4 of a body, 256 x 256
+        Rectangle source{128, 128, 128, 128};
+        Rectangle dest{320, 200, 512, 512};
+        DrawTexturePro(*bodyTexture, source, dest, (Vector2){0, 0}, 0.f, WHITE);
+    }
+
     if (backgroundTexture)
     {
-        DrawTexturePro(*backgroundTexture, viewportImages[shuttle->state], viewportDest, (Vector2){0, 0}, 0.f, WHITE);
+        if (shuttle->state != CS_ORBIT)
+        {
+            DrawTexturePro(*backgroundTexture, viewportImages[shuttle->state], viewportDest, (Vector2){0, 0}, 0.f, WHITE);
+        }
     }
 
     char status[128];
