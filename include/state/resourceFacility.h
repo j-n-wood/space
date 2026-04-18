@@ -13,6 +13,7 @@ public:
 
     explicit ResourceFacility(Location *l) : Facility{l}, num_derricks{0}
     {
+        sublocation = SLOC_SURFACE;
     }
 
     virtual void update() override;

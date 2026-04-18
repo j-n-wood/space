@@ -107,7 +107,7 @@ void BasePage::renderStandardButtons()
                 break;
             case BUTTON_SHUTTLE:
                 // must have one or other facility and a shuttle
-                enabled = false; // (location != nullptr);
+                enabled = (location != nullptr) && (location->shuttle);
                 break;
             case BUTTON_SURFACE_SHUTTLE_BAY:
             case BUTTON_SURFACE_RESOURCES:

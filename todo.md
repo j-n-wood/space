@@ -10,6 +10,9 @@
 
 ## production
 
+* queue works
+* need restrictions, tech level speed
+
 ## shuttle
 
 ## seam model

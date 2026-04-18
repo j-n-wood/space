@@ -5,7 +5,7 @@ std::unique_ptr<Game> Game::current;
 
 const float MAX_TIMESTEP = 1.0f;
 
-Game::Game() : game_time(0.0f)
+Game::Game() : game_time(0.0f), time_rate(1.0f)
 {
 }
 
@@ -91,16 +91,39 @@ Factory *Game::createFactory(Facility *facility)
     return f;
 }
 
+Shuttle *Game::createShuttle(Facility *facility)
+{
+    // create a shuttle at a location, starting at the given facility
+    Location *location{facility->location};
+    if (!location)
+    {
+        TraceLog(LOG_ERROR, "Facility missing location");
+        return nullptr;
+    }
+    if (location->shuttle)
+    {
+        TraceLog(LOG_ERROR, "Blocked createShuttle: location already has one", location->name);
+        return nullptr;
+    }
+    // initial state depends on facility sublocation
+    CraftState cs{facility->sublocation == SLOC_ORBIT ? CS_ORBIT_DOCKED : CS_SURFACE_DOCKED};
+
+    location->shuttle = std::move(std::make_unique<Shuttle>(cs, 1, location));
+    shuttles.push_back(location->shuttle.get());
+    return location->shuttle.get();
+}
+
 void Game::update(float delta)
 {
     // add to time, if ticks over one second call advanceTick
-    if (delta > MAX_TIMESTEP)
+    float dt = delta * time_rate;
+    if (dt > MAX_TIMESTEP)
     {
-        delta = MAX_TIMESTEP;
+        dt = MAX_TIMESTEP;
     }
 
     int prior{static_cast<int>(game_time)};
-    game_time += delta;
+    game_time += dt;
 
     // start with updating all systems - could only update visible ones
     for (auto &system : systems)
@@ -128,5 +151,11 @@ void Game::advanceTick()
     for (auto factory : factories)
     {
         factory->update();
+    }
+
+    // update shuttles
+    for (auto shuttle : shuttles)
+    {
+        shuttle->update();
     }
 }

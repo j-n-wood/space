@@ -5,6 +5,7 @@
 
 #include "state/resources.h"
 #include "state/string_caps.h"
+#include "state/shuttle.h"
 
 // a location such as planet, moon, etc
 // various of the standard actions are available when at a body
@@ -60,6 +61,9 @@ public:
     std::vector<Location *> children; // e.g. moons orbiting a planet, or cities on a planet. This is not persisted, but built in memory based on the primary_id relationships
 
     LocationResources resources;
+
+    // location can have a shuttle, owns
+    ShuttlePtr shuttle;
 
     Location(System *s, const char *n, LocationType t);
 };
