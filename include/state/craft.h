@@ -45,9 +45,25 @@ public:
     Autopilot() : state{AS_OFF}, fromSource{0}, fromDest{0} {};
 };
 
+typedef enum
+{
+    PT_EMPTY,
+    PT_TOOL,
+    PT_SUPPLY,
+    PT_CRYO,
+    PT_COUNT
+} PodType;
+
 class Pod
 {
 public:
+    PodType type;
+    int contentType; // item index or resource type
+    int amount;      // amount or count
+
+    Pod() : type{PT_EMPTY}, contentType{0}, amount{0} {};
+
+    const char *description(char *dest, size_t len);
 };
 
 class Location;
@@ -74,4 +90,7 @@ public:
     Location *location;
 
     Craft(CraftState cs, uint8_t mp, Location *loc) : state{cs}, state_timer{0.0f}, max_pods{mp}, drive{false}, location{loc} {};
+
+    bool isPodEmpty(const int index);
+    void setPodType(const int index, const PodType pt);
 };
