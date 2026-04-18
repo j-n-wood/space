@@ -8,6 +8,7 @@
 #include "pages/stores_view.h"
 #include "pages/factory_view.h"
 #include "pages/shuttle_view.h"
+#include "pages/bay_view.h"
 
 PageManager::PageManager() : currentPage(nullptr)
 {
@@ -25,6 +26,9 @@ PageManager::PageManager() : currentPage(nullptr)
     pages[PAGE_PRODUCTION] = new FactoryView(SublocationType::SLOC_ORBIT);
     pages[PAGE_SURFACE_PRODUCTION] = new FactoryView(SublocationType::SLOC_SURFACE);
     pages[PAGE_SHUTTLE] = new ShuttleView();
+    pages[PAGE_SURFACE_SHUTTLE_BAY] = new BayView(SublocationType::SLOC_SURFACE, BT_SHUTTLE); // TODO subclass?
+    pages[PAGE_ORBIT_SHUTTLE_BAY] = new BayView(SublocationType::SLOC_ORBIT, BT_SHUTTLE);
+    pages[PAGE_ORBIT_SPACE_BAY] = new BayView(SublocationType::SLOC_ORBIT, BT_SPACE);
 }
 
 PageManager::~PageManager()
@@ -43,50 +47,6 @@ BasePage *PageManager::switchToPage(Page newPage)
     // this is just a placeholder, actual implementation would depend on how you manage page instances and rendering
 
     BasePage *newPageInstance = pages[newPage];
-
-    /*
-    switch (newPage)
-    {
-    case PAGE_MAIN_MENU:
-        // switch to main menu page
-        break;
-    case PAGE_EARTH_CITY:
-        // switch to earth city page
-        newPageInstance = pages[PAGE_EARTH_CITY];
-        break;
-    case PAGE_EARTH_TRAINING:
-        // switch to earth training page
-        break;
-    case PAGE_SURFACE_RESOURCES:
-        newPageInstance = pages[PAGE_SURFACE_RESOURCES];
-        break;
-    case PAGE_SYSTEM_VIEW:
-        // switch to system view page
-        newPageInstance = pages[PAGE_SYSTEM_VIEW];
-        break;
-    case PAGE_SURFACE_STORES:
-        newPageInstance = pages[PAGE_SURFACE_STORES];
-        break;
-    case PAGE_ORBIT_STORES:
-        newPageInstance = pages[PAGE_ORBIT_STORES];
-        break;
-    case PAGE_PRODUCTION:
-        newPageInstance = pages[PAGE_PRODUCTION];
-        break;
-    case PAGE_SURFACE_PRODUCTION:
-        newPageInstance = pages[PAGE_SURFACE_PRODUCTION];
-        break;
-    case PAGE_SHUTTLE:
-        newPageInstance = pages[PAGE_SHUTTLE];
-        break;
-    case PAGE_SETTINGS:
-        // switch to settings page
-        break;
-    default:
-        // handle invalid page if needed
-        break;
-    }
-    */
 
     if (newPageInstance != nullptr && newPageInstance != currentPage)
     {
