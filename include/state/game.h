@@ -80,6 +80,8 @@ public:
 
     Shuttle *createShuttle(Facility *facility);
 
+    void setPodType(Craft *craft, int index, PodType pt, Facility *facility);
+
     // update by delta
     void update(float delta);
     void advanceTick();

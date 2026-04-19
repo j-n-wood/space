@@ -136,11 +136,11 @@ int main()
 			}
 
 			// hotkeys to switch pages
-			if (IsKeyPressed(KEY_ONE))
+			if (IsKeyPressed(KEY_F1))
 			{
 				BasePage *currentPage = pageManager.switchToPage(PAGE_SYSTEM_VIEW);
 			}
-			else if (IsKeyPressed(KEY_TWO))
+			else if (IsKeyPressed(KEY_F2))
 			{
 				pageManager.switchToPage(PAGE_EARTH_CITY);
 			}

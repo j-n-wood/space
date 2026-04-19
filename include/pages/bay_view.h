@@ -19,16 +19,29 @@ class BayView : public BasePage
     SublocationType sublocationType;
     BayType type;
     Facility *facility;
+    const TextureAsset *partsTexture;
+
+    int section;
+    int targetSection;
+    float offset;
+    int driveSection;
 
 public:
-    BayView(SublocationType s, BayType bt) : sublocationType{s}, type{bt}
+    BayView(SublocationType s, BayType bt) : sublocationType{s}, type{bt}, section{0}, targetSection{0}, offset{0.0f}, driveSection{2}
     {
         backgroundSource = pageBackgroundSources[PB_HANGAR];
-        standardButtons = ALL_STANDARD_BUTTONS; // example, set the standard buttons for this page
+        standardButtons = ALL_STANDARD_BUTTONS;
+        partsTexture = TextureManager::getInstance().getTexture(TEXTURE_ITEMS);
     }
     ~BayView() {}
 
     void activate(ViewState &viewState) override;
     void input() override;
     void render() override;
+
+    Shuttle *getShuttle();
+
+    void renderShuttle(Shuttle *shuttle);
+    void renderPod(Pod *pod);
+    void renderDrive(Shuttle *shuttle);
 };

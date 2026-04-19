@@ -89,7 +89,10 @@ public:
     // current location if any
     Location *location;
 
-    Craft(CraftState cs, uint8_t mp, Location *loc) : state{cs}, state_timer{0.0f}, max_pods{mp}, drive{false}, location{loc} {};
+    Craft(CraftState cs, uint8_t mp, Location *loc) : state{cs}, state_timer{0.0f}, max_pods{mp}, drive{false}, location{loc}
+    {
+        name[0] = '\0';
+    };
 
     bool isPodEmpty(const int index);
     void setPodType(const int index, const PodType pt);

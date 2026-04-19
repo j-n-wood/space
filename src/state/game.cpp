@@ -113,6 +113,47 @@ Shuttle *Game::createShuttle(Facility *facility)
     return location->shuttle.get();
 }
 
+// done here to combine game logic when pod type changes
+void Game::setPodType(Craft *craft, int index, PodType pt, Facility *facility)
+{
+    if (!craft)
+    {
+        TraceLog(LOG_ERROR, "Missing craft to SetPodType");
+        return;
+    }
+    if (index > craft->max_pods)
+    {
+        TraceLog(LOG_ERROR, "Invalid index to SetPodType");
+        return;
+    }
+
+    // unload existing
+    Pod &pod{craft->pods[index]};
+    switch (pod.type)
+    {
+    case PT_TOOL:
+        if (pod.amount)
+        {
+            facility->stores.items[pod.contentType] += pod.amount;
+            pod.amount = 0;
+        }
+        break;
+    case PT_SUPPLY:
+        if (pod.amount)
+        {
+            facility->stores.resources[pod.contentType] += pod.amount;
+            pod.amount = 0;
+        }
+        break;
+        // TODO CRYO
+    default:
+        break;
+    }
+
+    // set new pod type
+    pod.type = pt;
+}
+
 void Game::update(float delta)
 {
     // add to time, if ticks over one second call advanceTick
