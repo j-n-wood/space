@@ -69,5 +69,6 @@ public:
     int production_time;
     int doc_image_index;
     int production_image_index;
+    int pod_capacity; // how many units can fit in a pod
     std::vector<BuildRequirement> requirements;
 };

@@ -63,6 +63,10 @@ void buildTestData(Game *game)
 	Shuttle *sh = game->createShuttle(of); // create shuttle at earth orbital
 	sh->drive = true;
 	sh->fuel = 250;
+
+	// test pod loading
+	game->items[0].pod_capacity = 8;
+	of->stores.items[0] = 3; // lets put derricks into orbit :)
 }
 
 int main()
