@@ -65,7 +65,6 @@ void buildTestData(Game *game)
 	sh->fuel = 250;
 
 	// test pod loading
-	game->items[0].pod_capacity = 8;
 	of->stores.items[0] = 3; // lets put derricks into orbit :)
 }
 

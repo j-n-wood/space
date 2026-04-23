@@ -37,11 +37,12 @@ public:
     {
         // list items where each line is item.name, quantity in stores
         // do not list items with 0 quantity
+        // for loading a pod, do not allow if item.pod_capacity is 0, as that indicates not loadable in pods
         // retain count of values
         currentCount = 0;
         for (auto &item : game->items)
         {
-            if (stores->items[item.id] > 0)
+            if (stores->items[item.id] > 0 && item.pod_capacity > 0)
             {
                 activeItemsIDs[currentCount] = item.id;
                 std::snprintf(names[currentCount], 32, "%s: %d", item.name, stores->items[item.id]);
