@@ -46,11 +46,11 @@ newoption
 function link_os_deps()
     filter "system:linux"
         links {"pthread", "m", "dl", "rt", "sqlite3"}
-        filter {"options:wayland=off"}
-            links {"X11"}
-        filter {"options:wayland=on"}
-            links {"wayland-client", "wayland-cursor", "wayland-egl", "xkbcommon"}
-    
+    filter {"system:linux", "options:wayland=off"}
+        links {"X11"}
+    filter {"system:linux", "options:wayland=on"}
+        links {"wayland-client", "wayland-cursor", "wayland-egl", "xkbcommon"}
+
     filter "system:macosx"
         links {"OpenGL.framework", "Cocoa.framework", "IOKit.framework", "CoreFoundation.framework", "CoreAudio.framework", "CoreVideo.framework", "AudioToolbox.framework", "sqlite3"}
 

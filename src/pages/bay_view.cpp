@@ -48,6 +48,11 @@ void BayView::activate(ViewState &viewState)
     {
         facility = f;
         std::snprintf(title, sizeof title, "%s %s Bay", SublocationTypeName[sublocationType], bayTypeName[type]);
+        resourceList.setStores(&facility->stores);
+
+        int dlg_width = GetScreenWidth() - 400;
+        int dlg_height = GetScreenHeight() - 300;
+        resourceList.dest = (Rectangle){200, 150, (float)dlg_width, (float)dlg_height};
     }
 };
 
@@ -80,6 +85,58 @@ void BayView::input()
             {
                 // set to cryo
                 Game::getCurrent()->setPodType(craft, podIndex, PT_CRYO, facility);
+            }
+            if (IsKeyPressed(KEY_S))
+            {
+                // if supply pod, choose resource
+                if (craft->pods[podIndex].type == PT_SUPPLY)
+                {
+                    // set resource list selection to current pod content, if any
+                    resourceList.itemActive = -1;
+                    if (craft->pods[podIndex].amount > 0)
+                    {
+                        for (int i = 0; i < ResourceType::Count; i++)
+                        {
+                            if (craft->pods[podIndex].contentType == resourceList.activeResourceIDs[i])
+                            {
+                                resourceList.itemActive = i;
+                                resourceList.itemFocused = i;
+                                break;
+                            }
+                        }
+                    }
+                    resourceList.visible = true;
+                }
+            }
+        }
+    }
+
+    if (resourceList.visible)
+    {
+        // if RMB, close resource list
+        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+        {
+            resourceList.visible = false;
+        }
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
+            Shuttle *shuttle = getShuttle();
+            // clicked on a resource, get the ID and set it for the current pod
+            int resourceID = resourceList.getFocusResourceID();
+            if (resourceID >= 0)
+            {
+                int podIndex = section - 1;
+                // remove existing content if any
+                if (shuttle->pods[podIndex].amount > 0)
+                {
+                    facility->stores.resources[shuttle->pods[podIndex].contentType] += shuttle->pods[podIndex].amount;
+                }
+                // set new content
+                shuttle->pods[podIndex].contentType = resourceID;
+                // set to available amount in stores, or max pod capacity, whichever is lower. max is 250
+                shuttle->pods[podIndex].amount = std::min(facility->stores.resources[resourceID], 250);
+                // remove from stores
+                facility->stores.resources[resourceID] -= shuttle->pods[podIndex].amount;
             }
         }
     }
@@ -127,6 +184,11 @@ void BayView::render()
         if (shuttle)
         {
             renderShuttle(shuttle);
+
+            if (resourceList.visible)
+            {
+                resourceList.render();
+            }
         }
     }
 };
@@ -166,6 +228,14 @@ void BayView::renderPod(Pod *pod)
         break;
     case PT_SUPPLY:
         DrawTexturePro(*partsTexture, supply_pod, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);
+        if (pod->amount > 0)
+        {
+            // text display of resource name and amount, centered below pod
+            char buffer[64];
+            std::snprintf(buffer, sizeof buffer, "%s: %d", ResourceName[pod->contentType], pod->amount);
+            int textWidth = MeasureText(buffer, 20);
+            DrawText(buffer, (int)(main_section_dest.x + main_section_dest.width / 2 - textWidth / 2), (int)(main_section_dest.y + main_section_dest.height + 10), 20, WHITE);
+        }
         break;
     case PT_CRYO:
         DrawTexturePro(*partsTexture, cryo_pod, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);

@@ -45,6 +45,8 @@ void Shuttle::update(float delta)
             case CS_ORBIT_DOCKING:
                 state = CS_ORBIT_DOCKED;
                 break;
+            default:
+                break;
             }
         }
 

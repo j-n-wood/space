@@ -77,6 +77,8 @@ void ShuttleView::input()
             shuttle->state = CS_SURFACE_LAUNCH;
             shuttle->state_timer = CSTD_LAUNCH;
             break;
+        default:
+            break;
         }
     }
 }
@@ -120,6 +122,8 @@ const char *statusText(Craft *craft, Location *location, char *status, size_t le
         break;
     case CS_TRANSIT:
         std::snprintf(status, len, "In transit");
+        break;
+    default:
         break;
     }
 
