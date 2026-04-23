@@ -4,6 +4,7 @@
 
 #include "pages/base_page.h"
 #include "pages/resource_list.h"
+#include "pages/item_list.h"
 #include "state/facility.h"
 
 typedef enum
@@ -28,9 +29,10 @@ class BayView : public BasePage
     int driveSection;
 
     ResourceList resourceList;
+    ItemList itemList;
 
 public:
-    BayView(SublocationType s, BayType bt) : sublocationType{s}, type{bt}, section{0}, targetSection{0}, offset{0.0f}, driveSection{2}, resourceList{nullptr, {0, 0, 0, 0}}
+    BayView(SublocationType s, BayType bt) : sublocationType{s}, type{bt}, section{0}, targetSection{0}, offset{0.0f}, driveSection{2}, resourceList{nullptr, {0, 0, 0, 0}}, itemList{{0, 0, 0, 0}}
     {
         backgroundSource = pageBackgroundSources[PB_HANGAR];
         standardButtons = ALL_STANDARD_BUTTONS;

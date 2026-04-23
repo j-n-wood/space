@@ -179,6 +179,7 @@ bool Loader::loadItems()
             item.production_time = sqlite3_column_int(query, 10);
             item.doc_image_index = sqlite3_column_int(query, 11);
             item.production_image_index = sqlite3_column_int(query, 12);
+            item.pod_capacity = 1; // default, overridden by specific items below
             game->items.push_back(item);
         }
     }
