@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include "state/string_caps.h"
+#include "state/autopilot.h"
 
 typedef enum
 {
@@ -25,25 +26,6 @@ const float CSTD_ASCENT = 4.0f;
 const float CSTD_DESCENT = 2.0f;
 const float CSTD_LAUNCH = 0.3f;
 const float CSTD_DOCK = 0.3f;
-
-typedef enum
-{
-    AS_DISABLED, // not available
-    AS_OFF,
-    AS_ON,
-    AS_COMPLETE, // finish cycle
-    AS_COUNT
-} AutopilotState;
-
-class Autopilot
-{
-public:
-    AutopilotState state;
-    uint32_t fromSource; // bitfields of resource flags
-    uint32_t fromDest;
-
-    Autopilot() : state{AS_OFF}, fromSource{0}, fromDest{0} {};
-};
 
 typedef enum
 {
@@ -93,7 +75,9 @@ public:
     {
         name[0] = '\0';
     };
+    virtual ~Craft() = default;
 
     bool isPodEmpty(const int index);
     void setPodType(const int index, const PodType pt);
+    virtual void update(float delta);
 };

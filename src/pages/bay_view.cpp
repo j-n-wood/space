@@ -59,7 +59,7 @@ void BayView::activate(ViewState &viewState)
 
         int dlg_width = GetScreenWidth() - 600;
         int dlg_height = GetScreenHeight() - 400;
-        Rectangle dlg_dest{dlg_width / 2, dlg_height / 2, (float)dlg_width, (float)dlg_height};
+        Rectangle dlg_dest{(float)dlg_width * 0.5f, (float)dlg_height * 0.5f, (float)dlg_width, (float)dlg_height};
         resourceList.activate(game, &facility->stores, dlg_dest);
         itemList.activate(game, &facility->stores, dlg_dest);
     }
@@ -182,7 +182,7 @@ void BayView::input()
             if (resourceID >= 0)
             {
                 auto &pod = shuttle->pods[section - 1];
-                Game::getCurrent()->setSupplyPodContent(&pod, &facility->stores, resourceID);
+                Game::getCurrent()->setSupplyPodContent(&pod, &facility->stores, resourceID, MAX_SUPPLY_POD_AMOUNT);
             }
         }
     }

@@ -77,3 +77,13 @@ void Craft::setPodType(const int index, const PodType pt)
         pods[index].type = pt;
     }
 }
+
+void Craft::update(float delta)
+{
+    // update autopilot if fitted
+    if (drive)
+    {
+        // update autopilot logic here
+        autopilot.update(this, delta);
+    }
+}

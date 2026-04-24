@@ -11,6 +11,7 @@
 #include "../include/state/orbital.h"
 #include "../include/state/item.h"
 #include "../include/state/resources.h"
+#include "../include/state/autopilot.h"
 #include <sqlite3.h>
 #include <cstdio>
 #include <cstring>
@@ -430,4 +431,46 @@ TEST_CASE("SaveGame overwrites existing file")
     CHECK(loaded.allOrbitals().size() == 1);
 
     removeSaveFile();
+}
+
+TEST_CASE("Autopilot::nextFlagged cycles through flagged resources")
+{
+    Autopilot ap;
+    ap.flow[ResourceType::Iron] = RF_LOAD_AT_SOURCE;
+    ap.flow[ResourceType::Copper] = RF_BALANCE;
+    ap.flow[ResourceType::Carbon] = RF_LOAD_AT_DEST;
+
+    // surface cursor sees RF_LOAD_AT_SOURCE: Iron and Copper
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor) == ResourceType::Iron);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor) == ResourceType::Copper);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor) == ResourceType::Iron);
+
+    // orbit cursor sees RF_LOAD_AT_DEST: Carbon (4) then Copper (5), then wrap
+    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.orbit_cursor) == ResourceType::Carbon);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.orbit_cursor) == ResourceType::Copper);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.orbit_cursor) == ResourceType::Carbon);
+}
+
+TEST_CASE("Autopilot::nextFlagged returns -1 when nothing flagged")
+{
+    Autopilot ap;
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor) == -1);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.orbit_cursor) == -1);
+}
+
+TEST_CASE("Autopilot::nextFlagged with predicate skips rejected resources")
+{
+    Autopilot ap;
+    ap.flow[ResourceType::Iron] = RF_LOAD_AT_SOURCE;
+    ap.flow[ResourceType::Copper] = RF_LOAD_AT_SOURCE;
+    ap.flow[ResourceType::Carbon] = RF_LOAD_AT_SOURCE;
+
+    // Accept only Copper — Iron and Carbon should be skipped.
+    auto onlyCopper = [](int r) { return r == ResourceType::Copper; };
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor, onlyCopper) == ResourceType::Copper);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor, onlyCopper) == ResourceType::Copper);
+
+    // Predicate rejects everything → -1.
+    auto none = [](int) { return false; };
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor, none) == -1);
 }

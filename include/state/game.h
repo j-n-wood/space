@@ -83,7 +83,7 @@ public:
     Shuttle *createShuttle(Facility *facility);
 
     void setPodType(Craft *craft, int index, PodType pt, Facility *facility);
-    void setSupplyPodContent(Pod *pod, Stores *stores, int resource_id);
+    void setSupplyPodContent(Pod *pod, Stores *stores, int resource_id, int amount);
     void setToolPodContent(Pod *pod, Stores *stores, int item_id);
 
     // update by delta
