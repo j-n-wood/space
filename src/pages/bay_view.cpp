@@ -56,14 +56,12 @@ void BayView::activate(ViewState &viewState)
     {
         facility = f;
         std::snprintf(title, sizeof title, "%s %s Bay", SublocationTypeName[sublocationType], bayTypeName[type]);
-        resourceList.setStores(&facility->stores);
 
         int dlg_width = GetScreenWidth() - 600;
         int dlg_height = GetScreenHeight() - 400;
-        resourceList.dest = (Rectangle){200, 150, (float)dlg_width, (float)dlg_height};
-
-        itemList.activate(game, &facility->stores);
-        itemList.dest = (Rectangle){200, 150, (float)dlg_width, (float)dlg_height};
+        Rectangle dlg_dest{dlg_width / 2, dlg_height / 2, (float)dlg_width, (float)dlg_height};
+        resourceList.activate(game, &facility->stores, dlg_dest);
+        itemList.activate(game, &facility->stores, dlg_dest);
     }
 }
 

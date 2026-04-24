@@ -27,10 +27,11 @@ public:
         }
     }
 
-    void activate(Game *g, Stores *s)
+    void activate(Game *g, Stores *s, Rectangle &target)
     {
         game = g;
         stores = s;
+        dest = target;
     }
 
     int render()
