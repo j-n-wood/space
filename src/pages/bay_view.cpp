@@ -26,6 +26,14 @@ Rectangle cryo_pod{1368, 128, 96, 80};
 Rectangle shuttle_chassis{783, 389, 432, 80};
 Rectangle ios_chassis{786, 508, 880, 80};
 
+// render output and interaction areas
+// full width = 320 + 224 * 4 = 1214
+Rectangle cockpit_dest{1214 - 128 * 4, 300, 96 * 4, 80 * 4};
+Rectangle cockpit_spine_dest{1214 - 32 * 4, 300 + 24 * 4, 32 * 4, 48 * 4};
+Rectangle drive_spine_dest{640 - 80 * 4, 300 + 24 * 4, 80 * 4, 48 * 4};
+Rectangle pod_spine_dest{320, 300 + 24 * 4, 224 * 4, 48 * 4};
+Rectangle main_section_dest{640, 300, 96 * 4, 80 * 4};
+
 void BayView::activate(ViewState &viewState)
 {
     auto game{Game::getCurrent()};
@@ -50,13 +58,53 @@ void BayView::activate(ViewState &viewState)
         std::snprintf(title, sizeof title, "%s %s Bay", SublocationTypeName[sublocationType], bayTypeName[type]);
         resourceList.setStores(&facility->stores);
 
-        int dlg_width = GetScreenWidth() - 400;
-        int dlg_height = GetScreenHeight() - 300;
+        int dlg_width = GetScreenWidth() - 600;
+        int dlg_height = GetScreenHeight() - 400;
         resourceList.dest = (Rectangle){200, 150, (float)dlg_width, (float)dlg_height};
 
         itemList.activate(game, &facility->stores);
         itemList.dest = (Rectangle){200, 150, (float)dlg_width, (float)dlg_height};
     }
+}
+
+void BayView::loadSupplyPod(Pod *pod)
+{
+    // set resource list selection to current pod content, if any
+
+    resourceList.itemActive = -1;
+    if (pod->amount > 0)
+    {
+        for (int i = 0; i < ResourceType::Count; i++)
+        {
+            if (pod->contentType == resourceList.activeResourceIDs[i])
+            {
+                resourceList.itemActive = i;
+                resourceList.itemFocused = i;
+                break;
+            }
+        }
+    }
+    resourceList.visible = true;
+}
+
+void BayView::loadToolPod(Pod *pod)
+{
+    // set item list selection to current pod content, if any
+
+    itemList.itemActive = -1;
+    if (pod->amount > 0)
+    {
+        for (int i = 0; i < itemList.currentCount; i++)
+        {
+            if (pod->contentType == itemList.activeItemsIDs[i])
+            {
+                itemList.itemActive = i;
+                itemList.itemFocused = i;
+                break;
+            }
+        }
+    }
+    itemList.visible = true;
 }
 
 void BayView::input()
@@ -89,44 +137,33 @@ void BayView::input()
                 // set to cryo
                 Game::getCurrent()->setPodType(craft, podIndex, PT_CRYO, facility);
             }
+
+            bool inspectPod = false;
+
             if (IsKeyPressed(KEY_S))
+            {
+                inspectPod = true;
+            }
+
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                Vector2 mousePos = GetMousePosition();
+                if (CheckCollisionPointRec(mousePos, main_section_dest))
+                {
+                    inspectPod = true;
+                }
+            }
+
+            if (inspectPod)
             {
                 // if supply pod, choose resource
                 if (craft->pods[podIndex].type == PT_SUPPLY)
                 {
-                    // set resource list selection to current pod content, if any
-                    resourceList.itemActive = -1;
-                    if (craft->pods[podIndex].amount > 0)
-                    {
-                        for (int i = 0; i < ResourceType::Count; i++)
-                        {
-                            if (craft->pods[podIndex].contentType == resourceList.activeResourceIDs[i])
-                            {
-                                resourceList.itemActive = i;
-                                resourceList.itemFocused = i;
-                                break;
-                            }
-                        }
-                    }
-                    resourceList.visible = true;
+                    loadSupplyPod(&craft->pods[podIndex]);
                 }
                 else if (craft->pods[podIndex].type == PT_TOOL)
                 {
-                    // set item list selection to current pod content, if any
-                    itemList.itemActive = -1;
-                    if (craft->pods[podIndex].amount > 0)
-                    {
-                        for (int i = 0; i < itemList.currentCount; i++)
-                        {
-                            if (craft->pods[podIndex].contentType == itemList.activeItemsIDs[i])
-                            {
-                                itemList.itemActive = i;
-                                itemList.itemFocused = i;
-                                break;
-                            }
-                        }
-                    }
-                    itemList.visible = true;
+                    loadToolPod(&craft->pods[podIndex]);
                 }
             }
         }
@@ -147,17 +184,7 @@ void BayView::input()
             if (resourceID >= 0)
             {
                 auto &pod = shuttle->pods[section - 1];
-                // remove existing content if any
-                if (pod.amount > 0)
-                {
-                    facility->stores.resources[pod.contentType] += pod.amount;
-                }
-                // set new content
-                pod.contentType = resourceID;
-                // set to available amount in stores, or max pod capacity, whichever is lower. max is 250
-                pod.amount = std::min(facility->stores.resources[resourceID], 250);
-                // remove from stores
-                facility->stores.resources[resourceID] -= pod.amount;
+                Game::getCurrent()->setSupplyPodContent(&pod, &facility->stores, resourceID);
             }
         }
     }
@@ -173,23 +200,8 @@ void BayView::input()
         {
             Shuttle *shuttle = getShuttle();
             // clicked on an item, get the ID and set it for the current pod
-            int itemID = itemList.getFocusItemID();
-            if (itemID >= 0)
-            {
-                auto &pod = shuttle->pods[section - 1];
-                // remove existing content if any
-                if (pod.amount > 0)
-                {
-                    facility->stores.items[pod.contentType] += pod.amount;
-                }
-                // set new content
-                pod.contentType = itemID;
-                // set to available amount in stores, or max pod capacity, whichever is lower.
-                // pod capacity is defined on the item, many are 1.
-                pod.amount = std::min(facility->stores.items[itemID], itemList.game->items[itemID].pod_capacity);
-                // remove from stores
-                facility->stores.items[itemID] -= pod.amount;
-            }
+            int item_id = itemList.getFocusItemID();
+            itemList.game->setToolPodContent(&shuttle->pods[section - 1], &facility->stores, item_id);
         }
     }
 };
@@ -248,13 +260,6 @@ void BayView::render()
         }
     }
 };
-
-// full width = 320 + 224 * 4 = 1214
-Rectangle cockpit_dest{1214 - 128 * 4, 300, 96 * 4, 80 * 4};
-Rectangle cockpit_spine_dest{1214 - 32 * 4, 300 + 24 * 4, 32 * 4, 48 * 4};
-Rectangle drive_spine_dest{640 - 80 * 4, 300 + 24 * 4, 80 * 4, 48 * 4};
-Rectangle pod_spine_dest{320, 300 + 24 * 4, 224 * 4, 48 * 4};
-Rectangle main_section_dest{640, 300, 96 * 4, 80 * 4};
 
 void BayView::renderShuttle(Shuttle *shuttle)
 {
