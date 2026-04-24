@@ -1,11 +1,12 @@
 #pragma once
 
-#include "state/facility.h"
+#include "state/game.h"
 #include "raygui/raygui.h"
 
 class ResourceList
 {
 public:
+    Game *game;
     Stores *stores;
     Rectangle dest;
     bool visible;
@@ -25,9 +26,11 @@ public:
         }
     }
 
-    void setStores(Stores *s)
+    void activate(Game *g, Stores *s, Rectangle &target)
     {
+        game = g;
         stores = s;
+        dest = target;
     }
 
     int render()
