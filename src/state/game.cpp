@@ -154,6 +154,63 @@ void Game::setPodType(Craft *craft, int index, PodType pt, Facility *facility)
     pod.type = pt;
 }
 
+void Game::setSupplyPodContent(Pod *pod, Stores *stores, int resource_id)
+{
+    if (!pod || !stores)
+    {
+        TraceLog(LOG_ERROR, "Missing pod or stores to SetSupplyPodContent");
+        return;
+    }
+
+    // remove existing content if any
+    if (pod->amount > 0)
+    {
+        stores->resources[pod->contentType] += pod->amount;
+        pod->amount = 0;
+    }
+
+    // set new content
+    pod->contentType = resource_id;
+    // set to available amount in stores, or max pod capacity, whichever is lower. For now we assume supply pods have capacity of 250.
+    pod->amount = std::min(stores->resources[resource_id], MAX_SUPPLY_POD_AMOUNT);
+    // remove from stores
+    stores->resources[resource_id] -= pod->amount;
+}
+
+void Game::setToolPodContent(Pod *pod, Stores *stores, int item_id)
+{
+    if (!pod || !stores)
+    {
+        TraceLog(LOG_ERROR, "Missing pod or stores to SetToolPodContent");
+        return;
+    }
+
+    // remove existing content if any
+    if (pod->amount > 0)
+    {
+        stores->items[pod->contentType] += pod->amount;
+        pod->amount = 0;
+    }
+
+    auto pod_capacity = items[item_id].pod_capacity;
+
+    if (pod_capacity <= 0)
+    {
+        TraceLog(LOG_ERROR, "Attempting to load item %d that is not loadable in pods", item_id);
+        return;
+    }
+
+    if (item_id >= 0)
+    {
+        // set new content
+        pod->contentType = item_id;
+        // set to available amount in stores, or max pod capacity, whichever is lower.
+        pod->amount = std::min(stores->items[item_id], pod_capacity);
+        // remove from stores
+        stores->items[item_id] -= pod->amount;
+    }
+}
+
 void Game::update(float delta)
 {
     // add to time, if ticks over one second call advanceTick

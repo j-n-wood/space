@@ -49,4 +49,8 @@ public:
     void renderShuttle(Shuttle *shuttle);
     void renderPod(Pod *pod);
     void renderDrive(Shuttle *shuttle);
+
+    // UI interaction
+    void loadToolPod(Pod *pod);
+    void loadSupplyPod(Pod *pod);
 };
