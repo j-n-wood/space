@@ -154,7 +154,7 @@ void Game::setPodType(Craft *craft, int index, PodType pt, Facility *facility)
     pod.type = pt;
 }
 
-void Game::setSupplyPodContent(Pod *pod, Stores *stores, int resource_id)
+void Game::setSupplyPodContent(Pod *pod, Stores *stores, int resource_id, int amount)
 {
     if (!pod || !stores)
     {
@@ -167,14 +167,18 @@ void Game::setSupplyPodContent(Pod *pod, Stores *stores, int resource_id)
     {
         stores->resources[pod->contentType] += pod->amount;
         pod->amount = 0;
+        pod->contentType = -1; // empty
     }
 
-    // set new content
-    pod->contentType = resource_id;
-    // set to available amount in stores, or max pod capacity, whichever is lower. For now we assume supply pods have capacity of 250.
-    pod->amount = std::min(stores->resources[resource_id], MAX_SUPPLY_POD_AMOUNT);
-    // remove from stores
-    stores->resources[resource_id] -= pod->amount;
+    if (resource_id >= 0)
+    {
+        // set new content
+        pod->contentType = resource_id;
+        // set to available amount in stores, or requested amount, whichever is lower. For now we assume supply pods have capacity of 250.
+        pod->amount = std::min(stores->resources[resource_id], amount);
+        // remove from stores
+        stores->resources[resource_id] -= pod->amount;
+    }
 }
 
 void Game::setToolPodContent(Pod *pod, Stores *stores, int item_id)

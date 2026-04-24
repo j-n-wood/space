@@ -63,6 +63,9 @@ void buildTestData(Game *game)
 	Shuttle *sh = game->createShuttle(of); // create shuttle at earth orbital
 	sh->drive = true;
 	sh->fuel = 250;
+	sh->autopilot.flow[ResourceType::Iron] = RF_LOAD_AT_SOURCE;
+	sh->autopilot.flow[ResourceType::Titanium] = RF_LOAD_AT_SOURCE;
+	sh->autopilot.flow[ResourceType::Copper] = RF_LOAD_AT_SOURCE;
 
 	// test pod loading
 	of->stores.items[0] = 3; // lets put derricks into orbit :)

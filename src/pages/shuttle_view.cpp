@@ -81,6 +81,11 @@ void ShuttleView::input()
             break;
         }
     }
+    if (IsKeyPressed(KEY_X))
+    {
+        // enable/disable autopilot
+        shuttle->autopilot.state = (shuttle->autopilot.state == AS_ON) ? AS_OFF : AS_ON;
+    }
 }
 
 const char *statusText(Craft *craft, Location *location, char *status, size_t len)

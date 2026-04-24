@@ -49,6 +49,7 @@ void Shuttle::update(float delta)
                 break;
             }
         }
-
     } // timed state
+
+    Craft::update(delta);
 }
