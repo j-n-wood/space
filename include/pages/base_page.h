@@ -54,6 +54,7 @@ public:
     virtual void activate(ViewState &viewState); // on change to this page, set any required state
     virtual void render();
     virtual void input();
+    virtual void update(const float delta) {} // default no update behavior, override for pages with dynamic elements;
 
     void renderStandardButtons();
 

@@ -3,6 +3,7 @@
 class System;
 class Location;
 class Facility;
+class Craft;
 
 class ViewState
 {
@@ -13,9 +14,10 @@ class ViewState
     System *currentSystem;
     Location *currentLocation;
     Facility *currentFacility;
+    Craft *currentCraft;
 
 public:
-    ViewState() : currentSystem(nullptr), currentLocation(nullptr), currentFacility(nullptr) {};
+    ViewState() : currentSystem(nullptr), currentLocation(nullptr), currentFacility(nullptr), currentCraft(nullptr) {};
 
     System *getCurrentSystem() const { return currentSystem; }
     inline ViewState &setCurrentSystem(System *s)
@@ -35,6 +37,13 @@ public:
     inline ViewState &setCurrentFacility(Facility *f)
     {
         currentFacility = f;
+        return *this;
+    }
+
+    inline Craft *getCurrentCraft() const { return currentCraft; }
+    inline ViewState &setCurrentCraft(Craft *c)
+    {
+        currentCraft = c;
         return *this;
     }
 };

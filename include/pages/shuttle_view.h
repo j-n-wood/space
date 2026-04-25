@@ -7,7 +7,7 @@
 class ShuttleView : public BasePage
 {
     Location *location;
-    Shuttle *shuttle;
+    Craft *craft;
     const TextureAsset *bodyTexture;
 
 public:

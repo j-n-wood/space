@@ -62,6 +62,8 @@ void BayView::activate(ViewState &viewState)
         Rectangle dlg_dest{(float)dlg_width * 0.5f, (float)dlg_height * 0.5f, (float)dlg_width, (float)dlg_height};
         resourceList.activate(game, &facility->stores, dlg_dest);
         itemList.activate(game, &facility->stores, dlg_dest);
+
+        craft = getCraft(); // initial docked craft on page activation
     }
 }
 
@@ -117,7 +119,7 @@ void BayView::input()
     }
     if ((section > 0) && (section < driveSection))
     {
-        if (auto craft = getShuttle())
+        if (craft)
         {
             int podIndex = section - 1;
             if (IsKeyPressed(KEY_ONE))
@@ -176,12 +178,11 @@ void BayView::input()
         }
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
-            Shuttle *shuttle = getShuttle();
             // clicked on a resource, get the ID and set it for the current pod
             int resourceID = resourceList.getFocusResourceID();
             if (resourceID >= 0)
             {
-                auto &pod = shuttle->pods[section - 1];
+                auto &pod = craft->pods[section - 1];
                 Game::getCurrent()->setSupplyPodContent(&pod, &facility->stores, resourceID, MAX_SUPPLY_POD_AMOUNT);
             }
         }
@@ -196,14 +197,44 @@ void BayView::input()
         }
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
-            Shuttle *shuttle = getShuttle();
             // clicked on an item, get the ID and set it for the current pod
             int item_id = itemList.getFocusItemID();
-            itemList.game->setToolPodContent(&shuttle->pods[section - 1], &facility->stores, item_id);
+            itemList.game->setToolPodContent(&craft->pods[section - 1], &facility->stores, item_id);
         }
     }
 };
 
+Craft *BayView::getCraft()
+{
+    if (type == BT_SHUTTLE)
+    {
+        return getShuttle();
+    }
+    else if (type == BT_SPACE)
+    {
+        return getSpacecraft();
+    }
+    return nullptr;
+}
+
+Craft *BayView::getSpacecraft()
+{
+    if (type == BT_SPACE)
+    {
+        // for now we only have one type of spacecraft, the IOS, so return that if it exists here
+        for (auto &ios : Game::getCurrent()->allIOS())
+        {
+            if (ios->location == facility->location)
+            {
+                return ios.get();
+            }
+        }
+    }
+    return nullptr;
+}
+
+// locate shuttle by finding if there is a shuttle for this location, at this faciliity.
+// Predicated on one shuttle per location.
 Shuttle *BayView::getShuttle()
 {
     if (type == BT_SHUTTLE)
@@ -240,40 +271,51 @@ void BayView::render()
         return;
     }
 
-    if (type == BT_SHUTTLE)
+    if (craft)
     {
-        auto shuttle = getShuttle();
-        if (shuttle)
-        {
-            renderShuttle(shuttle);
 
-            if (resourceList.visible)
-            {
-                resourceList.render();
-            }
-            if (itemList.visible)
-            {
-                itemList.render();
-            }
+        renderCraft();
+
+        if (resourceList.visible)
+        {
+            resourceList.render();
+        }
+        if (itemList.visible)
+        {
+            itemList.render();
         }
     }
-};
+}
 
-void BayView::renderShuttle(Shuttle *shuttle)
+void BayView::update(const float delta)
 {
-    driveSection = 2;
-    switch (section)
+    // update craft state - e.g. if still docked or not
+
+    craft = getCraft();
+
+    // animation
+}
+
+void BayView::renderCraft()
+{
+    if (!craft)
     {
-    case 0:
+        return;
+    }
+    driveSection = craft->max_pods + 1; // drive section after last pod
+    if (section == 0)
+    {
+
         DrawTexturePro(*partsTexture, cockpit, cockpit_dest, Vector2{0, 0}, 0.0f, WHITE);
         DrawTexturePro(*partsTexture, cockpit_spine, cockpit_spine_dest, Vector2{0, 0}, 0.0f, WHITE);
-        break;
-    case 1:
-        renderPod(&shuttle->pods[0]);
-        break;
-    case 2:
-        renderDrive(shuttle);
-        break;
+    }
+    else if (section == driveSection)
+    {
+        renderDrive();
+    }
+    else
+    {
+        renderPod(&craft->pods[section - 1]);
     }
 }
 
@@ -314,10 +356,10 @@ void BayView::renderPod(Pod *pod)
 
 Rectangle driveSpineDest{};
 
-void BayView::renderDrive(Shuttle *shuttle)
+void BayView::renderDrive()
 {
     DrawTexturePro(*partsTexture, drive_spine, drive_spine_dest, Vector2{0, 0}, 0.0f, WHITE);
-    if (shuttle->drive)
+    if (craft->drive)
     {
         DrawTexturePro(*partsTexture, drive, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);
     }

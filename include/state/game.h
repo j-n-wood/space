@@ -8,6 +8,7 @@
 #include "state/factory.h"
 #include "state/item.h"
 #include "state/shuttle.h"
+#include "state/ios.h"
 
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
@@ -24,6 +25,9 @@ class Game
     // owning collections of facilities
     Bases bases;
     Orbitals orbitals;
+
+    // owning collection of IOS - maybe per-system?
+    IOSs ios;
 
     // non-owning collection of factories
     std::vector<Factory *> factories;
@@ -70,6 +74,7 @@ public:
     const Systems &allSystems() const;
     const Bases &allBases() const;
     const Orbitals &allOrbitals() const;
+    const IOSs &allIOS() const;
 
     ResourceFacility *createResourceFacility(Location *location);
     Orbital *createOrbital(Location *location);
@@ -82,6 +87,8 @@ public:
 
     Shuttle *createShuttle(Facility *facility);
 
+    IOS *createIOS(Facility *facility);
+
     void setPodType(Craft *craft, int index, PodType pt, Facility *facility);
     void setSupplyPodContent(Pod *pod, Stores *stores, int resource_id, int amount);
     void setToolPodContent(Pod *pod, Stores *stores, int item_id);
@@ -89,4 +96,7 @@ public:
     // update by delta
     void update(float delta);
     void advanceTick();
+
+    // events
+    void onSpacecraftArrival(Craft *craft);
 };
