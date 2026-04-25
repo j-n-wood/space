@@ -69,6 +69,14 @@ void buildTestData(Game *game)
 
 	// test pod loading
 	of->stores.items[0] = 3; // lets put derricks into orbit :)
+
+	// test IOS
+	Location *mars = system->primary->children[3];
+	IOS *ios = game->createIOS(of);
+	ios->drive = true;
+	ios->fuel = 250;
+	ios->origin = earth;
+	ios->destination = mars;
 }
 
 int main()
@@ -144,11 +152,21 @@ int main()
 			// hotkeys to switch pages
 			if (IsKeyPressed(KEY_F1))
 			{
-				BasePage *currentPage = pageManager.switchToPage(PAGE_SYSTEM_VIEW);
+				pageManager.switchToPage(PAGE_SYSTEM_VIEW);
 			}
 			else if (IsKeyPressed(KEY_F2))
 			{
 				pageManager.switchToPage(PAGE_EARTH_CITY);
+			}
+			else if (IsKeyPressed(KEY_F3))
+			{
+				// switch to first IOS
+				auto &ioss = game->allIOS();
+				if (!ioss.empty())
+				{
+					pageManager.viewState.setCurrentCraft(ioss[0].get());
+					pageManager.switchToPage(PAGE_COCKPIT);
+				}
 			}
 
 			// test save/load

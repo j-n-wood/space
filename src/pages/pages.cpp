@@ -26,6 +26,7 @@ PageManager::PageManager() : currentPage(nullptr)
     pages[PAGE_PRODUCTION] = new FactoryView(SublocationType::SLOC_ORBIT);
     pages[PAGE_SURFACE_PRODUCTION] = new FactoryView(SublocationType::SLOC_SURFACE);
     pages[PAGE_SHUTTLE] = new ShuttleView();
+    pages[PAGE_COCKPIT] = new ShuttleView();
     pages[PAGE_SURFACE_SHUTTLE_BAY] = new BayView(SublocationType::SLOC_SURFACE, BT_SHUTTLE); // TODO subclass?
     pages[PAGE_ORBIT_SHUTTLE_BAY] = new BayView(SublocationType::SLOC_ORBIT, BT_SHUTTLE);
     pages[PAGE_ORBIT_SPACE_BAY] = new BayView(SublocationType::SLOC_ORBIT, BT_SPACE);

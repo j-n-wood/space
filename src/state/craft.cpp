@@ -87,3 +87,60 @@ void Craft::update(float delta)
         autopilot.update(this, delta);
     }
 }
+
+const char *Craft::statusText(char *status, size_t len)
+{
+    // TODO location can be missing
+    const char *location_name = location ? location->name : "Space";
+
+    switch (state)
+    {
+    case CS_SURFACE: // surface no dock
+        std::snprintf(status, len, "On surface of %s", location_name);
+        break;
+    case CS_SURFACE_DOCKED:
+        std::snprintf(status, len, "Docked at %s station", location_name);
+        break;
+    case CS_SURFACE_WORK:
+        std::snprintf(status, len, "Working on %s surface", location_name);
+        break;
+    case CS_SURFACE_LAUNCH:
+        std::snprintf(status, len, "Launching from %s", location_name);
+        break;
+    case CS_ASCENDING:
+        std::snprintf(status, len, "Ascending from %s", location_name);
+        break;
+    case CS_ORBIT:
+        std::snprintf(status, len, "Orbiting %s", location_name);
+        break;
+    case CS_ORBIT_DOCKING:
+        std::snprintf(status, len, "Docking with %s orbital", location_name);
+        break;
+    case CS_ORBIT_DOCKED:
+        std::snprintf(status, len, "Docked at %s orbital", location_name);
+        break;
+    case CS_ORBIT_WORK:
+        std::snprintf(status, len, "Working in %s orbit", location_name);
+        break;
+    case CS_ORBIT_LAUNCH:
+        std::snprintf(status, len, "Launching from %s orbital", location_name);
+        break;
+    case CS_DESCENDING:
+        std::snprintf(status, len, "Descending to %s", location_name);
+        break;
+    case CS_TRANSIT:
+        if (destination)
+        {
+            std::snprintf(status, len, "In transit to %s", destination->name);
+        }
+        else
+        {
+            std::snprintf(status, len, "In transit");
+        }
+        break;
+    default:
+        break;
+    }
+
+    return status;
+}

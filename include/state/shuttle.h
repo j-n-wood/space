@@ -7,7 +7,10 @@
 class Shuttle : public Craft
 {
 public:
-    using Craft::Craft; // inherit constructor
+    Shuttle(CraftState cs, uint8_t mp, Location *loc) : Craft(cs, mp, loc)
+    {
+        type = CT_SHUTTLE;
+    }
 
     void update(float delta) override; // update by game time
 };

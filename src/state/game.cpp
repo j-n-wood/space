@@ -37,6 +37,11 @@ const Orbitals &Game::allOrbitals() const
     return orbitals;
 }
 
+const IOSs &Game::allIOS() const
+{
+    return ios;
+}
+
 ResourceFacility *Game::createResourceFacility(Location *location)
 {
     bases.emplace_back(std::make_unique<ResourceFacility>(location));
@@ -111,6 +116,22 @@ Shuttle *Game::createShuttle(Facility *facility)
     location->shuttle = std::move(std::make_unique<Shuttle>(cs, 1, location));
     shuttles.push_back(location->shuttle.get());
     return location->shuttle.get();
+}
+
+IOS *Game::createIOS(Facility *facility)
+{
+    // create an IOS at a location, starting at the given facility
+    Location *location{facility->location};
+    if (!location)
+    {
+        TraceLog(LOG_ERROR, "Facility missing location");
+        return nullptr;
+    }
+
+    ios.emplace_back(std::make_unique<IOS>(CS_ORBIT_DOCKED, 3, location));
+    auto i = ios.back().get();
+    i->origin = location;
+    return i;
 }
 
 // done here to combine game logic when pod type changes
@@ -239,6 +260,11 @@ void Game::update(float delta)
         shuttle->update(dt);
     }
 
+    for (auto &craft : ios)
+    {
+        craft->update(dt);
+    }
+
     int difference = static_cast<int>(game_time) - prior;
     while (difference > 0)
     {
@@ -260,4 +286,10 @@ void Game::advanceTick()
     {
         factory->update();
     }
+}
+
+void Game::onSpacecraftArrival(Craft *craft)
+{
+    // craft->arrive() already called
+    // this can trigger game events
 }

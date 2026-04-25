@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <utility> // swap
 #include "state/string_caps.h"
 #include "state/autopilot.h"
 
@@ -29,6 +30,14 @@ const float CSTD_DOCK = 0.3f;
 
 typedef enum
 {
+    CT_SHUTTLE,
+    CT_IOS,
+    CT_SCG,
+    CT_COUNT
+} CraftType;
+
+typedef enum
+{
     PT_EMPTY,
     PT_TOOL,
     PT_SUPPLY,
@@ -54,6 +63,7 @@ class Craft
 {
 public:
     char name[NAME_MAX_LEN];
+    CraftType type;
     CraftState state;
     float state_timer;
 
@@ -71,7 +81,11 @@ public:
     // current location if any
     Location *location;
 
-    Craft(CraftState cs, uint8_t mp, Location *loc) : state{cs}, state_timer{0.0f}, max_pods{mp}, drive{false}, location{loc}
+    // prior and target destinations for transit
+    Location *origin;
+    Location *destination;
+
+    Craft(CraftState cs, uint8_t mp, Location *loc) : state{cs}, state_timer{0.0f}, max_pods{mp}, drive{false}, location{loc}, origin{nullptr}, destination{nullptr}
     {
         name[0] = '\0';
     };
@@ -80,4 +94,23 @@ public:
     bool isPodEmpty(const int index);
     void setPodType(const int index, const PodType pt);
     virtual void update(float delta);
+
+    const char *statusText(char *status, size_t len);
+
+    inline Craft &arrive()
+    {
+        location = destination;
+        std::swap(origin, destination);
+        return *this;
+    }
+
+    inline Craft &engageDrive()
+    {
+        if (destination)
+        {
+            state = CS_TRANSIT;
+            state_timer = 10.0f; // TODO transit time could be based on distance and drive type
+        }
+        return *this;
+    }
 };
