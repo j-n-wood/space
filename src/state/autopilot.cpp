@@ -29,9 +29,18 @@ void Autopilot::update(Craft *craft, float delta)
 
     auto game = Game::getCurrent();
 
-    // this is set up for shuttles. Need to virtualise.
-    bool isAtDest = (craft->state == CS_ORBIT_DOCKED);
-    bool isAtSource = (craft->state == CS_SURFACE_DOCKED);
+    // this is set up for shuttles, craft added on - refactor
+    bool isAtDest = false;
+    bool isAtSource = false;
+    if (craft->type != CT_SHUTTLE)
+    {
+        isAtDest = (craft->state == CS_ORBIT_DOCKED);
+        isAtSource = (craft->state == CS_SURFACE_DOCKED);
+    }
+    else
+    {
+        isAtDest = (craft->state == CS_ORBIT_DOCKED) || (craft->location == craft->destination);
+    }
 
     if (isAtSource || isAtDest)
     {
@@ -93,20 +102,35 @@ void Autopilot::update(Craft *craft, float delta)
             craft->state = CS_ORBIT_LAUNCH;
             craft->state_timer = CSTD_LAUNCH;
         }
-    }
+    } // at source or dest
 
-    // other state transitions. Inititally handle shuttle case
-    if (craft->state == CS_ORBIT)
+    if (craft->type == CT_SHUTTLE)
     {
-        if (last_at_source)
+        // other state transitions. Inititally handle shuttle case
+        if (craft->state == CS_ORBIT)
         {
-            craft->state = CS_ORBIT_DOCKING;
-            craft->state_timer = CSTD_DOCK;
+            if (last_at_source)
+            {
+                craft->state = CS_ORBIT_DOCKING;
+                craft->state_timer = CSTD_DOCK;
+            }
+            else
+            {
+                craft->state = CS_DESCENDING;
+                craft->state_timer = CSTD_DESCENT;
+            }
         }
-        else
+    }
+    else
+    {
+        // if in orbit at dest, dock
+        if (craft->state == CS_ORBIT)
         {
-            craft->state = CS_DESCENDING;
-            craft->state_timer = CSTD_DESCENT;
+            if (craft->location == craft->destination)
+            {
+                craft->state = CS_ORBIT_DOCKING;
+                craft->state_timer = CSTD_DOCK;
+            }
         }
     }
 }
