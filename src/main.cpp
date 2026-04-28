@@ -76,10 +76,11 @@ void buildTestData(Game *game)
 	// test IOS
 	Location *mars = system->primary->children[3];
 	IOS *ios = game->createIOS(of);
+	snprintf(ios->name, sizeof ios->name, "IOS-0001");
 	ios->drive = true;
 	ios->fuel = 250;
 	ios->setPodType(0, PT_SUPPLY);
-	ios->setDestination(1, mars); // where to go next
+	ios->setDestination(0, mars); // where to go next
 	ios->engageAutopilot();
 
 	// mars orbital

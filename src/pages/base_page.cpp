@@ -133,10 +133,14 @@ void BasePage::renderStandardButtons()
             { // empty text since we're using a texture, could add text if desired
                 // look for standard target page for this button and switch to it if valid
                 // TODO: ensure correct context (system, body, ship)
+
+                PageManager &pm = PageManager::getInstance();
+                pm.viewState.setCurrentCraft(nullptr);
+
                 Page targetPage = STANDARD_BUTTON_TARGET_PAGES[i];
                 if (targetPage != PAGE_NONE)
                 {
-                    PageManager::getInstance().switchToPage(targetPage);
+                    pm.switchToPage(targetPage);
                 }
             }
         }

@@ -52,6 +52,22 @@ void ShuttleView::activate(ViewState &viewState)
         location = l;
         craft = location->shuttle.get();
     }
+
+    if (craft)
+    {
+        if (craft->type == CT_SHUTTLE)
+        {
+            std::snprintf(title, sizeof title, "Shuttle");
+        }
+        else
+        {
+            std::snprintf(title, sizeof title, "%s", craft->name);
+        }
+    }
+    else
+    {
+        std::snprintf(title, sizeof title, "No Shuttle");
+    }
 }
 
 void ShuttleView::input()

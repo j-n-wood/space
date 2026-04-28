@@ -128,8 +128,9 @@ Shuttle *Game::createShuttle(Facility *facility)
 
     location->shuttle = std::move(std::make_unique<Shuttle>(cs, 1, location));
     shuttles.push_back(location->shuttle.get());
-    location->shuttle->destinations[0] = Endpoint(location, facility->sublocation, true);
-    location->shuttle->destinations[1] = Endpoint(location, SublocationType(1 - facility->sublocation), true);
+    // initial destination is the other kind of sublocation
+    location->shuttle->destinations[0] = Endpoint(location, SublocationType(1 - facility->sublocation), true);
+    location->shuttle->destinations[1] = Endpoint(location, facility->sublocation, true);
     return location->shuttle.get();
 }
 
