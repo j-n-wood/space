@@ -5,6 +5,16 @@
 
 class Craft;
 
+// autopilot is to manage resource transfers.
+// On a suttle, it will be between surface and orbital facilities at the same location.
+// On an IOS/SCG, it will be between an orbital at the origin and an orbital at the destination.
+
+// Cursors exist to track what resources to transfer next. These are per facility in the route.
+// If the route were to change (IOS changes destination), then the cursors should reset.
+
+// autopilot with loop over endpoints on craft (currently 2).
+// As autopilot is intended to move cargo, engaging autopilot will set endpoints to attempt docking.
+
 typedef enum
 {
     AS_DISABLED, // not available
@@ -29,11 +39,10 @@ class Autopilot
 public:
     AutopilotState state;
     uint8_t flow[ResourceType::Count];
-    uint8_t surface_cursor;
-    uint8_t orbit_cursor;
-    bool last_at_source; // used to detect transitions
+    uint8_t cursors[2]; // one cursor per endpoint, used for selecting next resource to transfer
 
     Autopilot();
+    ~Autopilot();
 
     // Advances `cursor` and returns the next resource index whose flow & mask
     // is non-zero. Returns -1 if none are flagged. Wraps.
@@ -58,4 +67,6 @@ public:
     }
 
     void update(Craft *craft, float delta);
+
+    void onDocked(Craft *craft);
 };

@@ -89,6 +89,19 @@ Orbital *Game::orbitalAt(Location *location)
     return nullptr;
 }
 
+Facility *Game::facilityAt(const Endpoint &endpoint)
+{
+    if (endpoint.location)
+    {
+        if (endpoint.sublocation == SLOC_SURFACE)
+        {
+            return resourceFacilityAt(endpoint.location);
+        }
+        return orbitalAt(endpoint.location);
+    }
+    return nullptr;
+}
+
 Factory *Game::createFactory(Facility *facility)
 {
     Factory *f{facility->createFactory()};
@@ -115,6 +128,8 @@ Shuttle *Game::createShuttle(Facility *facility)
 
     location->shuttle = std::move(std::make_unique<Shuttle>(cs, 1, location));
     shuttles.push_back(location->shuttle.get());
+    location->shuttle->destinations[0] = Endpoint(location, facility->sublocation, true);
+    location->shuttle->destinations[1] = Endpoint(location, SublocationType(1 - facility->sublocation), true);
     return location->shuttle.get();
 }
 
@@ -130,7 +145,8 @@ IOS *Game::createIOS(Facility *facility)
 
     ios.emplace_back(std::make_unique<IOS>(CS_ORBIT_DOCKED, 3, location));
     auto i = ios.back().get();
-    i->origin = location;
+    i->destinations[0] = Endpoint(location, SLOC_ORBIT, true);
+    i->destinations[1] = Endpoint(location, SLOC_ORBIT, true);
     return i;
 }
 
