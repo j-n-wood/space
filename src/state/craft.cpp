@@ -107,6 +107,15 @@ void Craft::onDocked()
     }
 }
 
+void Craft::onDockWorkComplete()
+{
+    // pass onto autopilot to update its state if working, e.g. to advance supply flow
+    if (autopilot->state >= AS_ON)
+    {
+        autopilot->onDockWorkComplete(this);
+    }
+}
+
 const char *Craft::statusText(char *status, size_t len)
 {
     // TODO location can be missing
@@ -123,6 +132,9 @@ const char *Craft::statusText(char *status, size_t len)
     case CS_SURFACE_WORK:
         std::snprintf(status, len, "Working on %s surface", location_name);
         break;
+    case CS_SURFACE_DOCK_WORK:
+        std::snprintf(status, len, "Working at %s station", location_name);
+        break;
     case CS_SURFACE_LAUNCH:
         std::snprintf(status, len, "Launching from %s", location_name);
         break;
@@ -137,6 +149,9 @@ const char *Craft::statusText(char *status, size_t len)
         break;
     case CS_ORBIT_DOCKED:
         std::snprintf(status, len, "Docked at %s orbital", location_name);
+        break;
+    case CS_ORBIT_DOCK_WORK:
+        std::snprintf(status, len, "Working at %s orbital", location_name);
         break;
     case CS_ORBIT_WORK:
         std::snprintf(status, len, "Working in %s orbit", location_name);
