@@ -1,6 +1,11 @@
 #include "state/shuttle.h"
 #include "state/game.h"
 
+Shuttle::Shuttle(CraftState cs, uint8_t mp, Location *loc) : Craft(cs, mp, loc)
+{
+    type = CT_SHUTTLE;
+}
+
 void Shuttle::update(float delta)
 {
     // state transitions
@@ -17,6 +22,7 @@ void Shuttle::update(float delta)
             {
             case CS_SURFACE_WORK:
                 state = CS_SURFACE_DOCKED;
+                onDocked();
                 break;
             case CS_ASCENDING:
                 state = CS_ORBIT;
@@ -29,6 +35,7 @@ void Shuttle::update(float delta)
                 if (Game::getCurrent()->resourceFacilityAt(location))
                 {
                     state = CS_SURFACE_DOCKED;
+                    onDocked();
                 }
                 else
                 {
@@ -44,6 +51,7 @@ void Shuttle::update(float delta)
                 break;
             case CS_ORBIT_DOCKING:
                 state = CS_ORBIT_DOCKED;
+                onDocked();
                 break;
             default:
                 break;

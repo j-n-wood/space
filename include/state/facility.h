@@ -5,7 +5,9 @@
 
 #include "state/stores.h"
 #include "state/factory.h"
-#include "state/location.h"
+#include "state/waypoint.h"
+
+class Location;
 
 class Facility
 {

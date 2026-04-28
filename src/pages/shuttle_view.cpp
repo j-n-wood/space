@@ -1,6 +1,7 @@
 #include "pages/shuttle_view.h"
 #include "state/game.h"
 #include "state/location.h"
+#include "state/autopilot.h"
 
 // original images 208 x 120 -> 832 x 480
 Rectangle viewportDest = {300, 200, 832, 480};
@@ -97,7 +98,7 @@ void ShuttleView::input()
     if (IsKeyPressed(KEY_X))
     {
         // enable/disable autopilot
-        craft->autopilot.state = (craft->autopilot.state == AS_ON) ? AS_OFF : AS_ON;
+        craft->autopilot->state = (craft->autopilot->state == AS_ON) ? AS_OFF : AS_ON;
     }
 }
 
@@ -135,10 +136,10 @@ void ShuttleView::render()
     DrawText(craft->statusText(status, sizeof status), 320, 160, 20, YELLOW);
 
     // if have a destination, show that too
-    if (craft->destination)
+    if (craft->currentDestination().location)
     {
         char dest_status[128];
-        std::snprintf(dest_status, sizeof dest_status, "Destination: %s", craft->destination->name);
+        std::snprintf(dest_status, sizeof dest_status, "Destination: %s", craft->currentDestination().location->name);
         DrawText(dest_status, 320, 190, 20, YELLOW);
     }
 

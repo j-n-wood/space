@@ -2,6 +2,7 @@
 #include "state/craft.h"
 #include "state/game.h"
 #include "state/resources.h"
+#include "state/autopilot.h"
 
 const char *PodTypeName[PT_COUNT] = {
     "EMPTY",
@@ -57,6 +58,15 @@ const char *Pod::description(char *dest, size_t len)
     return dest;
 }
 
+Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : state{cs}, state_timer{0.0f}, max_pods{mp}, drive{false}, location{loc}, destination_index{0}
+{
+    name[0] = '\0';
+};
+
+Craft::~Craft()
+{
+}
+
 bool Craft::isPodEmpty(const int index)
 {
     if (index >= max_pods)
@@ -84,7 +94,16 @@ void Craft::update(float delta)
     if (drive)
     {
         // update autopilot logic here
-        autopilot.update(this, delta);
+        autopilot->update(this, delta);
+    }
+}
+
+void Craft::onDocked()
+{
+    if (atEndpoint())
+    {
+        autopilot->onDocked(this); // called before advancing endpoint, current dest = where we are now
+        nextEndpoint();
     }
 }
 
@@ -129,18 +148,72 @@ const char *Craft::statusText(char *status, size_t len)
         std::snprintf(status, len, "Descending to %s", location_name);
         break;
     case CS_TRANSIT:
-        if (destination)
+    {
+        auto &destination{destinations[destination_index]};
+        if (destination.location)
         {
-            std::snprintf(status, len, "In transit to %s", destination->name);
+            std::snprintf(status, len, "In transit to %s", destination.location->name);
         }
         else
         {
             std::snprintf(status, len, "In transit");
         }
-        break;
+    }
+    break;
     default:
         break;
     }
 
     return status;
+}
+
+void Craft::setDestination(const uint8_t index, Location *loc)
+{
+    if (index >= MAX_DESTINATIONS)
+    {
+        return;
+    }
+    destinations[index].location = loc;
+    // set to dock if autopilot is engaged
+    destinations[index].docked = (autopilot->state >= AS_ON);
+}
+
+bool Craft::engageAutopilot()
+{
+    bool has_supply_pod{false};
+    for (int pod_idx = 0; pod_idx < max_pods; ++pod_idx)
+    {
+        if (pods[pod_idx].type == PT_SUPPLY)
+        {
+            has_supply_pod = true;
+            break;
+        }
+    }
+    if (!has_supply_pod)
+    {
+        return false;
+    }
+
+    // force destination endpoints to be docked
+    for (int i = 0; i < MAX_DESTINATIONS; ++i)
+    {
+        if (destinations[i].location)
+        {
+            destinations[i].docked = true;
+        }
+    }
+
+    // launch if docked
+    if (state == CS_SURFACE_DOCKED || state == CS_ORBIT_DOCKED)
+    {
+        launch();
+    }
+
+    autopilot->state = AS_ON;
+    return true;
+}
+
+void Craft::disengageAutopilot()
+{
+    autopilot->state = AS_OFF;
 }

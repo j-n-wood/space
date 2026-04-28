@@ -83,6 +83,8 @@ public:
     ResourceFacility *resourceFacilityAt(Location *location);
     Orbital *orbitalAt(Location *location);
 
+    Facility *facilityAt(const Endpoint &endpoint);
+
     Factory *createFactory(Facility *facility);
 
     Shuttle *createShuttle(Facility *facility);

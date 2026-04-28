@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#include <utility> // swap
+#include <memory>
 #include "state/string_caps.h"
-#include "state/autopilot.h"
+#include "state/waypoint.h"
 
 typedef enum
 {
@@ -57,7 +57,9 @@ public:
     const char *description(char *dest, size_t len);
 };
 
-class Location;
+const int MAX_DESTINATIONS = 2;
+
+class Autopilot;
 
 class Craft
 {
@@ -71,7 +73,7 @@ public:
 
     // flight related
     int fuel;
-    Autopilot autopilot;
+    std::unique_ptr<Autopilot> autopilot;
 
     // parts and cargo
     uint8_t max_pods;
@@ -81,15 +83,14 @@ public:
     // current location if any
     Location *location;
 
-    // prior and target destinations for transit
-    Location *origin;
-    Location *destination;
+    // destinations for transit
+    Endpoint destinations[MAX_DESTINATIONS];
 
-    Craft(CraftState cs, uint8_t mp, Location *loc) : state{cs}, state_timer{0.0f}, max_pods{mp}, drive{false}, location{loc}, origin{nullptr}, destination{nullptr}
-    {
-        name[0] = '\0';
-    };
-    virtual ~Craft() = default;
+    // marker for next destination
+    uint8_t destination_index;
+
+    Craft(CraftState cs, uint8_t mp, Location *loc);
+    virtual ~Craft();
 
     bool isPodEmpty(const int index);
     void setPodType(const int index, const PodType pt);
@@ -97,20 +98,81 @@ public:
 
     const char *statusText(char *status, size_t len);
 
-    inline Craft &arrive()
+    inline const Endpoint &currentDestination() const
     {
-        location = destination;
-        std::swap(origin, destination);
+        return destinations[destination_index];
+    }
+
+    // test if at endpoint
+    inline bool atEndpoint() const
+    {
+        const auto &current_dest{destinations[destination_index]};
+        if (current_dest.location != location)
+        {
+            return false;
+        }
+        if (current_dest.sublocation == SLOC_ORBIT)
+        {
+            if (current_dest.docked)
+            {
+                return state == CS_ORBIT_DOCKED;
+            }
+            return state == CS_ORBIT;
+        }
+
+        return state == CS_SURFACE_DOCKED || state == CS_SURFACE;
+    }
+
+    // runs when transit between locations is complete. Used to trigger game events.
+    inline Craft &arriveAtLocation()
+    {
+        auto &current_dest{destinations[destination_index]};
+        location = current_dest.location;
+        if (atEndpoint())
+        {
+            nextEndpoint();
+        }
+        return *this;
+    }
+
+    inline Craft &nextEndpoint()
+    {
+        destination_index = (destination_index + 1) % MAX_DESTINATIONS;
         return *this;
     }
 
     inline Craft &engageDrive()
     {
-        if (destination)
+        if (destinations[destination_index].location)
         {
             state = CS_TRANSIT;
             state_timer = 10.0f; // TODO transit time could be based on distance and drive type
         }
         return *this;
     }
+
+    void setDestination(const uint8_t index, Location *loc);
+
+    bool engageAutopilot();
+
+    void disengageAutopilot();
+
+    inline Craft &launch()
+    {
+        if (state == CS_SURFACE_DOCKED)
+        {
+            // last_at_source = true;
+            state = CS_SURFACE_LAUNCH;
+            state_timer = CSTD_LAUNCH;
+        }
+        else if (state == CS_ORBIT_DOCKED)
+        {
+            // last_at_source = false;
+            state = CS_ORBIT_LAUNCH;
+            state_timer = CSTD_LAUNCH;
+        }
+        return *this;
+    }
+
+    virtual void onDocked();
 };

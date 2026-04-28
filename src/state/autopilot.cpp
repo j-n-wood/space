@@ -1,8 +1,17 @@
 #include <algorithm>
 #include "state/craft.h"
 #include "state/game.h"
+#include "state/autopilot.h"
 
-Autopilot::Autopilot() : state{AS_OFF}, flow{}, surface_cursor{0}, orbit_cursor{0}, last_at_source{false}
+Autopilot::Autopilot() : state{AS_OFF}, flow{}
+{
+    for (int i = 0; i < MAX_DESTINATIONS; ++i)
+    {
+        cursors[i] = 0;
+    }
+}
+
+Autopilot::~Autopilot()
 {
 }
 
@@ -20,38 +29,29 @@ int Autopilot::nextFlagged(uint8_t mask, uint8_t *cursor) const
     return -1;
 }
 
-void Autopilot::update(Craft *craft, float delta)
+void Autopilot::onDocked(Craft *craft)
 {
     if (state < AS_ON)
     {
         return;
     }
 
+    // have arrived, generally at destination
     auto game = Game::getCurrent();
 
-    // this is set up for shuttles, craft added on - refactor
-    bool isAtDest = false;
-    bool isAtSource = false;
-    if (craft->type != CT_SHUTTLE)
+    if (true)
     {
-        isAtDest = (craft->state == CS_ORBIT_DOCKED);
-        isAtSource = (craft->state == CS_SURFACE_DOCKED);
-    }
-    else
-    {
-        isAtDest = (craft->state == CS_ORBIT_DOCKED) || (craft->location == craft->destination);
-    }
+        Facility *current = game->facilityAt(craft->destinations[craft->destination_index]);
+        Facility *other = game->facilityAt(craft->destinations[(craft->destination_index + 1) % MAX_DESTINATIONS]);
 
-    if (isAtSource || isAtDest)
-    {
-        Facility *orbital = game->orbitalAt(craft->location);
-        Facility *facility = game->resourceFacilityAt(craft->location);
-        Facility *current = isAtDest ? orbital : facility;
-        Facility *other = isAtDest ? facility : orbital;
-        uint8_t *current_cursor = isAtDest ? &orbit_cursor : &surface_cursor;
-        uint8_t mask = isAtDest ? RF_LOAD_AT_DEST : RF_LOAD_AT_SOURCE;
+        // which cursor counts as current, if current changes on arrival?
+        // A: source is surface for shuttles
+        // for IOS/SCG, should we switch cursors on launch?
+        // maybe tag cursors to facility and reset to 0 on facility change?
+        uint8_t *current_cursor = &cursors[craft->destination_index];
+        uint8_t mask = craft->destination_index == 0 ? RF_LOAD_AT_DEST : RF_LOAD_AT_SOURCE;
 
-        if (!orbital || !facility)
+        if (!current || !other)
         {
             // TODO this could happen if source/dest orbital destroyed.
             // Turn off in this case
@@ -90,47 +90,41 @@ void Autopilot::update(Craft *craft, float delta)
         }
 
         // trigger craft launch
-        if (craft->state == CS_SURFACE_DOCKED)
-        {
-            last_at_source = true;
-            craft->state = CS_SURFACE_LAUNCH;
-            craft->state_timer = CSTD_LAUNCH;
-        }
-        else if (craft->state == CS_ORBIT_DOCKED)
-        {
-            last_at_source = false;
-            craft->state = CS_ORBIT_LAUNCH;
-            craft->state_timer = CSTD_LAUNCH;
-        }
-    } // at source or dest
+        craft->launch();
+    } // at dest
+}
 
-    if (craft->type == CT_SHUTTLE)
+void Autopilot::update(Craft *craft, float delta)
+{
+    if (state < AS_ON)
     {
-        // other state transitions. Inititally handle shuttle case
-        if (craft->state == CS_ORBIT)
+        return;
+    }
+
+    // dock if arrived at orbit, and endpoint requires docking.
+
+    // Note: IOS should not be set to have destination_state of CS_SURFACE_DOCKED
+    if (craft->state == CS_ORBIT)
+    {
+        auto &dest{craft->currentDestination()};
+        // are we at desired location?
+        if (dest.location == craft->location)
         {
-            if (last_at_source)
+            if ((dest.sublocation == SLOC_ORBIT) && (dest.docked))
             {
                 craft->state = CS_ORBIT_DOCKING;
                 craft->state_timer = CSTD_DOCK;
             }
-            else
+            else if ((dest.sublocation == SLOC_SURFACE) && (dest.docked))
             {
                 craft->state = CS_DESCENDING;
                 craft->state_timer = CSTD_DESCENT;
             }
         }
-    }
-    else
-    {
-        // if in orbit at dest, dock
-        if (craft->state == CS_ORBIT)
+        else
         {
-            if (craft->location == craft->destination)
-            {
-                craft->state = CS_ORBIT_DOCKING;
-                craft->state_timer = CSTD_DOCK;
-            }
+            // location is different. start transit
+            craft->engageDrive();
         }
     }
 }

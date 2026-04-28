@@ -25,6 +25,7 @@ extern "C"
 #include "pages/pages.h"
 #include "pages/overlay.h"
 #include "state/game.h"
+#include "state/autopilot.h"
 #include "state/resourceFacility.h"
 #include "loaders/save_game.h"
 
@@ -63,9 +64,11 @@ void buildTestData(Game *game)
 	Shuttle *sh = game->createShuttle(of); // create shuttle at earth orbital
 	sh->drive = true;
 	sh->fuel = 250;
-	sh->autopilot.flow[ResourceType::Iron] = RF_LOAD_AT_SOURCE;
-	sh->autopilot.flow[ResourceType::Titanium] = RF_LOAD_AT_SOURCE;
-	sh->autopilot.flow[ResourceType::Copper] = RF_LOAD_AT_SOURCE;
+	sh->setPodType(0, PT_SUPPLY);
+	sh->autopilot->flow[ResourceType::Iron] = RF_LOAD_AT_SOURCE;
+	sh->autopilot->flow[ResourceType::Titanium] = RF_LOAD_AT_SOURCE;
+	sh->autopilot->flow[ResourceType::Copper] = RF_LOAD_AT_SOURCE;
+	sh->engageAutopilot();
 
 	// test pod loading
 	of->stores.items[0] = 3; // lets put derricks into orbit :)
@@ -75,8 +78,12 @@ void buildTestData(Game *game)
 	IOS *ios = game->createIOS(of);
 	ios->drive = true;
 	ios->fuel = 250;
-	ios->origin = earth;
-	ios->destination = mars;
+	ios->setPodType(0, PT_SUPPLY);
+	ios->setDestination(1, mars); // where to go next
+	ios->engageAutopilot();
+
+	// mars orbital
+	Orbital *mars_orbital{game->createOrbital(mars)};
 }
 
 int main()

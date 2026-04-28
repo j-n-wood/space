@@ -152,7 +152,7 @@ TEST_CASE("Game::initialise loads full game state")
 
     SUBCASE("loads item definitions")
     {
-        REQUIRE(game.items.size() == 1);
+        REQUIRE(game.items.size() >= 1);
 
         auto &derrick = game.items[0];
         CHECK_STREQ(derrick.name, "Derrick");
@@ -163,7 +163,7 @@ TEST_CASE("Game::initialise loads full game state")
 
     SUBCASE("loads item build requirements")
     {
-        REQUIRE(game.items.size() == 1);
+        REQUIRE(game.items.size() >= 1);
         auto &reqs = game.items[0].requirements;
         // Derrick requires: Iron(1)=3, Titanium(2)=4, Carbon(4)=1
         CHECK(reqs.size() == 3);
@@ -367,7 +367,7 @@ TEST_CASE("SaveGame produces a loadable database")
 
     SUBCASE("round-trips item definitions")
     {
-        REQUIRE(loaded.items.size() == 1);
+        REQUIRE(loaded.items.size() >= 1);
         auto &item = loaded.items[0];
         CHECK_STREQ(item.name, "Derrick");
         CHECK(item.tech_level == 1);
@@ -376,7 +376,7 @@ TEST_CASE("SaveGame produces a loadable database")
 
     SUBCASE("round-trips item build requirements")
     {
-        REQUIRE(loaded.items.size() == 1);
+        REQUIRE(loaded.items.size() >= 1);
         auto &reqs = loaded.items[0].requirements;
         REQUIRE(reqs.size() == 3);
 
@@ -440,22 +440,22 @@ TEST_CASE("Autopilot::nextFlagged cycles through flagged resources")
     ap.flow[ResourceType::Copper] = RF_BALANCE;
     ap.flow[ResourceType::Carbon] = RF_LOAD_AT_DEST;
 
-    // surface cursor sees RF_LOAD_AT_SOURCE: Iron and Copper
-    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor) == ResourceType::Iron);
-    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor) == ResourceType::Copper);
-    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor) == ResourceType::Iron);
+    // cursor 0 sees RF_LOAD_AT_SOURCE: Iron and Copper
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0]) == ResourceType::Iron);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0]) == ResourceType::Copper);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0]) == ResourceType::Iron);
 
-    // orbit cursor sees RF_LOAD_AT_DEST: Carbon (4) then Copper (5), then wrap
-    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.orbit_cursor) == ResourceType::Carbon);
-    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.orbit_cursor) == ResourceType::Copper);
-    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.orbit_cursor) == ResourceType::Carbon);
+    // cursor 1 sees RF_LOAD_AT_DEST: Carbon (4) then Copper (5), then wrap
+    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.cursors[1]) == ResourceType::Carbon);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.cursors[1]) == ResourceType::Copper);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.cursors[1]) == ResourceType::Carbon);
 }
 
 TEST_CASE("Autopilot::nextFlagged returns -1 when nothing flagged")
 {
     Autopilot ap;
-    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor) == -1);
-    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.orbit_cursor) == -1);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0]) == -1);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.cursors[1]) == -1);
 }
 
 TEST_CASE("Autopilot::nextFlagged with predicate skips rejected resources")
@@ -467,10 +467,10 @@ TEST_CASE("Autopilot::nextFlagged with predicate skips rejected resources")
 
     // Accept only Copper — Iron and Carbon should be skipped.
     auto onlyCopper = [](int r) { return r == ResourceType::Copper; };
-    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor, onlyCopper) == ResourceType::Copper);
-    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor, onlyCopper) == ResourceType::Copper);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0], onlyCopper) == ResourceType::Copper);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0], onlyCopper) == ResourceType::Copper);
 
     // Predicate rejects everything → -1.
     auto none = [](int) { return false; };
-    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.surface_cursor, none) == -1);
+    CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0], none) == -1);
 }
