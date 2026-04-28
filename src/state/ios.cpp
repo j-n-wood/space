@@ -26,8 +26,8 @@ void IOS::update(float delta)
                 onDocked();
                 break;
             case CS_TRANSIT:
-                arriveAtLocation();
                 state = CS_ORBIT;
+                arriveAtLocation();
                 Game::getCurrent()->onSpacecraftArrival(this);
                 break;
             default:

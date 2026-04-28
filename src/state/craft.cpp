@@ -58,7 +58,7 @@ const char *Pod::description(char *dest, size_t len)
     return dest;
 }
 
-Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : state{cs}, state_timer{0.0f}, max_pods{mp}, drive{false}, location{loc}, destination_index{0}
+Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : state{cs}, state_timer{0.0f}, max_pods{mp}, drive{false}, location{loc}, destination_index{0}, autopilot{std::make_unique<Autopilot>()}
 {
     name[0] = '\0';
 };
