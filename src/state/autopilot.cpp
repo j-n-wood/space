@@ -39,7 +39,7 @@ void Autopilot::onDocked(Craft *craft)
     // have arrived, generally at destination
     auto game = Game::getCurrent();
 
-    if (true)
+    if (true) // TODO: validate we really are at destination
     {
         Facility *current = game->facilityAt(craft->destinations[craft->destination_index]);
         Facility *other = game->facilityAt(craft->destinations[(craft->destination_index + 1) % MAX_DESTINATIONS]);
@@ -89,9 +89,14 @@ void Autopilot::onDocked(Craft *craft)
             game->setSupplyPodContent(&pod, &current->stores, r, desiredAmount(r));
         }
 
-        // trigger craft launch
-        craft->launch();
+        // mark craft as working
+        craft->work(1.0f);
     } // at dest
+}
+
+void Autopilot::onDockWorkComplete(Craft *craft)
+{
+    craft->launch();
 }
 
 void Autopilot::update(Craft *craft, float delta)

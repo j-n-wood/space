@@ -24,11 +24,19 @@ void Shuttle::update(float delta)
                 state = CS_SURFACE_DOCKED;
                 onDocked();
                 break;
+            case CS_SURFACE_DOCK_WORK:
+                state = CS_SURFACE_DOCKED;
+                onDockWorkComplete();
+                break;
             case CS_ASCENDING:
                 state = CS_ORBIT;
                 break;
             case CS_ORBIT_WORK:
                 state = CS_ORBIT;
+                break;
+            case CS_ORBIT_DOCK_WORK:
+                state = CS_ORBIT_DOCKED;
+                onDockWorkComplete();
                 break;
             case CS_DESCENDING:
                 // is there a facility to land at?

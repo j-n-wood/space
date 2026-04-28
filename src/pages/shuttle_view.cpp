@@ -8,19 +8,24 @@ Rectangle viewportDest = {300, 200, 832, 480};
 
 // source images for states
 /*
+typedef enum
+{
     CS_SURFACE, // surface no dock
     CS_SURFACE_DOCKED,
+    CS_SURFACE_DOCK_WORK, // transient state while docked and working
     CS_SURFACE_WORK,
     CS_SURFACE_LAUNCH, // transient state leaving dock
     CS_ASCENDING,
     CS_ORBIT,
     CS_ORBIT_DOCKING, // transient state entering dock
     CS_ORBIT_DOCKED,
+    CS_ORBIT_DOCK_WORK, // transient state while docked and working
     CS_ORBIT_WORK,
     CS_ORBIT_LAUNCH, // transient state leaving dock
     CS_DESCENDING,
     CS_TRANSIT, // IP or IS transit - refine with type and speed
     CS_COUNT
+} CraftState;
 */
 // this won't do - image depends on location properties e.g. station presence (could overlay)
 // or location type (star, planet, etc)
@@ -29,9 +34,11 @@ Rectangle viewportImages[CS_COUNT] = {
     {1368, 280, 208, 120}, // docked
     {1368, 280, 208, 120}, // docked
     {1368, 280, 208, 120}, // docked
+    {1368, 280, 208, 120}, // docked
     {1152, 280, 208, 120}, // storm doors
     {1368, 152, 208, 120}, // orbit no station
     {1368, 152, 208, 120}, // orbit no station
+    {1368, 280, 208, 120}, // docked
     {1368, 280, 208, 120}, // docked
     {1368, 152, 208, 120}, // orbit no station
     {1152, 280, 208, 120}, // storm doors

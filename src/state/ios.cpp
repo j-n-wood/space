@@ -25,6 +25,10 @@ void IOS::update(float delta)
                 state = CS_ORBIT_DOCKED;
                 onDocked();
                 break;
+            case CS_ORBIT_DOCK_WORK:
+                state = CS_ORBIT_DOCKED;
+                onDockWorkComplete();
+                break;
             case CS_TRANSIT:
                 state = CS_ORBIT;
                 arriveAtLocation();

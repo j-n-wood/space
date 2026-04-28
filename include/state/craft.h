@@ -9,12 +9,14 @@ typedef enum
 {
     CS_SURFACE, // surface no dock
     CS_SURFACE_DOCKED,
+    CS_SURFACE_DOCK_WORK, // transient state while docked and working
     CS_SURFACE_WORK,
     CS_SURFACE_LAUNCH, // transient state leaving dock
     CS_ASCENDING,
     CS_ORBIT,
     CS_ORBIT_DOCKING, // transient state entering dock
     CS_ORBIT_DOCKED,
+    CS_ORBIT_DOCK_WORK, // transient state while docked and working
     CS_ORBIT_WORK,
     CS_ORBIT_LAUNCH, // transient state leaving dock
     CS_DESCENDING,
@@ -174,5 +176,22 @@ public:
         return *this;
     }
 
+    inline Craft &work(float duration)
+    {
+        if (state == CS_SURFACE_DOCKED)
+        {
+            state = CS_SURFACE_DOCK_WORK;
+            state_timer = duration;
+        }
+        else if (state == CS_ORBIT_DOCKED)
+        {
+            state = CS_ORBIT_DOCK_WORK;
+            state_timer = duration;
+        }
+        return *this;
+    }
+
+    // transition events
     virtual void onDocked();
+    virtual void onDockWorkComplete();
 };

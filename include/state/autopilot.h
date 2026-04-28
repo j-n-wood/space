@@ -69,4 +69,5 @@ public:
     void update(Craft *craft, float delta);
 
     void onDocked(Craft *craft);
+    void onDockWorkComplete(Craft *craft);
 };
