@@ -159,11 +159,20 @@ void ShuttleView::render()
     DrawText(craft->statusText(status, sizeof status), 320, 160, 20, YELLOW);
 
     // if have a destination, show that too
-    if (craft->currentDestination().location)
+    if (craft->type != CT_SHUTTLE)
     {
-        char dest_status[128];
-        std::snprintf(dest_status, sizeof dest_status, "Destination: %s", craft->currentDestination().location->name);
-        DrawText(dest_status, 320, 190, 20, YELLOW);
+        if (craft->currentDestination().location)
+        {
+            char dest_status[128];
+            std::snprintf(dest_status, sizeof dest_status, "Destination: %s", craft->currentDestination().location->name);
+            DrawText(dest_status, 320, 190, 20, YELLOW);
+            if (craft->state == CS_TRANSIT)
+            {
+                float progress = craft->total_state_timer > 0.0f ? craft->state_timer / craft->total_state_timer : 0.0f;
+                std::snprintf(dest_status, sizeof dest_status, "Progress: %.0f%%", (1.0f - progress) * 100.0f);
+                DrawText(dest_status, 320, 220, 20, YELLOW);
+            }
+        }
     }
 
     // pods

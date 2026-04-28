@@ -70,6 +70,7 @@ public:
     CraftType type;
     CraftState state;
     float state_timer;
+    float total_state_timer; // full value of state timer, used to calculate progress for UI
 
     // crew
 
@@ -148,7 +149,8 @@ public:
         if (destinations[destination_index].location)
         {
             state = CS_TRANSIT;
-            state_timer = 10.0f; // TODO transit time could be based on distance and drive type
+            total_state_timer = 10.0f;
+            state_timer = total_state_timer; // TODO transit time could be based on distance and drive type
         }
         return *this;
     }
@@ -181,11 +183,13 @@ public:
         if (state == CS_SURFACE_DOCKED)
         {
             state = CS_SURFACE_DOCK_WORK;
+            total_state_timer = duration;
             state_timer = duration;
         }
         else if (state == CS_ORBIT_DOCKED)
         {
             state = CS_ORBIT_DOCK_WORK;
+            total_state_timer = duration;
             state_timer = duration;
         }
         return *this;
