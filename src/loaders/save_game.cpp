@@ -136,7 +136,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS systems ( id INTEGER, name TEXT );"
         "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT);"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
-        "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT );"
+        "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT, ios_number INT, scg_number INT );"
         "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, tool int, researched int, tech_level int, orbital int, mass int, research_time int, research_progress int, production_time int, doc_image_index int, production_image_index int, pod_capacity int);"
         "CREATE TABLE IF NOT EXISTS item_build_requirements ( item_id int, resource_id int, amount int);"
         "COMMIT;";
@@ -177,7 +177,7 @@ int SaveGame::saveGame(Game *game)
         return -5;
     }
 
-    std::snprintf(sql, sizeof(sql), "INSERT INTO game (game_time) VALUES (%f);", game->game_time);
+    std::snprintf(sql, sizeof(sql), "INSERT INTO game (game_time, ios_number, scg_number) VALUES (%f, %d, %d);", game->game_time, game->ios_number, game->scg_number);
     rc = sqlite3_exec(loader->db, sql, nullptr, nullptr, errorMessage);
     if (rc != SQLITE_OK)
     {

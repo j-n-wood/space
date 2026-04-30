@@ -30,11 +30,13 @@ Loader::~Loader()
 
 bool Loader::loadGame()
 {
-    SQLiteQuery query(this, "SELECT game_time FROM game LIMIT 1");
+    SQLiteQuery query(this, "SELECT game_time, ios_number, scg_number FROM game LIMIT 1");
 
     if (query.next())
     {
         game->game_time = sqlite3_column_double(query, 0);
+        game->ios_number = sqlite3_column_int(query, 1);
+        game->scg_number = sqlite3_column_int(query, 2);
         return true;
     }
 
