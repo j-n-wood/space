@@ -36,9 +36,9 @@ enum StandardButton
 
 const int STANDARD_BUTTON_COUNT = 12; // update this if you add more buttons
 
-// default page has all bar training and research
+// visibility flags, note this is now generally overridden by BasePage testing presence of facilities // TODO obsolete?
 const uint64_t ALL_STANDARD_BUTTONS = BUTTON_PRODUCTION | BUTTON_ORBIT_STORES | BUTTON_ORBIT_SHUTTLE_BAY | BUTTON_ORBIT_SPACE_BAY |
-                                      BUTTON_SHUTTLE | BUTTON_SELF_DESTRUCT |
+                                      BUTTON_SHUTTLE | BUTTON_SELF_DESTRUCT | BUTTON_TRAINING | BUTTON_RESEARCH |
                                       BUTTON_SURFACE_SHUTTLE_BAY | BUTTON_SURFACE_RESOURCES | BUTTON_SURFACE_PRODUCTION | BUTTON_SURFACE_STORES;
 
 class BasePage

@@ -4,6 +4,7 @@
 #include <memory>
 #include "state/system.h"
 #include "state/resourceFacility.h"
+#include "state/earth_city.h"
 #include "state/orbital.h"
 #include "state/factory.h"
 #include "state/item.h"
@@ -80,6 +81,7 @@ public:
     const Orbitals &allOrbitals() const;
     const IOSs &allIOS() const;
 
+    EarthCity *createEarthCity(Location *location);
     ResourceFacility *createResourceFacility(Location *location);
     Orbital *createOrbital(Location *location);
 
@@ -87,6 +89,12 @@ public:
     ResourceFacility *resourceFacilityAt(Location *location);
     Orbital *orbitalAt(Location *location);
     Facility *facilityAt(const Endpoint &endpoint);
+
+    // logic to support UI
+    inline bool locationHasShuttle(Location *location) const
+    {
+        return location && location->shuttle;
+    }
 
     // create objects
     Factory *createFactory(Facility *facility);

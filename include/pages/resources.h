@@ -15,7 +15,6 @@ public:
     Resources() : facility{nullptr}
     {
         backgroundSource = pageBackgroundSources[PB_RESOURCES];
-        standardButtons = ALL_STANDARD_BUTTONS; // example, set the standard buttons for this page
         std::snprintf(title, sizeof title, "Resources");
     }
     ~Resources() {}

@@ -7,12 +7,12 @@ extern "C"
 #include "raylib.h"
 }
 
-void EarthCity::render()
+void EarthCityView::render()
 {
     BasePage::render();
 }
 
-void EarthCity::input()
+void EarthCityView::input()
 {
     // no input handling for now, but could add some interactive elements here later
 }

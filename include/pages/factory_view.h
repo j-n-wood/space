@@ -16,7 +16,6 @@ public:
     FactoryView(SublocationType slt) : factory{nullptr}, sublocationType{slt}
     {
         backgroundSource = pageBackgroundSources[PB_FACTORY];
-        standardButtons = ALL_STANDARD_BUTTONS; // example, set the standard buttons for this page
         std::snprintf(title, sizeof title, "%s Factory", SublocationTypeName[slt]);
     }
     ~FactoryView() {}

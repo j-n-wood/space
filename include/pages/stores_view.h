@@ -16,7 +16,6 @@ public:
     StoresView(SublocationType slt) : stores{nullptr}, sublocationType(slt)
     {
         backgroundSource = pageBackgroundSources[PB_RESEARCH];
-        standardButtons = ALL_STANDARD_BUTTONS; // example, set the standard buttons for this page
         std::snprintf(title, sizeof title, "%s Stores", SublocationTypeName[slt]);
     }
     ~StoresView() {}
