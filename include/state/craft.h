@@ -106,6 +106,11 @@ public:
         return destinations[destination_index];
     }
 
+    inline const Endpoint &priorDestination() const
+    {
+        return destinations[(destination_index + MAX_DESTINATIONS - 1) % MAX_DESTINATIONS];
+    }
+
     // test if at endpoint
     inline bool atEndpoint() const
     {

@@ -119,6 +119,7 @@ bool loadSystem(Loader *loader, int system_id, System *system)
         auto location = system->addLocation(name, LocationType(type));
         location->id = id;
         location->primary_id = local_primary_id;
+        location->index = index; // set array index for this location
 
         // add to ID to index mapping
         idToIndex[index * 2] = id;
