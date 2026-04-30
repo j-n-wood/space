@@ -1,5 +1,6 @@
 #include "pages/bay_view.h"
 #include "state/game.h"
+#include "pages/overlay.h"
 
 const char *bayTypeName[]{
     "Shuttle",
@@ -202,6 +203,27 @@ void BayView::input()
             itemList.game->setToolPodContent(&craft->pods[section - 1], &facility->stores, item_id);
         }
     }
+
+    // if click in background space, go to cockpit
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+        Vector2 mousePos = GetMousePosition();
+        if (CheckCollisionPointRec(mousePos, cockpit_dest))
+        {
+            // set viewState to cockpit view for this craft
+            auto &pm{PageManager::getInstance()};
+            if (craft->type == CT_SHUTTLE)
+            {
+                pm.viewState.setCurrentCraft(craft);
+                pm.switchToPage(PAGE_SHUTTLE);
+            }
+            else if (craft->type == CT_IOS)
+            {
+                pm.viewState.setCurrentCraft(craft);
+                pm.switchToPage(PAGE_COCKPIT);
+            }
+        }
+    }
 };
 
 Craft *BayView::getCraft()
@@ -224,7 +246,7 @@ Craft *BayView::getSpacecraft()
         // for now we only have one type of spacecraft, the IOS, so return that if it exists here
         for (auto &ios : Game::getCurrent()->allIOS())
         {
-            if (ios->location == facility->location)
+            if ((ios->location == facility->location) && (ios->state == CS_ORBIT_DOCKED))
             {
                 return ios.get();
             }
@@ -273,7 +295,6 @@ void BayView::render()
 
     if (craft)
     {
-
         renderCraft();
 
         if (resourceList.visible)
@@ -285,6 +306,34 @@ void BayView::render()
             itemList.render();
         }
     }
+
+    // new craft button
+    auto &overlay = Overlay::getInstance();
+    Rectangle buttonDest{400, 900, 120, 50};
+    const char *toolTip = (type == BT_SHUTTLE) ? "Construct a new shuttle from this bay" : "Construct a new IOS in this bay";
+
+    bool enabled = (craft == nullptr) && (type == BT_SHUTTLE) ? Game::getCurrent()->canCommissionShuttle(facility) : Game::getCurrent()->canCommissionIOS(facility);
+
+    if (!enabled)
+    {
+        toolTip = (type == BT_SHUTTLE) ? "A shuttle requires a chassis item in the facility stores" : "An IOS requires a chassis item in the facility stores";
+        GuiDisable();
+    }
+
+    const char *buttonText = (type == BT_SHUTTLE) ? "New Shuttle" : "New IOS";
+
+    if (overlay.renderButton(buttonDest, buttonText, toolTip, GRAY))
+    {
+        if (type == BT_SHUTTLE)
+        {
+            craft = Game::getCurrent()->commissionShuttle(facility);
+        }
+        else if (type == BT_SPACE)
+        {
+            craft = Game::getCurrent()->commissionIOS(facility);
+        }
+    }
+    GuiEnable();
 }
 
 void BayView::update(const float delta)

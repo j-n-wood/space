@@ -44,7 +44,26 @@ void Overlay::render()
     // common status indicators, hover text, etc. that should be drawn on top of all pages can be rendered here
     // renders after the current page is rendered, so will appear on top of page content
 
+    auto game{Game::getCurrent()};
+
     auto &pm{PageManager::getInstance()};
+
+    // allow for auto-update of state if following a craft and it arrives at a location
+    // TODO use a subscription method to avoid checking this every frame
+    auto craft = pm.viewState.getCurrentCraft();
+    if (craft)
+    {
+        auto craftLocation = craft->location;
+        if (craftLocation != pm.viewState.getCurrentLocation())
+        {
+            pm.viewState.setCurrentLocation(craftLocation);
+            if (craftLocation)
+            {
+                pm.viewState.setCurrentSystem(craftLocation->system); // system could change eventually
+                pm.viewState.setCurrentFacility(game->facilityAt(Endpoint(craftLocation, SLOC_ORBIT, true)));
+            }
+        }
+    }
 
     DrawText(pm.viewState.getCurrentSystem()->name, 10, 10, 20, WHITE);
     if (auto location = pm.viewState.getCurrentLocation())
@@ -60,8 +79,6 @@ void Overlay::render()
     }
 
     // time
-    auto game{Game::getCurrent()};
-
     char buf[256];
     sprintf(buf, "%.2f", game->game_time);
     DrawText(buf, BasePage::timeDest.x, BasePage::timeDest.y, 20, WHITE);

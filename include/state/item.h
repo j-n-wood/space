@@ -43,6 +43,41 @@ enum ItemType
 extern const char *ItemName[ItemType::Count];
 */
 
+// order matches database table ID
+enum ItemType
+{
+    Derrick,
+    S_Chassis,
+    S_Drive,
+    I_Chassis,
+    I_Drive,
+    Of_Frame,
+    Supply_Pod,
+    Tool_Pod,
+    Cryo_Pod,
+    ACC,
+    AOC,
+    Bandaid,
+    SDM,
+    Grapple,
+    DFCC,
+    AMA,
+    Hyperlight,
+    MTX,
+    MFL,
+    R_Frame,
+    Prejudice_Torpedo_Launcher,
+    Commspod,
+    Ios_Drone,
+    G_Chassis,
+    Star_Drive,
+    PTL,
+    Star_Drone,
+    Prison_Pod,
+    Sonic_Blaster,
+    Pulse_Blaster_Laser
+};
+
 class BuildRequirement
 {
 public:
