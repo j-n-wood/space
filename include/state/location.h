@@ -48,6 +48,7 @@ public:
     // persistence IDs. Decide if this is mixing concerns, having it here makes save of state have consistent IDs.
     int id;         // unique ID for this location, used for persistence
     int primary_id; // ID of primary body this location orbits
+    int index;      // array index of this location in the system's location collection, set when added to system
 
     std::vector<Location *> children; // e.g. moons orbiting a planet, or cities on a planet. This is not persisted, but built in memory based on the primary_id relationships
 
