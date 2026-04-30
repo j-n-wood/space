@@ -36,7 +36,6 @@ public:
     BayView(SublocationType s, BayType bt) : sublocationType{s}, type{bt}, facility{nullptr}, craft{nullptr}, section{0}, targetSection{0}, offset{0.0f}, driveSection{2}, resourceList{nullptr, {0, 0, 0, 0}}, itemList{{0, 0, 0, 0}}
     {
         backgroundSource = pageBackgroundSources[PB_HANGAR];
-        standardButtons = ALL_STANDARD_BUTTONS;
         partsTexture = TextureManager::getInstance().getTexture(TEXTURE_ITEMS);
     }
     ~BayView() {}

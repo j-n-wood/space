@@ -21,6 +21,7 @@ public:
     explicit Facility(Location *l) : id{0}, location{l}, sublocation{SLOC_ORBIT}
     {
     }
+    virtual ~Facility() {}
 
     // advance time one tick
     virtual void update();

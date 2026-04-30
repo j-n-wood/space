@@ -1,5 +1,7 @@
 # TODO
 
+## remove surface facility buttons from button frame in ui_buttons
+
 ## EC training/research buttons
 
 * main pages have same buttons, with EC having two extras

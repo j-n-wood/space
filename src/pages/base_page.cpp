@@ -109,6 +109,12 @@ void BasePage::renderStandardButtons()
                 // must have one or other facility and a shuttle
                 enabled = (location != nullptr) && (location->shuttle);
                 break;
+            case BUTTON_TRAINING:
+                enabled = (surface != nullptr) && (surface->training_facility.get());
+                break;
+            case BUTTON_RESEARCH:
+                enabled = (surface != nullptr) && (surface->research_facility.get());
+                break;
             case BUTTON_SURFACE_SHUTTLE_BAY:
             case BUTTON_SURFACE_RESOURCES:
             case BUTTON_SURFACE_STORES:

@@ -18,7 +18,7 @@ PageManager::PageManager() : currentPage(nullptr)
         pages[i] = nullptr;
     }
 
-    pages[PAGE_EARTH_CITY] = new EarthCity();
+    pages[PAGE_EARTH_CITY] = new EarthCityView();
     pages[PAGE_SYSTEM_VIEW] = new SystemView();
     pages[PAGE_SURFACE_RESOURCES] = new Resources();
     pages[PAGE_SURFACE_STORES] = new StoresView(SublocationType::SLOC_SURFACE);
