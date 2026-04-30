@@ -8,6 +8,7 @@
 #include "state/resourceFacility.h"
 #include "state/orbital.h"
 #include "state/resources.h"
+#include "state/earth_city.h"
 
 Loader::Loader(const char *dbPath) : game(nullptr)
 {
@@ -82,15 +83,19 @@ bool Loader::loadFacilities()
         }
 
         Facility *fac = nullptr;
-        if (type == 0) // SLOC_SURFACE
+        if (type == SLOC_SURFACE)
         {
             auto rf = game->createResourceFacility(loc);
             rf->num_derricks = num_derricks;
             fac = rf;
         }
-        else if (type == 1) // SLOC_ORBIT
+        else if (type == SLOC_ORBIT)
         {
             fac = game->createOrbital(loc);
+        }
+        else if (type == SLOC_EARTH_CITY)
+        {
+            fac = game->createEarthCity(loc);
         }
         else
         {
@@ -163,7 +168,7 @@ bool Loader::loadItems()
     game->items.clear();
 
     {
-        SQLiteQuery query(this, "SELECT id, name, description, tool, researched, tech_level, orbital, mass, research_time, research_remaining, production_time, doc_image_index, production_image_index, pod_capacity FROM items ORDER BY id");
+        SQLiteQuery query(this, "SELECT id, name, description, tool, researched, tech_level, orbital, mass, research_time, research_remaining, production_time, doc_image_index, production_image_index, pod_capacity, research_available FROM items ORDER BY id");
 
         while (query.next())
         {
@@ -182,6 +187,7 @@ bool Loader::loadItems()
             item.doc_image_index = sqlite3_column_int(query, 11);
             item.production_image_index = sqlite3_column_int(query, 12);
             item.pod_capacity = sqlite3_column_int(query, 13);
+            item.research_available = sqlite3_column_int(query, 14) > 0;
             game->items.push_back(item);
         }
     }

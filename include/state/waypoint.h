@@ -6,6 +6,7 @@ enum SublocationType
 {
     SLOC_SURFACE,
     SLOC_ORBIT,
+    SLOC_EARTH_CITY, // used in persistence
     SLOC_COUNT
 };
 
