@@ -35,6 +35,10 @@ class Game
     // non-owning collection of shuttles
     std::vector<Shuttle *> shuttles;
 
+    // name counters
+    int iosNumber{1};
+    int scgNumber{1};
+
     // current game instance
     static std::unique_ptr<Game> current;
 
@@ -82,14 +86,20 @@ public:
     // locate game state
     ResourceFacility *resourceFacilityAt(Location *location);
     Orbital *orbitalAt(Location *location);
-
     Facility *facilityAt(const Endpoint &endpoint);
 
+    // create objects
     Factory *createFactory(Facility *facility);
-
     Shuttle *createShuttle(Facility *facility);
-
     IOS *createIOS(Facility *facility);
+
+    // requirements checks
+    bool canCommissionShuttle(Facility *facility) const;
+    bool canCommissionIOS(Facility *facility) const;
+
+    // commission actions
+    Shuttle *commissionShuttle(Facility *facility);
+    IOS *commissionIOS(Facility *facility);
 
     void setPodType(Craft *craft, int index, PodType pt, Facility *facility);
     void setSupplyPodContent(Pod *pod, Stores *stores, int resource_id, int amount);

@@ -72,11 +72,12 @@ void buildTestData(Game *game)
 
 	// test pod loading
 	of->stores.items[0] = 3; // lets put derricks into orbit :)
+	of->stores.items[I_Chassis] = 1;
+	of->stores.items[I_Drive] = 2;
 
 	// test IOS
 	Location *mars = system->primary->children[3];
 	IOS *ios = game->createIOS(of);
-	snprintf(ios->name, sizeof ios->name, "IOS-0001");
 	ios->drive = true;
 	ios->fuel = 250;
 	ios->setPodType(0, PT_SUPPLY);
@@ -164,6 +165,11 @@ int main()
 			}
 			else if (IsKeyPressed(KEY_F2))
 			{
+				System *system = game->allSystems()[0].get();
+				Location *earth = system->primary->children[2];
+				pageManager.viewState.setCurrentSystem(system);
+				pageManager.viewState.setCurrentLocation(earth);
+				pageManager.viewState.setCurrentFacility(game->resourceFacilityAt(earth));
 				pageManager.switchToPage(PAGE_EARTH_CITY);
 			}
 			else if (IsKeyPressed(KEY_F3))
@@ -174,6 +180,7 @@ int main()
 				{
 					pageManager.viewState.setCurrentCraft(ioss[0].get());
 					pageManager.switchToPage(PAGE_COCKPIT);
+					pageManager.getCurrentPage()->activate(pageManager.viewState); // force update of page state to reflect new craft focus
 				}
 			}
 

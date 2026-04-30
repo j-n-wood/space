@@ -109,6 +109,67 @@ Factory *Game::createFactory(Facility *facility)
     return f;
 }
 
+bool Game::canCommissionShuttle(Facility *facility) const
+{
+    // require ios_chassis item, and no existing shuttle at location
+    if (!facility || !facility->location)
+    {
+        return false;
+    }
+    if (facility->location->shuttle)
+    {
+        return false;
+    }
+    return facility->stores.items[ItemType::S_Chassis] > 0;
+}
+
+bool Game::canCommissionIOS(Facility *facility) const
+{
+    if (!facility || !facility->location)
+    {
+        return false;
+    }
+    return facility->stores.items[ItemType::I_Chassis] > 0;
+}
+
+Shuttle *Game::commissionShuttle(Facility *facility)
+{
+    if (!canCommissionShuttle(facility))
+    {
+        return nullptr;
+    }
+    // remove required item from stores
+    facility->stores.items[ItemType::S_Chassis] -= 1;
+    auto shuttle = createShuttle(facility);
+    // assign drive if available
+    if (facility->stores.items[ItemType::S_Drive] > 0)
+    {
+        facility->stores.items[ItemType::S_Drive] -= 1;
+        shuttle->drive = true;
+        shuttle->fuel = 250; // initial fuel for new shuttle, could be based on drive type or other factors
+    }
+    return shuttle;
+}
+
+IOS *Game::commissionIOS(Facility *facility)
+{
+    if (!canCommissionIOS(facility))
+    {
+        return nullptr;
+    }
+    // remove required item from stores
+    facility->stores.items[ItemType::I_Chassis] -= 1;
+    auto i = createIOS(facility);
+    // assign drive if available
+    if (facility->stores.items[ItemType::I_Drive] > 0)
+    {
+        facility->stores.items[ItemType::I_Drive] -= 1;
+        i->drive = true;
+        i->fuel = 250; // initial fuel for new IOS, could be based on drive type or other factors
+    }
+    return i;
+}
+
 Shuttle *Game::createShuttle(Facility *facility)
 {
     // create a shuttle at a location, starting at the given facility
@@ -148,6 +209,10 @@ IOS *Game::createIOS(Facility *facility)
     auto i = ios.back().get();
     i->destinations[0] = Endpoint(location, SLOC_ORBIT, true);
     i->destinations[1] = Endpoint(location, SLOC_ORBIT, true);
+
+    // generate a name based on creation count // TODO: persist this as game state
+    std::snprintf(i->name, sizeof i->name, "IOS-%04d", iosNumber++);
+
     return i;
 }
 

@@ -154,6 +154,7 @@ public:
         if (destinations[destination_index].location)
         {
             state = CS_TRANSIT;
+            location = nullptr; // in transit, not at a location
             total_state_timer = 10.0f;
             state_timer = total_state_timer; // TODO transit time could be based on distance and drive type
         }
