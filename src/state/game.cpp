@@ -210,8 +210,8 @@ IOS *Game::createIOS(Facility *facility)
     i->destinations[0] = Endpoint(location, SLOC_ORBIT, true);
     i->destinations[1] = Endpoint(location, SLOC_ORBIT, true);
 
-    // generate a name based on creation count // TODO: persist this as game state
-    std::snprintf(i->name, sizeof i->name, "IOS-%04d", iosNumber++);
+    // generate a name based on creation count
+    std::snprintf(i->name, sizeof i->name, "IOS-%04d", ios_number++);
 
     return i;
 }

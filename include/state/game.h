@@ -35,10 +35,6 @@ class Game
     // non-owning collection of shuttles
     std::vector<Shuttle *> shuttles;
 
-    // name counters
-    int iosNumber{1};
-    int scgNumber{1};
-
     // current game instance
     static std::unique_ptr<Game> current;
 
@@ -46,6 +42,10 @@ public:
     // game state
     float game_time;
     float time_rate;
+
+    // name counters
+    int ios_number{1};
+    int scg_number{1};
 
     // item definitions - array of instances as not passed around
     std::vector<Item> items;
