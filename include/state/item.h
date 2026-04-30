@@ -99,9 +99,9 @@ public:
     int tech_level;  // required to produce
     bool orbital;    // produced in orbit only
     int mass;        // descriptive
-    int research_time;
-    int research_progress;
-    int production_time;
+    float research_time;
+    float research_remaining;
+    float production_time;
     int doc_image_index;
     int production_image_index;
     int pod_capacity; // how many units can fit in a pod
