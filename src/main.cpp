@@ -45,7 +45,6 @@ void buildTestData(Game *game)
 	System *system = game->allSystems()[0].get();
 	Location *earth = system->primary->children[2];
 	EarthCity *ec{game->createEarthCity(earth)};
-	game->createFactory(ec); // EC production
 	ec->num_derricks = 1;
 	Orbital *of{game->createOrbital(earth)};
 

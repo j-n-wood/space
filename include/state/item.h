@@ -104,6 +104,7 @@ public:
     float production_time;
     int doc_image_index;
     int production_image_index;
-    int pod_capacity; // how many units can fit in a pod
+    int pod_capacity;        // how many units can fit in a pod
+    bool research_available; // can research this
     std::vector<BuildRequirement> requirements;
 };

@@ -45,7 +45,9 @@ const IOSs &Game::allIOS() const
 EarthCity *Game::createEarthCity(Location *location)
 {
     bases.emplace_back(std::make_unique<EarthCity>(location));
-    return static_cast<EarthCity *>(bases.back().get());
+    auto ec = static_cast<EarthCity *>(bases.back().get());
+    createFactory(ec); // EC production
+    return ec;
 }
 
 ResourceFacility *Game::createResourceFacility(Location *location)
