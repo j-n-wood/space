@@ -216,6 +216,14 @@ int main()
 				}
 			}
 
+			// gui design output
+			if (IsKeyPressed(KEY_F11))
+			{
+				// emit mouse coords
+				Vector2 mousePos = GetMousePosition();
+				TraceLog(LOG_INFO, "Mouse Position: (%.2f, %.2f)", mousePos.x, mousePos.y);
+			}
+
 			float currentTime = GetTime();
 			float deltaTime = currentTime - lastTime;
 			lastTime = currentTime;
