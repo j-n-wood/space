@@ -39,5 +39,11 @@ bool Game::initialise(Loader *loader)
         return false;
     }
 
+    if (!loader->loadResearchTopics())
+    {
+        TraceLog(LOG_ERROR, "Failed to load research topics");
+        return false;
+    }
+
     return true;
 }

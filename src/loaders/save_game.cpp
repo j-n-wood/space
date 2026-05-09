@@ -221,6 +221,11 @@ int SaveGame::saveGame(Game *game)
         return -10;
     }
 
+    if (saveResearchTopics(game) != 0)
+    {
+        return -11;
+    }
+
     return 0;
 }
 

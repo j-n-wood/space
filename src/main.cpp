@@ -85,6 +85,8 @@ void buildTestData(Game *game)
 
 	// mars orbital
 	Orbital *mars_orbital{game->createOrbital(mars)};
+
+	PageManager::getInstance().viewState.setCurrentResearchFacility(ec->research_facility.get()); // currently global and single
 }
 
 int main()
