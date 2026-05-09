@@ -4,6 +4,7 @@ class System;
 class Location;
 class Facility;
 class Craft;
+class ResearchFacility; // currently only one
 
 class ViewState
 {
@@ -15,6 +16,7 @@ class ViewState
     Location *currentLocation;
     Facility *currentFacility;
     Craft *currentCraft;
+    ResearchFacility *currentResearchFacility;
 
 public:
     ViewState() : currentSystem(nullptr), currentLocation(nullptr), currentFacility(nullptr), currentCraft(nullptr) {};
@@ -44,6 +46,16 @@ public:
     inline ViewState &setCurrentCraft(Craft *c)
     {
         currentCraft = c;
+        return *this;
+    }
+
+    inline ResearchFacility *getCurrentResearchFacility() const
+    {
+        return currentResearchFacility;
+    }
+    inline ViewState &setCurrentResearchFacility(ResearchFacility *rf)
+    {
+        currentResearchFacility = rf;
         return *this;
     }
 };

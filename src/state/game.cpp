@@ -1,5 +1,8 @@
 #include "loaders/loader.h"
 #include "state/game.h"
+#include "state/research_facility.h"
+
+#include <cstdio>
 
 std::unique_ptr<Game> Game::current;
 
@@ -115,6 +118,24 @@ Factory *Game::createFactory(Facility *facility)
     Factory *f{facility->createFactory()};
     factories.push_back(f);
     return f;
+}
+
+ResearchFacility *Game::createResearchFacility(ResourceFacility *facility)
+{
+    if (!facility)
+    {
+        TraceLog(LOG_ERROR, "Null facility provided to createResearchFacility");
+        return nullptr;
+    }
+    if (facility->research_facility)
+    {
+        TraceLog(LOG_ERROR, "Facility already has research facility");
+        return nullptr;
+    }
+    facility->research_facility = std::make_unique<ResearchFacility>();
+    ResearchFacility *rf = facility->research_facility.get();
+    researchFacilities.push_back(rf);
+    return rf;
 }
 
 bool Game::canCommissionShuttle(Facility *facility) const
@@ -353,6 +374,11 @@ void Game::update(float delta)
     for (auto &craft : ios)
     {
         craft->update(dt);
+    }
+
+    for (auto &rf : researchFacilities)
+    {
+        rf->update(dt);
     }
 
     int difference = static_cast<int>(game_time) - prior;

@@ -13,22 +13,41 @@ void ResearchFacility::update(float delta)
 
     if (current_project != -1)
     {
-        if (delta >= project_time)
+        auto game = Game::getCurrent();
+        auto &topic = game->researchTopics[current_project];
+        float progress = topic.progress;
+        float project_time = topic.requiredTime;
+        if (progress + delta >= project_time)
         {
             // complete project
-            // mark item as researched
-            Game::getCurrent()->items[current_project].researched = true;
+            topic.progress = topic.requiredTime;
+            topic.available = false; // no longer available to research
+
+            // if any unlocks
+            if (!topic.unlocksItems.empty())
+            {
+                for (auto &itemId : topic.unlocksItems)
+                {
+                    game->items[itemId].researched = true;
+                }
+            }
+            if (!topic.unlocksTopics.empty())
+            {
+                for (auto &topicId : topic.unlocksTopics)
+                {
+                    game->researchTopics[topicId].available = true;
+                }
+            }
 
             // move to next project if desired - for now just stop
             current_project = -1;
-            project_time = 0;
 
             // if we had a queue, we can flow over the remaining delta to the next project here
         }
         else
         {
             // still researching
-            project_time -= delta;
+            topic.progress += delta;
         }
     }
 }

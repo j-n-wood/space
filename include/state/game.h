@@ -18,6 +18,8 @@ const int MAX_SUPPLY_POD_AMOUNT = 250;
 
 class Loader;
 
+class ResearchFacility;
+
 class Game
 {
     // owning collection of systems
@@ -35,6 +37,9 @@ class Game
 
     // non-owning collection of shuttles
     std::vector<Shuttle *> shuttles;
+
+    // non-owning collection of research facilities
+    std::vector<ResearchFacility *> researchFacilities;
 
     // current game instance
     static std::unique_ptr<Game> current;
@@ -87,6 +92,7 @@ public:
     EarthCity *createEarthCity(Location *location);
     ResourceFacility *createResourceFacility(Location *location);
     Orbital *createOrbital(Location *location);
+    ResearchFacility *createResearchFacility(ResourceFacility *facility);
 
     // locate game state
     ResourceFacility *resourceFacilityAt(Location *location);
@@ -103,6 +109,7 @@ public:
     Factory *createFactory(Facility *facility);
     Shuttle *createShuttle(Facility *facility);
     IOS *createIOS(Facility *facility);
+    ResearchFacility *createResearchFacility(Facility *facility);
 
     // requirements checks
     bool canCommissionShuttle(Facility *facility) const;
