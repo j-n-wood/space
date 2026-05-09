@@ -95,7 +95,6 @@ void FactoryView::render()
     {
         if (item.researched && factory->canBuild(item.id))
         {
-            // can we build it here? tech level, orbital requirement
             hoverState.item = &item;
             if (overlay.renderButtonHover(Rectangle{1100, (float)y, 100, 20}, item.name, WHITE, renderPlanHover, &hoverState))
             {

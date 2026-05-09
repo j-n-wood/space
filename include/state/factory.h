@@ -20,10 +20,11 @@ typedef std::vector<QueueItem> FactoryQueue;
 
 class Factory
 {
+
+public:
     bool is_orbital;
     int tech_level;
 
-public:
     explicit Factory(Stores *s) : stores{s}, is_orbital{true}, tech_level{1} {}
 
     Stores *stores;

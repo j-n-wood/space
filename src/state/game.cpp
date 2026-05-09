@@ -49,7 +49,9 @@ EarthCity *Game::createEarthCity(Location *location)
 {
     bases.emplace_back(std::make_unique<EarthCity>(location));
     auto ec = static_cast<EarthCity *>(bases.back().get());
-    createFactory(ec); // EC production
+    auto factory = createFactory(ec); // EC production
+    factory->is_orbital = false;      // EC is surface facility, so set factory accordingly
+    factory->tech_level = 1;          // EC starts with tech level 1, can build basic items
     return ec;
 }
 
