@@ -62,6 +62,9 @@ public:
     /// Load item definitions
     bool loadItems();
 
+    /// Load research topics
+    bool loadResearchTopics();
+
 private:
     Location *findLocation(int system_id, int location_id);
 };

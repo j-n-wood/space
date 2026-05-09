@@ -60,8 +60,11 @@ CREATE TABLE systems ( id INTEGER primary key, name text )
 CREATE TABLE facilities ( id int, system_id int, location_id int, type int )
 CREATE TABLE stores ( facility_id int, resource_id int, amount int )
 CREATE TABLE game ( game_time FLOAT )
-CREATE TABLE items ( id int, name text, description text, tool int, researched int, tech_level int, orbital int, mass int, research_time float, research_remaining float, production_time float, doc_image_index int, production_image_index int, pod_capacity int, research_available int);
+CREATE TABLE items ( id int, name text, description text, tool int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);
 CREATE TABLE item_build_requirements ( item_id int, resource_id int, amount int);
+CREATE TABLE research_topics ( id int, name text, description text, required_time float, progress float, available int);
+CREATE TABLE research_topic_unlocks_items ( topic_id int, item_id int);
+CREATE TABLE research_topic_unlocks_topics ( topic_id int, unlocks_topic_id int);
 */
 
 SaveGame::SaveGame()
@@ -137,8 +140,11 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT);"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT, ios_number INT, scg_number INT );"
-        "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, tool int, researched int, tech_level int, orbital int, mass int, research_time float, research_remaining float, production_time float, doc_image_index int, production_image_index int, pod_capacity int, research_available int);"
+        "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, tool int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);"
         "CREATE TABLE IF NOT EXISTS item_build_requirements ( item_id int, resource_id int, amount int);"
+        "CREATE TABLE IF NOT EXISTS research_topics ( id int, name text, description text, required_time float, progress float, available int);"
+        "CREATE TABLE IF NOT EXISTS research_topic_unlocks_items ( topic_id int, item_id int);"
+        "CREATE TABLE IF NOT EXISTS research_topic_unlocks_topics ( topic_id int, unlocks_topic_id int);"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -480,12 +486,12 @@ int SaveGame::saveItems(Game *game)
 
     std::vector<ItemBuildRequirement> reqs;
     {
-        SQLiteQuery itemQ(loader, "INSERT INTO items (id, name, description, tool, researched, tech_level, orbital, mass, research_time, research_remaining, production_time, doc_image_index, production_image_index, pod_capacity, research_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        SQLiteQuery itemQ(loader, "INSERT INTO items (id, name, description, tool, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
         for (auto &item : game->items)
         {
             sqlite3_reset(itemQ.stmt);
             sqlite3_clear_bindings(itemQ.stmt);
-            if (!itemQ.bind(1, idx).bind(2, item.name).bind(3, item.description).bind(4, item.tool).bind(5, item.researched).bind(6, item.tech_level).bind(7, item.orbital).bind(8, item.mass).bind(9, item.research_time).bind(10, item.research_remaining).bind(11, item.production_time).bind(12, item.doc_image_index).bind(13, item.production_image_index).bind(14, item.pod_capacity).bind(15, item.research_available).step("SaveGame: Failed to save item"))
+            if (!itemQ.bind(1, idx).bind(2, item.name).bind(3, item.description).bind(4, item.tool).bind(5, item.researched).bind(6, item.tech_level).bind(7, item.orbital).bind(8, item.mass).bind(9, item.production_time).bind(10, item.doc_image_index).bind(11, item.production_image_index).bind(12, item.pod_capacity).step("SaveGame: Failed to save item"))
             {
                 return -15;
             }
@@ -508,6 +514,71 @@ int SaveGame::saveItems(Game *game)
             if (!reqQ.bind(1, br.item_id).bind(2, br.resource_id).bind(3, br.amount).step("SaveGame: Failed to save build req"))
             {
                 return -16;
+            }
+        }
+    }
+    return 0;
+}
+
+int SaveGame::saveResearchTopics(Game *game)
+{
+    // Similar to saveItems, but for research topics
+    int idx{0};
+
+    struct ResearchTopicUnlock
+    {
+        int topic_id;
+        int item_id;
+    };
+
+    std::vector<ResearchTopicUnlock> item_unlocks;
+    std::vector<ResearchTopicUnlock> topic_unlocks;
+    {
+        SQLiteQuery topicQ(loader, "INSERT INTO research_topics (id, name, description, required_time, progress, available) VALUES (?, ?, ?, ?, ?, ?);");
+        for (auto &topic : game->researchTopics)
+        {
+            sqlite3_reset(topicQ.stmt);
+            sqlite3_clear_bindings(topicQ.stmt);
+            if (!topicQ.bind(1, idx).bind(2, topic.name).bind(3, topic.description).bind(4, topic.requiredTime).bind(5, topic.progress).bind(6, topic.available).step("SaveGame: Failed to save research topic"))
+            {
+                return -17;
+            }
+
+            for (auto &itemId : topic.unlocksItems)
+            {
+                item_unlocks.emplace_back(ResearchTopicUnlock{idx, itemId});
+            }
+            for (auto &topicId : topic.unlocksTopics)
+            {
+                topic_unlocks.emplace_back(ResearchTopicUnlock{idx, topicId});
+            }
+
+            ++idx;
+        }
+    }
+
+    {
+        SQLiteQuery unlockQ(loader, "INSERT INTO research_topic_unlocks_items (topic_id, item_id) VALUES (?, ?)");
+        for (auto &unlock : item_unlocks)
+        {
+            sqlite3_reset(unlockQ.stmt);
+            sqlite3_clear_bindings(unlockQ.stmt);
+            if (!unlockQ.bind(1, unlock.topic_id).bind(2, unlock.item_id).step("SaveGame: Failed to save research topic unlock"))
+            {
+                return -18;
+            }
+        }
+    }
+
+    {
+        SQLiteQuery unlockQ(loader, "INSERT INTO research_topic_unlocks_topics (topic_id, unlocks_topic_id) VALUES (?, ?)");
+        for (auto &unlock : topic_unlocks)
+        {
+            sqlite3_reset(unlockQ.stmt);
+            sqlite3_clear_bindings(unlockQ.stmt);
+            if (!unlockQ.bind(1, unlock.topic_id).bind(2, unlock.item_id).step("SaveGame: Failed to save research topic unlock"))
+            {
+                return -19;
             }
         }
     }

@@ -44,6 +44,9 @@ class SaveGame
     /// Persist item definitions
     int saveItems(Game *game);
 
+    /// Persist research topics
+    int saveResearchTopics(Game *game);
+
 public:
     SaveGame();
     ~SaveGame();

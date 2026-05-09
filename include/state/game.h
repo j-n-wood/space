@@ -10,7 +10,7 @@
 #include "state/item.h"
 #include "state/shuttle.h"
 #include "state/ios.h"
-
+#include "state/research_topic.h"
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
 
@@ -50,6 +50,9 @@ public:
 
     // item definitions - array of instances as not passed around
     std::vector<Item> items;
+
+    // research topics - array of instances as not passed around
+    std::vector<ResearchTopic> researchTopics;
 
     Game();
     ~Game();

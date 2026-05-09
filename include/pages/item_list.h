@@ -15,7 +15,7 @@ public:
     int itemFocused;
 
     int activeItemsIDs[MAX_ITEM_TYPE];
-    char nameBuffers[MAX_ITEM_TYPE][32]; // buffers
+    char nameBuffers[MAX_ITEM_TYPE][48]; // buffers
     char *names[MAX_ITEM_TYPE];          // pointers to buffers
     int currentCount;
 
@@ -46,7 +46,7 @@ public:
             if (stores->items[item.id] > 0 && item.pod_capacity > 0)
             {
                 activeItemsIDs[currentCount] = item.id;
-                std::snprintf(names[currentCount], 32, "%s: %d", item.name, stores->items[item.id]);
+                std::snprintf(names[currentCount], 48, "%s: %d", item.name, stores->items[item.id]);
                 currentCount++;
             }
         }
