@@ -168,7 +168,7 @@ bool Loader::loadItems()
     game->items.clear();
 
     {
-        SQLiteQuery query(this, "SELECT id, name, description, tool, researched, tech_level, orbital, mass, research_time, research_remaining, production_time, doc_image_index, production_image_index, pod_capacity, research_available FROM items ORDER BY id");
+        SQLiteQuery query(this, "SELECT id, name, description, tool, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity FROM items ORDER BY id");
 
         while (query.next())
         {
@@ -181,13 +181,10 @@ bool Loader::loadItems()
             item.tech_level = sqlite3_column_int(query, 5);
             item.orbital = sqlite3_column_int(query, 6) > 0;
             item.mass = sqlite3_column_int(query, 7);
-            item.research_time = (float)sqlite3_column_double(query, 8);
-            item.research_remaining = (float)sqlite3_column_double(query, 9);
-            item.production_time = (float)sqlite3_column_double(query, 10);
-            item.doc_image_index = sqlite3_column_int(query, 11);
-            item.production_image_index = sqlite3_column_int(query, 12);
-            item.pod_capacity = sqlite3_column_int(query, 13);
-            item.research_available = sqlite3_column_int(query, 14) > 0;
+            item.production_time = (float)sqlite3_column_double(query, 8);
+            item.doc_image_index = sqlite3_column_int(query, 9);
+            item.production_image_index = sqlite3_column_int(query, 10);
+            item.pod_capacity = sqlite3_column_int(query, 11);
             game->items.push_back(item);
         }
     }
@@ -213,5 +210,65 @@ bool Loader::loadItems()
         }
     }
 
+    return true;
+}
+
+bool Loader::loadResearchTopics()
+{
+    game->researchTopics.clear();
+
+    {
+        SQLiteQuery query(this, "SELECT id, name, description, required_time, progress, available FROM research_topics ORDER BY id");
+
+        while (query.next())
+        {
+            ResearchTopic topic;
+            topic.id = sqlite3_column_int(query, 0);
+            copyFixed(topic.name, sizeof topic.name, (const char *)sqlite3_column_text(query, 1));
+            copyFixed(topic.description, sizeof topic.description, (const char *)sqlite3_column_text(query, 2));
+            topic.requiredTime = (float)sqlite3_column_double(query, 3);
+            topic.progress = (float)sqlite3_column_double(query, 4);
+            topic.available = sqlite3_column_int(query, 5) > 0;
+            game->researchTopics.push_back(topic);
+        }
+    }
+
+    auto n_topics{game->researchTopics.size()};
+
+    {
+        SQLiteQuery query(this, "SELECT topic_id, item_id FROM research_topic_unlocks_items");
+        while (query.next())
+        {
+            int topic_id = sqlite3_column_int(query, 0);
+            int item_id = sqlite3_column_int(query, 1);
+
+            if (topic_id < n_topics)
+            {
+                game->researchTopics[topic_id].unlocksItems.push_back(ItemType(item_id));
+            }
+            else
+            {
+                TraceLog(LOG_ERROR, "Invalid research topic ID", topic_id);
+            }
+        }
+    }
+
+    {
+        SQLiteQuery query(this, "SELECT topic_id, unlocks_topic_id FROM research_topic_unlocks_topics");
+        while (query.next())
+        {
+            int topic_id = sqlite3_column_int(query, 0);
+            int unlocks_topic_id = sqlite3_column_int(query, 1);
+
+            if (topic_id < n_topics)
+            {
+                game->researchTopics[topic_id].unlocksTopics.push_back(unlocks_topic_id);
+            }
+            else
+            {
+                TraceLog(LOG_ERROR, "Invalid research topic ID", topic_id);
+            }
+        }
+    }
     return true;
 }

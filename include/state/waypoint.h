@@ -25,6 +25,6 @@ public:
 
     Endpoint() : location{nullptr}, sublocation{SLOC_ORBIT}, docked{false} {}
 
-    explicit Endpoint(Location *loc, SublocationType sloc, bool docked) : location{loc},
-                                                                          sublocation{sloc}, docked{docked} {}
+    explicit Endpoint(Location *loc, SublocationType sloc, bool d) : location{loc},
+                                                                     sublocation{sloc}, docked{d} {}
 };

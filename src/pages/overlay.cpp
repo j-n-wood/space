@@ -1,6 +1,7 @@
 #include "pages/overlay.h"
 #include "state/game.h"
 #include "pages/pages.h"
+#include <cstdio>
 
 extern "C"
 {
