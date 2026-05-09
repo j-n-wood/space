@@ -54,12 +54,6 @@ void buildTestData(Game *game)
 		of->stores.resources[idx] = 128;
 	}
 
-	// test research
-	for (auto &item : game->items)
-	{
-		item.researched = true;
-	}
-
 	Shuttle *sh = game->createShuttle(of); // create shuttle at earth orbital
 	sh->drive = true;
 	sh->fuel = 250;
