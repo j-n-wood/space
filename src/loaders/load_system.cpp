@@ -16,11 +16,33 @@ Color ColorFromHexStr(const char *hex)
 
     unsigned int r, g, b, a;
 
+    auto length = std::strlen(hex);
+
     // sscanf returns the number of items successfully filled
     // We expect 4 items for RRGGBBAA
-    if (sscanf(hex, "%02x%02x%02x%02x", &r, &g, &b, &a) != 4)
+    if (length == 6)
     {
-        // Return blank or magenta if parsing fails to alert you
+        // If we have 6 characters, assume it's RRGGBB and set alpha to 255
+        if (sscanf(hex, "%02x%02x%02x", &r, &g, &b) != 3)
+        {
+            // Return blank or magenta if parsing fails to alert you
+            return MAGENTA;
+        }
+        a = 255; // default alpha
+    }
+    else if (length == 8)
+    {
+        // If we have 8 characters, parse RRGGBBAA
+        if (sscanf(hex, "%02x%02x%02x%02x", &r, &g, &b, &a) != 4)
+        {
+            // Return blank or magenta if parsing fails to alert you
+            return MAGENTA;
+        }
+    }
+    else
+    {
+        // Invalid length, return magenta to indicate error
+        TraceLog(LOG_ERROR, "Invalid color string length: %s", hex);
         return MAGENTA;
     }
 
@@ -113,6 +135,7 @@ bool loadSystem(Loader *loader, int system_id, System *system)
         system->planetSizes[index] = radius;
         system->planetColors[index] = color;
         system->planetVelocities[index] = orbital_velocity;
+        system->planetInitialAngles[index] = initial_angle;
         system->planetPositions[index] = (Vector2){orbital_radius * cosf(initial_angle), orbital_radius * sinf(initial_angle)};
         system->planetPrimaryIndexes[index] = local_primary_id;
 

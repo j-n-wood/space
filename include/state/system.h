@@ -30,6 +30,7 @@ public:
     std::vector<float> planetSizes;
     std::vector<Color> planetColors;
     std::vector<float> planetVelocities;
+    std::vector<float> planetInitialAngles;
     std::vector<Vector2> planetPositions;
     std::vector<int> planetPrimaryIndexes; // array index of primary body for each planet, -1 if primary (e.g. star)
 
@@ -42,11 +43,8 @@ public:
 
     System &setNumBodies(int numBodies);
     Location *addLocation(const char *name, LocationType type);
-    void loadSolSystem();
 };
 
 typedef std::unique_ptr<System> SystemPtr;
 
 typedef std::vector<SystemPtr> Systems;
-
-SystemPtr createSystem(const bool asSolSystem);
