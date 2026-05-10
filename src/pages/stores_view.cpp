@@ -88,11 +88,14 @@ void StoresView::listItems()
     int idx = 0;
     for (auto &item : Game::getCurrent()->items)
     {
-        // emit the resource name
-        DrawText(item.name, cursor.x, cursor.y, 20, WHITE);
-        sprintf(buf, "%d", stores->items[idx]);
-        DrawText(buf, cursor.x + 120, cursor.y, 20, WHITE);
-        cursor.y += 24;
-        ++idx;
+        if (item.researched)
+        {
+            // emit the resource name
+            DrawText(item.name, cursor.x, cursor.y, 20, WHITE);
+            sprintf(buf, "%d", stores->items[idx]);
+            DrawText(buf, cursor.x + 120, cursor.y, 20, WHITE);
+            cursor.y += 24;
+            ++idx;
+        }
     }
 }

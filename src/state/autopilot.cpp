@@ -49,7 +49,7 @@ void Autopilot::onDocked(Craft *craft)
         // for IOS/SCG, should we switch cursors on launch?
         // maybe tag cursors to facility and reset to 0 on facility change?
         uint8_t *current_cursor = &cursors[craft->destination_index];
-        uint8_t mask = craft->destination_index == 0 ? RF_LOAD_AT_DEST : RF_LOAD_AT_SOURCE;
+        uint8_t mask = craft->destination_index == 0 ? RF_LOAD_AT_SOURCE : RF_LOAD_AT_DEST;
 
         if (!current || !other)
         {

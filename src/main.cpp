@@ -45,19 +45,6 @@ void buildTestData(Game *game)
 
 	System *system = game->allSystems()[0].get();
 	Location *earth = system->primary->children[2];
-	/*
-	EarthCity *ec{game->createEarthCity(earth)};
-	ec->num_derricks = 1;
-	Orbital *of{game->createOrbital(earth)};
-	*/
-
-	// test resources
-	/*
-	for (int idx = ResourceType::Iron; idx <= ResourceType::Silica; ++idx)
-	{
-		of->stores.resources[idx] = 128;
-	}
-		*/
 	auto of = game->orbitalAt(earth);
 
 	Shuttle *sh = game->createShuttle(of); // create shuttle at earth orbital
@@ -225,6 +212,18 @@ int main()
 				// emit mouse coords
 				Vector2 mousePos = GetMousePosition();
 				TraceLog(LOG_INFO, "Mouse Position: (%.2f, %.2f)", mousePos.x, mousePos.y);
+			}
+
+			// time rate
+			if (IsKeyPressed(KEY_EQUAL))
+			{
+				game->time_rate *= 2.0f;
+				TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
+			}
+			else if (IsKeyPressed(KEY_MINUS))
+			{
+				game->time_rate *= 0.5f;
+				TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
 			}
 
 			float currentTime = GetTime();
