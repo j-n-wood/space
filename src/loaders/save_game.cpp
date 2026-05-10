@@ -354,7 +354,7 @@ int SaveGame::saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locati
 
     const float orbitalRadius = locationIndex < system->planetDistances.size() ? system->planetDistances[locationIndex] : 0.0f;
     const float orbitalVelocity = locationIndex < system->planetVelocities.size() ? system->planetVelocities[locationIndex] : 0.0f;
-    const float initialAngle = locationIndex < system->planetPositions.size() ? atan2f(system->planetPositions[locationIndex].y, system->planetPositions[locationIndex].x) : 0.0f;
+    const float initialAngle = locationIndex < system->planetPositions.size() ? system->planetInitialAngles[locationIndex] : 0.0f;
     const float radius = locationIndex < system->planetSizes.size() ? system->planetSizes[locationIndex] : 0.0f;
     char colorText[9];
     if (locationIndex < system->planetColors.size())

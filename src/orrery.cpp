@@ -20,10 +20,15 @@ void Orrery::render()
 {
     if (this->system == NULL)
         return;
+
     // batch lines
     for (int i = 0; i < system->numPlanets; i++)
     {
-        DrawCircleLinesV(this->center, system->planetDistances[i] * this->scale, (Color){60, 60, 60, 255});
+        int parent_id = system->planetPrimaryIndexes[i];
+        if (parent_id == 0)
+        {
+            DrawCircleLinesV(this->center, system->planetDistances[i] * this->scale, (Color){60, 60, 60, 255});
+        }
     }
 
     // calculate body positions, cache then draw.

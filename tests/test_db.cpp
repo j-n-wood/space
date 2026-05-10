@@ -40,7 +40,7 @@ TEST_CASE("loadSystem populates system from database")
     Loader loader(DB_PATH);
     REQUIRE(loader.isValid());
 
-    SystemPtr system = createSystem(false);
+    SystemPtr system = std::make_unique<System>();
     REQUIRE(system);
     REQUIRE(loadSystem(&loader, 1, system.get()));
 
@@ -466,11 +466,13 @@ TEST_CASE("Autopilot::nextFlagged with predicate skips rejected resources")
     ap.flow[ResourceType::Carbon] = RF_LOAD_AT_SOURCE;
 
     // Accept only Copper — Iron and Carbon should be skipped.
-    auto onlyCopper = [](int r) { return r == ResourceType::Copper; };
+    auto onlyCopper = [](int r)
+    { return r == ResourceType::Copper; };
     CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0], onlyCopper) == ResourceType::Copper);
     CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0], onlyCopper) == ResourceType::Copper);
 
     // Predicate rejects everything → -1.
-    auto none = [](int) { return false; };
+    auto none = [](int)
+    { return false; };
     CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0], none) == -1);
 }
