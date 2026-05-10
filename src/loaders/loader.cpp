@@ -95,7 +95,9 @@ bool Loader::loadFacilities()
         }
         else if (type == SLOC_EARTH_CITY)
         {
-            fac = game->createEarthCity(loc);
+            auto ec = game->createEarthCity(loc);
+            ec->num_derricks = num_derricks;
+            fac = ec;
         }
         else
         {
