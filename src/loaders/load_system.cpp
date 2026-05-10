@@ -181,6 +181,26 @@ bool loadSystem(Loader *loader, int system_id, System *system)
         }
     } // parent building
 
+    // iterate locations and read resource availability for each from body_resources table
+    for (const auto &loc : system->locations)
+    {
+        SQLiteQuery resourceQuery(loader, "SELECT resource_id, availability FROM body_resources WHERE body_id  = ?");
+        resourceQuery.bind(1, loc->id);
+        while (resourceQuery.next())
+        {
+            int resource_id = sqlite3_column_int(resourceQuery, 0);
+            int availability = sqlite3_column_int(resourceQuery, 1);
+            if (resource_id >= 0 && resource_id < ResourceType::Count)
+            {
+                loc->resources.availability[resource_id] = availability;
+            }
+            else
+            {
+                TraceLog(LOG_ERROR, "Invalid resource_id %d for body %d", resource_id, loc->id);
+            }
+        }
+    }
+
     return true;
 }
 

@@ -65,6 +65,7 @@ CREATE TABLE item_build_requirements ( item_id int, resource_id int, amount int)
 CREATE TABLE research_topics ( id int, name text, description text, required_time float, progress float, available int);
 CREATE TABLE research_topic_unlocks_items ( topic_id int, item_id int);
 CREATE TABLE research_topic_unlocks_topics ( topic_id int, unlocks_topic_id int);
+CREATE TABLE body_resources ( body_id int, resource_id int, availability int );
 */
 
 SaveGame::SaveGame()
@@ -145,6 +146,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS research_topics ( id int, name text, description text, required_time float, progress float, available int);"
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_items ( topic_id int, item_id int);"
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_topics ( topic_id int, unlocks_topic_id int);"
+        "CREATE TABLE IF NOT EXISTS body_resources ( body_id int, resource_id int, availability int );"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -269,6 +271,16 @@ int SaveGame::saveSystem(System *system)
         return -10;
     }
 
+    const char *storeSql =
+        "INSERT INTO body_resources ( body_id, resource_id, availability ) "
+        "VALUES (?, ?, ?);";
+    SQLiteQuery storeQuery(loader, storeSql);
+    if (!storeQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare body_resources insert");
+        return -11;
+    }
+
     size_t bodyCount = system->locations.size();
     for (size_t idx = 0; idx < bodyCount; ++idx)
     {
@@ -276,6 +288,32 @@ int SaveGame::saveSystem(System *system)
         if (result != 0)
         {
             return result;
+        }
+
+        // save body resources
+        Location *loc = system->locations[idx].get();
+        if (!loc)
+        {
+            continue;
+        }
+        for (int resource_id = 0; resource_id < ResourceType::Count; ++resource_id)
+        {
+            int availability = loc->resources.availability[resource_id];
+            if (availability == 0)
+            {
+                continue; // skip unavailable resources
+            }
+
+            sqlite3_reset(storeQuery.stmt);
+            sqlite3_clear_bindings(storeQuery.stmt);
+
+            if (!storeQuery.bind(1, loc->id)
+                     .bind(2, resource_id)
+                     .bind(3, availability)
+                     .step("SaveGame: Failed to insert body_resources record"))
+            {
+                return -12;
+            }
         }
     }
 
