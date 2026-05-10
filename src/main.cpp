@@ -42,17 +42,23 @@ void takeDefaultFocus()
 
 void buildTestData(Game *game)
 {
+
 	System *system = game->allSystems()[0].get();
 	Location *earth = system->primary->children[2];
+	/*
 	EarthCity *ec{game->createEarthCity(earth)};
 	ec->num_derricks = 1;
 	Orbital *of{game->createOrbital(earth)};
+	*/
 
 	// test resources
+	/*
 	for (int idx = ResourceType::Iron; idx <= ResourceType::Silica; ++idx)
 	{
 		of->stores.resources[idx] = 128;
 	}
+		*/
+	auto of = game->orbitalAt(earth);
 
 	Shuttle *sh = game->createShuttle(of); // create shuttle at earth orbital
 	sh->drive = true;
@@ -80,6 +86,7 @@ void buildTestData(Game *game)
 	// mars orbital
 	Orbital *mars_orbital{game->createOrbital(mars)};
 
+	auto ec = game->resourceFacilityAt(earth);
 	PageManager::getInstance().viewState.setCurrentResearchFacility(ec->research_facility.get()); // currently global and single
 }
 

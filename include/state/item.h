@@ -71,7 +71,6 @@ enum ItemType
     Ios_Drone,
     G_Chassis,
     Star_Drive,
-    PTL,
     Star_Drone,
     Prison_Pod,
     Sonic_Blaster,
