@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 
 enum SublocationType
 {
@@ -27,4 +28,7 @@ public:
 
     explicit Endpoint(Location *loc, SublocationType sloc, bool d) : location{loc},
                                                                      sublocation{sloc}, docked{d} {}
+
+    // for display and debugging, not persisted
+    const char *description(char *dest, size_t len) const;
 };

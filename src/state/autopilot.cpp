@@ -3,6 +3,13 @@
 #include "state/game.h"
 #include "state/autopilot.h"
 
+const char *autopilotStateNames[AS_COUNT] = {
+    "Disabled",
+    "Off",
+    "On",
+    "Complete",
+};
+
 Autopilot::Autopilot() : state{AS_OFF}, flow{}
 {
     for (int i = 0; i < MAX_DESTINATIONS; ++i)

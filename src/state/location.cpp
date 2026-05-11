@@ -4,6 +4,7 @@
 const char *SublocationTypeName[SLOC_COUNT] = {
     "Surface",
     "Orbital",
+    "Earth City",
 };
 
 Location::Location(System *s, const char *n, LocationType t) : system(s),

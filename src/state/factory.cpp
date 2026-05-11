@@ -63,11 +63,13 @@ void Factory::update()
 
             if (buildable)
             {
+                // consume resources
                 for (auto &req : item.requirements)
                 {
                     stores->resources[req.resource] -= req.amount;
                 }
             }
+            // else wait for resources
         }
 
         if (++queueItem.progress >= queueItem.build_time)

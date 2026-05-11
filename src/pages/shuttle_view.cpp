@@ -72,6 +72,8 @@ void ShuttleView::activate(ViewState &viewState)
         {
             std::snprintf(title, sizeof title, "%s", craft->name);
         }
+
+        autopilotView = std::make_unique<AutopilotView>(craft->autopilot.get(), craft);
     }
     else
     {
@@ -124,6 +126,15 @@ void ShuttleView::input()
     {
         // enable/disable autopilot
         craft->autopilot->state = (craft->autopilot->state == AS_ON) ? AS_OFF : AS_ON;
+    }
+
+    if (IsKeyPressed(KEY_Z))
+    {
+        // configure autopilot
+        if (autopilotView)
+        {
+            autopilotView->visible = !autopilotView->visible;
+        }
     }
 }
 
@@ -214,5 +225,11 @@ void ShuttleView::render()
     {
         craft->state = CS_SURFACE_LAUNCH;
         craft->state_timer = CSTD_LAUNCH;
+    }
+
+    // autopilot config
+    if (autopilotView && autopilotView->visible)
+    {
+        autopilotView->render();
     }
 }
