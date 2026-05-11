@@ -3,12 +3,14 @@
 #include <cstdio>
 #include "pages/base_page.h"
 #include "state/shuttle.h"
+#include "pages/autopilot_view.h"
 
 class ShuttleView : public BasePage
 {
     Location *location;
     Craft *craft;
     const TextureAsset *bodyTexture;
+    std::unique_ptr<AutopilotView> autopilotView;
 
 public:
     ShuttleView()

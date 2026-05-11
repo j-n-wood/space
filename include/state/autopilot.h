@@ -24,9 +24,12 @@ typedef enum
     AS_COUNT
 } AutopilotState;
 
+extern const char *autopilotStateNames[AS_COUNT];
+
 // Per-resource flow flags. Setting both flags ("balance") means the autopilot
 // equalises the two stores rather than bulk-transferring in one direction.
-enum ResourceFlow : uint8_t
+// Using int for convenience with RayGUI
+enum ResourceFlow : int
 {
     RF_NONE = 0,
     RF_LOAD_AT_SOURCE = 1 << 0, // load at CS_SURFACE_DOCKED
@@ -38,7 +41,7 @@ class Autopilot
 {
 public:
     AutopilotState state;
-    uint8_t flow[ResourceType::Count];
+    int flow[ResourceType::Count];
     uint8_t cursors[2]; // one cursor per endpoint, used for selecting next resource to transfer
 
     Autopilot();

@@ -5,8 +5,12 @@
 ## EC training/research buttons
 
 * main pages have same buttons, with EC having two extras
-* EC is context - control panel shows different buttons depending on whether current planet
- is Earth. NOT set by page UI. EC is not a 'normal' location (like Earth, the planet)
+
+## autopilot specification
+
+* select dest
+* show columns for source / dest
+* tag resouces in columns
 
 ## bay view animation
 
