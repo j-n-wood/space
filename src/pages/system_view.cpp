@@ -25,26 +25,10 @@ void SystemView::render()
 {
     BasePage::render();
 
-    // DrawText("System View", 10, 10, 20, WHITE);
     orrery->render();
-
-    /*
-    UITransparentButtonState transparentButtonState;
-    // EC button
-    if (GuiButton((Rectangle){0, 1024 - 17 * 4, 51 * 4, 17 * 4}, ""))
-    {
-        PageManager::getInstance().switchToPage(PAGE_EARTH_CITY);
-    }
-    */
 }
 
 void SystemView::input()
 {
-    Vector2 mouseWheel = GetMouseWheelMoveV();
-    if (mouseWheel.y != 0)
-    {
-        orrery->scale += mouseWheel.y * 0.1f;
-        if (orrery->scale < 0.1f)
-            orrery->scale = 0.1f;
-    }
+    orrery->input();
 }
