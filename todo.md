@@ -1,16 +1,12 @@
 # TODO
 
-## remove surface facility buttons from button frame in ui_buttons
-
-## EC training/research buttons
+## EC training button
 
 * main pages have same buttons, with EC having two extras
 
 ## autopilot specification
 
 * select dest
-* show columns for source / dest
-* tag resouces in columns
 
 ## bay view animation
 
