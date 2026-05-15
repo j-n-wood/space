@@ -80,8 +80,9 @@ void AutopilotView::render()
     GuiSetStyle(COMBOBOX, TEXT_COLOR_DISABLED, 0x888888ff);
 
     GuiSetStyle(DROPDOWNBOX, BORDER_COLOR_NORMAL, 0x663333ff);
-    GuiSetStyle(DROPDOWNBOX, BASE_COLOR_NORMAL, 0x442222ff);
+    GuiSetStyle(DROPDOWNBOX, BASE_COLOR_NORMAL, 0x002222ff); // background of dropdown
     GuiSetStyle(DROPDOWNBOX, TEXT_COLOR_NORMAL, 0xCCCCCCff);
+    GuiSetStyle(DROPDOWNBOX, BORDER_COLOR_NORMAL, 0x004444ff);
 
     GuiSetStyle(DROPDOWNBOX, BORDER_COLOR_FOCUSED, 0x885555ff);
     GuiSetStyle(DROPDOWNBOX, BASE_COLOR_FOCUSED, 0x664444ff);
@@ -95,16 +96,20 @@ void AutopilotView::render()
     GuiSetStyle(DROPDOWNBOX, BASE_COLOR_DISABLED, 0x442222ff);
     GuiSetStyle(DROPDOWNBOX, TEXT_COLOR_DISABLED, 0x888888ff);
 
-    GuiSetStyle(DEFAULT, BACKGROUND_COLOR, 0x000000ff);
-    GuiSetStyle(COMBOBOX, BACKGROUND_COLOR, 0x000000ff);
-    GuiSetStyle(DROPDOWNBOX, BACKGROUND_COLOR, 0x000000ff);
-    GuiSetStyle(LISTVIEW, BACKGROUND_COLOR, 0x000000ff);
+    GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(BLACK));
+    GuiSetStyle(COMBOBOX, BACKGROUND_COLOR, ColorToInt(BLACK));
+    GuiSetStyle(DROPDOWNBOX, BACKGROUND_COLOR, ColorToInt(BLACK));
+    GuiSetStyle(LISTVIEW, BACKGROUND_COLOR, ColorToInt(BLACK));
+    GuiSetStyle(STATUSBAR, BASE_COLOR_NORMAL, ColorToInt(BLACK));  // status bar background
+    GuiSetStyle(STATUSBAR, TEXT_COLOR_NORMAL, ColorToInt(WHITE));  // status bar text
+    GuiSetStyle(STATUSBAR, BORDER_COLOR_NORMAL, ColorToInt(GRAY)); // status bar outline
 
-    GuiSetStyle(DEFAULT, LINE_COLOR, 0x663333ff);
-    GuiSetStyle(COMBOBOX, LINE_COLOR, 0x663333ff);
-    GuiSetStyle(DROPDOWNBOX, LINE_COLOR, 0x663333ff);
-    GuiSetStyle(LISTVIEW, LINE_COLOR, 0x663333ff);
-
+    /*
+        GuiSetStyle(DEFAULT, LINE_COLOR, 0x663333ff);
+        GuiSetStyle(COMBOBOX, LINE_COLOR, 0x663333ff);
+        GuiSetStyle(DROPDOWNBOX, LINE_COLOR, 0x663333ff);
+        GuiSetStyle(LISTVIEW, LINE_COLOR, 0x663333ff);
+    */
     GuiPanel((Rectangle){320, 25, 600, 600}, "Autopilot");
     DrawText(autopilotStateNames[autopilot->state], 360, 70, 20, autopilotColors[autopilot->state]);
 
