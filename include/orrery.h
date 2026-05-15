@@ -3,6 +3,9 @@
 #include "state/system.h"
 #include <memory>
 
+using onDestinationSelected = void (*)(void *caller, Location *loc);
+using onDestinationSelectCancelled = void (*)(void *caller);
+
 class Orrery
 {
     float last_time; // recalculate positions when time changes
@@ -30,12 +33,13 @@ public:
 
     System *system;
 
+    void *caller; // optional pointer to caller state, e.g. to allow callbacks to trigger actions on the caller
+    onDestinationSelected onDestinationSelectedCallback;
+    onDestinationSelectCancelled onDestinationSelectCancelledCallback;
+
     Orrery();
 
-    ~Orrery()
-    {
-        // Note: we don't own the system pointer, so we won't free it here
-    }
+    ~Orrery();
 
     void input();
     void render();
@@ -46,6 +50,8 @@ public:
         this->last_time = -1.0f; // force update of positions on next render
         return *this;
     }
+
+    Orrery &focusOnLocation(Location *location);
 };
 
 typedef std::unique_ptr<Orrery> OrreryPtr;

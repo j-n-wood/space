@@ -6,7 +6,8 @@
 
 ## autopilot specification
 
-* select dest
+* ~~select dest~~
+* calculate some kind of transit time
 
 ## bay view animation
 
