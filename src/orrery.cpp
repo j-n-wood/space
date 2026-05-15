@@ -13,6 +13,11 @@ Orrery::Orrery() : last_time(-1.0f), focus_index(-1), system(nullptr), focus({0.
     // e.g. cached body positions, etc.
 }
 
+Orrery::~Orrery()
+{
+    // Note: we don't own the system pointer, so we won't free it here
+}
+
 OrreryPtr createOrrery(Vector2 center, float scale)
 {
     Orrery *orrery = new Orrery();
@@ -73,6 +78,10 @@ void Orrery::input()
         if (body_index != -1)
         {
             TraceLog(LOG_INFO, "Clicked on body: %s", system->locations[body_index]->name);
+            if (onDestinationSelectedCallback)
+            {
+                onDestinationSelectedCallback(caller, system->locations[body_index].get());
+            }
         }
     }
 }
@@ -178,4 +187,20 @@ void Orrery::updatePositions(float time)
             (parent_pos.y + system->planetPositions[i].y)};
         body_positions[i] = planet_pos;
     }
+}
+
+Orrery &Orrery::focusOnLocation(Location *location)
+{
+    if (location)
+    {
+        focus.x = body_positions[location->index].x;
+        focus.y = body_positions[location->index].y;
+        TraceLog(LOG_INFO, "Focused on location: %s", location->name);
+    }
+    else
+    {
+        focus = {0.0f, 0.0f};
+        TraceLog(LOG_INFO, "Focus cleared");
+    }
+    return *this;
 }

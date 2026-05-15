@@ -81,6 +81,26 @@ void ShuttleView::activate(ViewState &viewState)
     }
 }
 
+void destinationSelected(void *state, Location *loc)
+{
+    ShuttleView *shuttleView = static_cast<ShuttleView *>(state);
+    if (shuttleView->craft && loc)
+    {
+        shuttleView->craft->setDestination(0, loc);
+        shuttleView->destinationPicker->visible = false;
+    }
+}
+
+void destinationSelectCancelled(void *state)
+{
+    // no action needed, just close the picker
+    ShuttleView *shuttleView = static_cast<ShuttleView *>(state);
+    if (shuttleView->destinationPicker)
+    {
+        shuttleView->destinationPicker->visible = false;
+    }
+}
+
 void ShuttleView::input()
 {
     if (IsKeyPressed(KEY_D))
@@ -135,6 +155,24 @@ void ShuttleView::input()
         {
             autopilotView->visible = !autopilotView->visible;
         }
+    }
+
+    if (IsKeyPressed(KEY_T))
+    {
+        // test - set a destination
+        // lazy create destination picker on demand
+        if (!destinationPicker)
+        {
+            destinationPicker.reset(DestinationPicker::create(location->system, (Vector2){600, 500}, 0.5f)); // owns picker
+            destinationPicker->setCallbacks(this, destinationSelected, destinationSelectCancelled);          // allow picker to call back to shuttle view when destination selected
+        }
+
+        destinationPicker->visible = !destinationPicker->visible;
+    }
+
+    if (destinationPicker && destinationPicker->visible)
+    {
+        destinationPicker->input();
     }
 }
 
@@ -232,5 +270,10 @@ void ShuttleView::render()
     if (autopilotView && autopilotView->visible)
     {
         autopilotView->render();
+    }
+
+    if (destinationPicker && destinationPicker->visible)
+    {
+        destinationPicker->render();
     }
 }
