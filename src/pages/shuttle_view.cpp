@@ -198,35 +198,36 @@ void ShuttleView::render()
 
     // controls
     Overlay &overlay = Overlay::getInstance(); // get the overlay instance to set tooltips when hovering buttons
-    UITransparentButtonState transparentButtonState;
-    // dock (561,838 - 633, 890)
-    // descend (642, 831 - 718, 888)
-    // ascend (722, 832 - 798, 881)
-    const Rectangle dockButton{561, 838, 72, 52};
-    const Rectangle descendButton{642, 831, 76, 57};
-    const Rectangle ascendButton{722, 832, 76, 49};
+    {
+        UITransparentButtonState transparentButtonState;
+        // dock (561,838 - 633, 890)
+        // descend (642, 831 - 718, 888)
+        // ascend (722, 832 - 798, 881)
+        const Rectangle dockButton{561, 838, 72, 52};
+        const Rectangle descendButton{642, 831, 76, 57};
+        const Rectangle ascendButton{722, 832, 76, 49};
 
-    if ((craft->state == CS_ORBIT) && (overlay.renderButton(dockButton, "", "Dock", WHITE)))
-    {
-        craft->state = CS_ORBIT_DOCKING;
-        craft->state_timer = CSTD_DOCK;
+        if ((craft->state == CS_ORBIT) && (overlay.renderButton(dockButton, "", "Dock", WHITE)))
+        {
+            craft->state = CS_ORBIT_DOCKING;
+            craft->state_timer = CSTD_DOCK;
+        }
+        if ((craft->state == CS_ORBIT_DOCKED) && (overlay.renderButton(dockButton, "", "Undock", WHITE)))
+        {
+            craft->state = CS_ORBIT_LAUNCH;
+            craft->state_timer = CSTD_LAUNCH;
+        }
+        if ((craft->state == CS_ORBIT) && (overlay.renderButton(descendButton, "", "Descend to surface", WHITE)))
+        {
+            craft->state = CS_DESCENDING;
+            craft->state_timer = CSTD_DESCENT;
+        }
+        if (((craft->state == CS_SURFACE) || (craft->state == CS_SURFACE_DOCKED)) && (overlay.renderButton(ascendButton, "", "Ascend to orbit", WHITE)))
+        {
+            craft->state = CS_SURFACE_LAUNCH;
+            craft->state_timer = CSTD_LAUNCH;
+        }
     }
-    if ((craft->state == CS_ORBIT_DOCKED) && (overlay.renderButton(dockButton, "", "Undock", WHITE)))
-    {
-        craft->state = CS_ORBIT_LAUNCH;
-        craft->state_timer = CSTD_LAUNCH;
-    }
-    if ((craft->state == CS_ORBIT) && (overlay.renderButton(descendButton, "", "Descend to surface", WHITE)))
-    {
-        craft->state = CS_DESCENDING;
-        craft->state_timer = CSTD_DESCENT;
-    }
-    if (((craft->state == CS_SURFACE) || (craft->state == CS_SURFACE_DOCKED)) && (overlay.renderButton(ascendButton, "", "Ascend to orbit", WHITE)))
-    {
-        craft->state = CS_SURFACE_LAUNCH;
-        craft->state_timer = CSTD_LAUNCH;
-    }
-
     // autopilot config
     if (autopilotView && autopilotView->visible)
     {

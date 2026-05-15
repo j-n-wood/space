@@ -1,5 +1,6 @@
 #include "pages/autopilot_view.h"
 #include "state/craft.h"
+#include "pages/overlay.h"
 
 extern "C"
 {
@@ -34,7 +35,23 @@ void AutopilotView::render()
     };
 
     GuiPanel((Rectangle){320, 25, 600, 600}, "Autopilot");
-    DrawText(autopilotStateNames[autopilot->state], 360, 70, 20, autopilotColors[autopilot->state]);
+    DrawText(autopilotStateNames[autopilot->state], 360, 80, 20, autopilotColors[autopilot->state]);
+
+    // buttons to change state, draw via overlay to assign tooltip
+    auto &overlay{Overlay::getInstance()};
+    // toggle button text depending on state
+    const char *button_text = (autopilot->state == AS_OFF) ? "Enable Autopilot" : "Disable Autopilot";
+    if (overlay.renderButton((Rectangle){640, 80, 150, 30}, button_text, "Enable or disable the autopilot system", autopilotColors[autopilot->state]))
+    {
+        if (autopilot->state == AS_OFF)
+        {
+            craft->engageAutopilot();
+        }
+        else if (autopilot->state == AS_ON)
+        {
+            craft->disengageAutopilot();
+        }
+    }
 
     // show destinations
     if (!craft)
@@ -87,7 +104,7 @@ void AutopilotView::render()
         GuiEnable();
     }
 
-    // 2. Draw the ACTIVE dropdown last so it appears on top and gets priority
+    // Draw the ACTIVE dropdown last so it appears on top and gets priority
     if (current_active != -1)
     {
         float y_pos = (float)(y_start + current_active * item_height);
