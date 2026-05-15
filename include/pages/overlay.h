@@ -18,6 +18,7 @@ public:
     void render();
     int renderButton(const Rectangle &buttonRect, const char *buttonText, const char *toolTip, const Color &color);
     int renderButtonHover(const Rectangle &buttonRect, const char *buttonText, const Color &color, onHover hover, void *state);
+    void setDefaultStyle();
 
     inline void setCurrentToolTip(const char *toolTip)
     {
