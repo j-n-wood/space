@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cmath>
 #include "state/craft.h"
 #include "state/game.h"
 #include "state/resources.h"
@@ -98,6 +99,18 @@ void Craft::update(float delta)
     }
 }
 
+Craft &Craft::arriveAtLocation()
+{
+    auto &current_dest{destinations[destination_index]};
+    location = current_dest.location;
+    if (atEndpoint())
+    {
+        TraceLog(LOG_INFO, "Arrived at destination: %s", location ? location->name : "Space");
+        nextEndpoint();
+    }
+    return *this;
+}
+
 void Craft::onDocked()
 {
     if (atEndpoint())
@@ -182,6 +195,34 @@ const char *Craft::statusText(char *status, size_t len)
     return status;
 }
 
+float computeTransitTime(Location *source, Location *destination)
+{
+    auto sv2 = source->system->getResolvedPosition(source);
+    auto dv2 = destination->system->getResolvedPosition(destination);
+    float distance = sqrtf(powf(sv2.x - dv2.x, 2) + powf(sv2.y - dv2.y, 2));
+    return distance / 20.0f; // arbitrary speed factor to get reasonable transit times based on system scale
+}
+
+Craft &Craft::engageDrive()
+{
+    if (destinations[destination_index].location)
+    {
+        auto source = location;
+        auto destination = destinations[destination_index].location;
+
+        // make up a transit time based on location distance
+        total_state_timer = computeTransitTime(source, destination);
+        state_timer = total_state_timer;
+        TraceLog(LOG_INFO, "Engaging drive from %s to %s, transit time %.1f seconds", source ? source->name : "Space", destination->name, total_state_timer);
+
+        state = CS_TRANSIT;
+        location = nullptr; // in transit, not at a location
+        // total_state_timer = 10.0f;
+        // state_timer = total_state_timer; // TODO transit time could be based on distance and drive type
+    }
+    return *this;
+}
+
 void Craft::setDestination(const uint8_t index, Location *loc)
 {
     if (index >= MAX_DESTINATIONS)
@@ -190,7 +231,11 @@ void Craft::setDestination(const uint8_t index, Location *loc)
     }
     destinations[index].location = loc;
     // set to dock if autopilot is engaged
-    destinations[index].docked = (autopilot->state >= AS_ON);
+
+    Game *game = Game::getCurrent();
+    Orbital *orbital = game->orbitalAt(loc); // set docking target if have an orbital station at the destination
+
+    destinations[index].docked = (autopilot->state >= AS_ON) && (orbital != nullptr);
 }
 
 bool Craft::engageAutopilot()

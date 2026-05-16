@@ -47,3 +47,21 @@ void System::update(float time)
             this->planetDistances[i] * sinf(angle)};
     }
 }
+
+// obtain cartestian position of a body by recursively resolving parent positions based on primary indexes
+Vector2 System::getResolvedPosition(const int index)
+{
+    if (index < 0 || index >= this->numPlanets)
+    {
+        return {0.0f, 0.0f};
+    }
+    int parent_index = this->planetPrimaryIndexes[index];
+    Vector2 parent_pos = {0.0f, 0.0f};
+    if (parent_index >= 0)
+    {
+        parent_pos = getResolvedPosition(parent_index);
+    }
+    return {
+        parent_pos.x + this->planetPositions[index].x,
+        parent_pos.y + this->planetPositions[index].y};
+}

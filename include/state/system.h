@@ -43,6 +43,14 @@ public:
 
     System &setNumBodies(int numBodies);
     Location *addLocation(const char *name, LocationType type);
+
+    Vector2 getResolvedPosition(const int index);
+    Vector2 getResolvedPosition(Location *location)
+    {
+        if (!location)
+            return {0.0f, 0.0f};
+        return getResolvedPosition(location->index);
+    }
 };
 
 typedef std::unique_ptr<System> SystemPtr;
