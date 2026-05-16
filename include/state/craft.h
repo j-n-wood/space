@@ -132,16 +132,7 @@ public:
     }
 
     // runs when transit between locations is complete. Used to trigger game events.
-    inline Craft &arriveAtLocation()
-    {
-        auto &current_dest{destinations[destination_index]};
-        location = current_dest.location;
-        if (atEndpoint())
-        {
-            nextEndpoint();
-        }
-        return *this;
-    }
+    Craft &arriveAtLocation();
 
     inline Craft &nextEndpoint()
     {
@@ -149,17 +140,7 @@ public:
         return *this;
     }
 
-    inline Craft &engageDrive()
-    {
-        if (destinations[destination_index].location)
-        {
-            state = CS_TRANSIT;
-            location = nullptr; // in transit, not at a location
-            total_state_timer = 10.0f;
-            state_timer = total_state_timer; // TODO transit time could be based on distance and drive type
-        }
-        return *this;
-    }
+    Craft &engageDrive();
 
     void setDestination(const uint8_t index, Location *loc);
 

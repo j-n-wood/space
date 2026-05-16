@@ -86,7 +86,11 @@ void destinationSelected(void *state, Location *loc)
     ShuttleView *shuttleView = static_cast<ShuttleView *>(state);
     if (shuttleView->craft && loc)
     {
-        shuttleView->craft->setDestination(0, loc);
+        Craft *craft = shuttleView->craft;
+        craft->setDestination(craft->destination_index, loc);
+        craft->destinations[craft->destination_index].docked = (craft->autopilot->state >= AS_ON) && (Game::getCurrent()->orbitalAt(loc) != nullptr); // if autopilot on and destination has an orbital station, assume want to dock
+        craft->destinations[craft->destination_index].sublocation = SLOC_ORBIT;                                                                       // for now assume always orbit, could be surface or city in future
+
         shuttleView->destinationPicker->visible = false;
     }
 }

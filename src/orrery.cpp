@@ -175,17 +175,7 @@ void Orrery::updatePositions(float time)
 
     for (int i = 0; i < system->numPlanets; i++)
     {
-        int parent_id = system->planetPrimaryIndexes[i];
-        Vector2 parent_pos = {0.0f, 0.0f};
-        if (parent_id > 0)
-        {
-            parent_pos.x = system->planetPositions[parent_id].x;
-            parent_pos.y = system->planetPositions[parent_id].y;
-        }
-        Vector2 planet_pos = {
-            (parent_pos.x + system->planetPositions[i].x),
-            (parent_pos.y + system->planetPositions[i].y)};
-        body_positions[i] = planet_pos;
+        body_positions[i] = system->getResolvedPosition(i);
     }
 }
 

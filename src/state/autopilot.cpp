@@ -62,6 +62,8 @@ void Autopilot::onDocked(Craft *craft)
         {
             // TODO this could happen if source/dest orbital destroyed.
             // Turn off in this case
+            TraceLog(LOG_WARNING, "Autopilot: %s docked but missing source or destination facility, disabling autopilot", craft->name);
+            state = AS_OFF;
             return;
         }
 
@@ -122,13 +124,23 @@ void Autopilot::update(Craft *craft, float delta)
         // are we at desired location?
         if (dest.location == craft->location)
         {
-            if ((dest.sublocation == SLOC_ORBIT) && (dest.docked))
+            if ((dest.sublocation == SLOC_ORBIT))
             {
-                craft->state = CS_ORBIT_DOCKING;
-                craft->state_timer = CSTD_DOCK;
+                if (dest.docked) // and there is an orbital station to dock with...
+                {
+                    TraceLog(LOG_INFO, "Autopilot: %s docking at destination orbit", craft->name);
+                    craft->state = CS_ORBIT_DOCKING;
+                    craft->state_timer = CSTD_DOCK;
+                }
+                else
+                {
+                    TraceLog(LOG_WARNING, "Autopilot: %s at destination orbit but no station to dock with", craft->name);
+                    craft->destinations[craft->destination_index].docked = false; // update destination to not require docking, so don't keep trying to dock on arrival
+                }
             }
             else if ((dest.sublocation == SLOC_SURFACE) && (dest.docked))
             {
+                TraceLog(LOG_INFO, "Autopilot: %s descending to surface", craft->name);
                 craft->state = CS_DESCENDING;
                 craft->state_timer = CSTD_DESCENT;
             }
