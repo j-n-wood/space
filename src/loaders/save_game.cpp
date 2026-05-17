@@ -7,6 +7,7 @@
 #include "state/orbital.h"
 #include "state/stores.h"
 #include "state/resources.h"
+#include "state/autopilot.h"
 
 #include <cstdio>
 #include <cstring>
@@ -147,6 +148,12 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_items ( topic_id int, item_id int);"
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_topics ( topic_id int, unlocks_topic_id int);"
         "CREATE TABLE IF NOT EXISTS body_resources ( body_id int, resource_id int, availability int );"
+        "CREATE TABLE IF NOT EXISTS craft ( id int, name text, type int, state int, state_timer float, total_state_timer float, location_id int, fuel int, max_pods int, drive int, destination_index int );"
+        "CREATE TABLE IF NOT EXISTS craft_pods ( craft_id int, pod_index int, type int, content_type int, amount int );"
+        "CREATE TABLE IF NOT EXISTS craft_destinations ( craft_id int, destination_index int, system_id int, location_id int, sublocation int, docked int );"
+        "CREATE TABLE IF NOT EXISTS craft_autopilot ( craft_id int, state int );"
+        "CREATE TABLE IF NOT EXISTS craft_autopilot_flows ( craft_id int, resource_index int, flow_flags int );"
+        "CREATE TABLE IF NOT EXISTS craft_autopilot_cursors ( craft_id int, endpoint_index int, cursor_position int );"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -226,6 +233,11 @@ int SaveGame::saveGame(Game *game)
     if (saveResearchTopics(game) != 0)
     {
         return -11;
+    }
+
+    if (saveCraft(game) != 0)
+    {
+        return -12;
     }
 
     return 0;
@@ -529,7 +541,7 @@ int SaveGame::saveItems(Game *game)
 
     std::vector<ItemBuildRequirement> reqs;
     {
-        SQLiteQuery itemQ(loader, "INSERT INTO items (id, name, description, tool, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        SQLiteQuery itemQ(loader, "INSERT INTO items (id, name, description, tool, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
         for (auto &item : game->items)
         {
             sqlite3_reset(itemQ.stmt);
@@ -625,5 +637,214 @@ int SaveGame::saveResearchTopics(Game *game)
             }
         }
     }
+    return 0;
+}
+
+int SaveGame::saveCraft(Game *game)
+{
+    // Similar to saveBase/saveOrbital, but for shuttles and IOS
+    // This is a bit more complex as we need to save the craft itself and also its pod contents, destinations
+    // and autopilot state
+
+    int craftId = 1; // start from 1, as 0 can be used to indicate no craft in some cases
+
+    for (auto &craft : game->allShuttles())
+    {
+        if (craft && saveCraft(craft, craftId++) != 0)
+        {
+            return -20;
+        }
+    }
+
+    for (auto &craft : game->allIOS())
+    {
+        if (craft && saveCraft(craft.get(), craftId++) != 0)
+        {
+            return -21;
+        }
+    }
+
+    return 0;
+}
+
+int SaveGame::saveCraft(Craft *craft, int craftId)
+{
+    if (!loader || !loader->db)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Null loader pointer");
+        return -6;
+    }
+
+    if (!craft)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Null craft pointer");
+        return -7;
+    }
+
+    SQLiteQuery craftQuery(loader, "INSERT INTO craft (id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+    if (!craftQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft insert");
+        return -9;
+    }
+
+    int locationId = craft->location ? craft->location->id : 0;
+
+    if (!craftQuery.bind(1, craftId)
+             .bind(2, craft->name)
+             .bind(3, static_cast<int>(craft->type))
+             .bind(4, static_cast<int>(craft->state))
+             .bind(5, craft->state_timer)
+             .bind(6, craft->total_state_timer)
+             .bind(7, locationId)
+             .bind(8, craft->fuel)
+             .bind(9, craft->max_pods)
+             .bind(10, craft->drive)
+             .bind(11, craft->destination_index)
+             .step("SaveGame: Failed to execute craft insert"))
+    {
+        return -14;
+    }
+
+    // save pods
+    SQLiteQuery podQuery(loader, "INSERT INTO craft_pods (craft_id, pod_index, type, content_type, amount) VALUES (?, ?, ?, ?, ?);");
+    if (!podQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft_pods insert");
+        return -9;
+    }
+    for (int podIndex = 0; podIndex < craft->max_pods; ++podIndex)
+    {
+        const Pod &pod = craft->pods[podIndex];
+
+        sqlite3_reset(podQuery.stmt);
+        sqlite3_clear_bindings(podQuery.stmt);
+
+        if (!podQuery.bind(1, craftId)
+                 .bind(2, podIndex)
+                 .bind(3, static_cast<int>(pod.type))
+                 .bind(4, pod.contentType)
+                 .bind(5, pod.amount)
+                 .step("SaveGame: Failed to execute craft_pods insert"))
+        {
+            return -14;
+        }
+    }
+
+    if (saveCraftDestinations(craft, craftId) != 0)
+    {
+        return -16;
+    }
+    if (saveAutopilot(craft, craftId) != 0)
+    {
+        return -17;
+    }
+    return 0;
+}
+
+int SaveGame::saveCraftDestinations(Craft *craft, int craftId)
+{
+    // Save the craft's destinations to the craft_destinations table
+    // This will include the system, location, sublocation, and docked state for each destination
+
+    for (uint8_t i = 0; i < MAX_DESTINATIONS; ++i)
+    {
+        const Endpoint &dest = craft->destinations[i];
+        int systemId = dest.location && dest.location->system ? dest.location->system->id : 0;
+        int locationId = dest.location ? dest.location->id : 0;
+
+        SQLiteQuery destQuery(loader, "INSERT INTO craft_destinations (craft_id, destination_index, system_id, location_id, sublocation, docked) VALUES (?, ?, ?, ?, ?, ?);");
+        if (!destQuery.stmt)
+        {
+            TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft_destinations insert");
+            return -9;
+        }
+
+        if (!destQuery.bind(1, craftId)
+                 .bind(2, i)
+                 .bind(3, systemId)
+                 .bind(4, locationId)
+                 .bind(5, static_cast<int>(dest.sublocation))
+                 .bind(6, dest.docked)
+                 .step("SaveGame: Failed to execute craft_destinations insert"))
+        {
+            return -14;
+        }
+    }
+
+    return 0;
+}
+
+int SaveGame::saveAutopilot(Craft *craft, int craftId)
+{
+    // Save autopilot state for the given craft
+    // This will include the autopilot state, resource flows, and cursor positions
+
+    if (!craft->autopilot)
+    {
+        return 0; // no autopilot to save
+    }
+
+    // save state
+    SQLiteQuery apQuery(loader, "INSERT INTO craft_autopilot (craft_id, state) VALUES (?, ?);");
+    if (!apQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft_autopilot insert");
+        return -9;
+    }
+    if (!apQuery.bind(1, craftId)
+             .bind(2, static_cast<int>(craft->autopilot->state))
+             .step("SaveGame: Failed to execute craft_autopilot insert"))
+    {
+        return -14;
+    }
+
+    // flows
+    SQLiteQuery flowQuery(loader, "INSERT INTO craft_autopilot_flows (craft_id, resource_index, flow_flags) VALUES (?, ?, ?);");
+    if (!flowQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft_autopilot_flows insert");
+        return -9;
+    }
+    for (int i = 0; i < ResourceType::Count; ++i)
+    {
+        int flowFlags = craft->autopilot->flow[i];
+        if (flowFlags == 0)
+        {
+            continue; // skip inactive flows
+        }
+        // reset statement for next execution
+        sqlite3_reset(flowQuery.stmt);
+        sqlite3_clear_bindings(flowQuery.stmt);
+        if (!flowQuery.bind(1, craftId)
+                 .bind(2, i)
+                 .bind(3, flowFlags)
+                 .step("SaveGame: Failed to execute craft_autopilot_flows insert"))
+        {
+            return -14;
+        }
+    }
+
+    // cursors
+    SQLiteQuery cursorQuery(loader, "INSERT INTO craft_autopilot_cursors (craft_id, endpoint_index, cursor_position) VALUES (?, ?, ?);");
+    if (!cursorQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft_autopilot_cursors insert");
+        return -9;
+    }
+    for (int endpoint = 0; endpoint < 2; ++endpoint)
+    {
+        uint8_t cursorPos = craft->autopilot->cursors[endpoint];
+        sqlite3_reset(cursorQuery.stmt);
+        sqlite3_clear_bindings(cursorQuery.stmt);
+        if (!cursorQuery.bind(1, craftId)
+                 .bind(2, endpoint)
+                 .bind(3, cursorPos)
+                 .step("SaveGame: Failed to execute craft_autopilot_cursors insert"))
+        {
+            return -14;
+        }
+    }
+
     return 0;
 }

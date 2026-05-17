@@ -1,4 +1,5 @@
-#include <stdlib.h>
+#include <cstdlib>
+#include <cstdio>
 
 #include "loaders/loader.h"
 #include "loaders/load_system.h"
@@ -9,6 +10,7 @@
 #include "state/orbital.h"
 #include "state/resources.h"
 #include "state/earth_city.h"
+#include "state/autopilot.h"
 
 Loader::Loader(const char *dbPath) : game(nullptr)
 {
@@ -270,6 +272,157 @@ bool Loader::loadResearchTopics()
             {
                 TraceLog(LOG_ERROR, "Invalid research topic ID", topic_id);
             }
+        }
+    }
+    return true;
+}
+
+bool Loader::loadCraft()
+{
+    // read craft and create instances
+
+    SQLiteQuery destQuery(this, "SELECT system_id, location_id, sublocation, docked FROM craft_destinations WHERE craft_id = ? ORDER BY destination_index");
+    if (!destQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "Failed to prepare craft_destinations query");
+        return false;
+    }
+
+    SQLiteQuery autopilotQuery(this, "SELECT state FROM craft_autopilot WHERE craft_id = ?");
+    if (!autopilotQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "Failed to prepare autopilot query for craft");
+        return false;
+    }
+
+    // autopilot flow settings
+    SQLiteQuery autopilotFlowsQuery(this, "SELECT resource_index, flow_flags FROM craft_autopilot_flows WHERE craft_id = ?");
+    if (!autopilotFlowsQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "Failed to prepare autopilot_flows query for craft");
+        return false;
+    }
+
+    // AP cursors - one per endpoint
+    SQLiteQuery autopilotCursorsQuery(this, "SELECT endpoint_index, cursor_position FROM craft_autopilot_cursors WHERE craft_id = ?");
+    if (!autopilotCursorsQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "Failed to prepare autopilot_cursors query for craft");
+        return false;
+    }
+
+    SQLiteQuery query(this, "SELECT id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index FROM craft");
+    while (query.next())
+    {
+        int id = sqlite3_column_int(query, 0);
+        const char *name = (const char *)sqlite3_column_text(query, 1);
+        int type = sqlite3_column_int(query, 2);
+        int state = sqlite3_column_int(query, 3);
+        float state_timer = (float)sqlite3_column_double(query, 4);
+        float total_state_timer = (float)sqlite3_column_double(query, 5);
+        int location_id = sqlite3_column_int(query, 6);
+        int fuel = sqlite3_column_int(query, 7);
+        int max_pods = sqlite3_column_int(query, 8);
+        bool drive = sqlite3_column_int(query, 9) > 0;
+        int destination_index = sqlite3_column_int(query, 10);
+
+        Location *loc = findLocation(1, location_id); // system_id is not stored for craft locations, assuming single system for now // TODO
+        if (!loc)
+        {
+            TraceLog(LOG_ERROR, "Failed to find location %d for craft %d", location_id, id);
+            return false;
+        }
+
+        Craft *craft = nullptr;
+        if (type == CT_SHUTTLE)
+        {
+            craft = game->createShuttle(loc);
+        }
+        else if (type == CT_IOS)
+        {
+            craft = game->createIOS(loc);
+        }
+        else
+        {
+            TraceLog(LOG_ERROR, "Unknown craft type %d for craft %d", type, id);
+            return false;
+        }
+
+        if (!craft)
+        {
+            TraceLog(LOG_ERROR, "Failed to create craft instance for craft %d", id);
+            return false;
+        }
+
+        std::snprintf(craft->name, sizeof craft->name, "%s", name);
+        craft->state = CraftState(state);
+        craft->state_timer = state_timer;
+        craft->total_state_timer = total_state_timer;
+        craft->fuel = fuel;
+        craft->max_pods = max_pods;
+        craft->drive = drive;
+        craft->destination_index = destination_index;
+
+        // load destinations for this craft
+
+        if (!destQuery.bind(1, id))
+        {
+            TraceLog(LOG_ERROR, "Failed to bind craft_id for craft_destinations query for craft %d", id);
+            return false;
+        }
+        int destIndex = 0;
+        while (destQuery.next())
+        {
+            int system_id = sqlite3_column_int(destQuery, 0);
+            int dest_location_id = sqlite3_column_int(destQuery, 1);
+            int sublocation = sqlite3_column_int(destQuery, 2);
+            bool docked = sqlite3_column_int(destQuery, 3) > 0;
+            craft->destinations[destIndex] = Endpoint(findLocation(system_id, dest_location_id), SublocationType(sublocation), docked);
+            destIndex++;
+        }
+
+        // load autopilot for this craft if any
+
+        if (!autopilotQuery.bind(1, id))
+        {
+            TraceLog(LOG_ERROR, "Failed to bind craft_id for autopilot query for craft %d", id);
+            return false;
+        }
+
+        if (autopilotQuery.next())
+        {
+            int ap_state = sqlite3_column_int(autopilotQuery, 0) > 0;
+            craft->autopilot->state = (AutopilotState)ap_state;
+        }
+
+        // load autopilot flows for this craft if any
+
+        if (!autopilotFlowsQuery.bind(1, id))
+        {
+            TraceLog(LOG_ERROR, "Failed to bind craft_id for autopilot_flows query for craft %d", id);
+            return false;
+        }
+
+        while (autopilotFlowsQuery.next())
+        {
+            int resource_index = sqlite3_column_int(autopilotFlowsQuery, 0);
+            int flow_flags = sqlite3_column_int(autopilotFlowsQuery, 1);
+            craft->autopilot->flow[resource_index] = flow_flags;
+        }
+
+        // load autopilot cursors for this craft if any
+
+        if (!autopilotCursorsQuery.bind(1, id))
+        {
+            TraceLog(LOG_ERROR, "Failed to bind craft_id for autopilot_cursors query for craft %d", id);
+            return false;
+        }
+
+        while (autopilotCursorsQuery.next())
+        {
+            int endpoint_index = sqlite3_column_int(autopilotCursorsQuery, 0);
+            float cursor_position = (float)sqlite3_column_double(autopilotCursorsQuery, 1);
+            craft->autopilot->cursors[endpoint_index] = cursor_position;
         }
     }
     return true;
