@@ -4,10 +4,17 @@
 
 * main pages have same buttons, with EC having two extras
 
+## Craft persistence
+
+* shuttle(s)
+* ios
+* scg
+
 ## autopilot specification
 
 * ~~select dest~~
-* calculate some kind of transit time
+* ~~calculate some kind of transit time~~
+* persistence
 
 ## bay view animation
 

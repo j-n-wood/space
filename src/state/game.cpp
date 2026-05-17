@@ -201,6 +201,25 @@ IOS *Game::commissionIOS(Facility *facility)
     return i;
 }
 
+Shuttle *Game::createShuttle(Location *location)
+{
+    // create a shuttle at a location, starting at the given location (used for loading saved game where we already have location info)
+    if (!location)
+    {
+        TraceLog(LOG_ERROR, "Null location provided to createShuttle");
+        return nullptr;
+    }
+    if (location->shuttle)
+    {
+        TraceLog(LOG_ERROR, "Blocked createShuttle: location already has one", location->name);
+        return nullptr;
+    }
+
+    location->shuttle = std::move(std::make_unique<Shuttle>(CS_ORBIT_DOCKED, 1, location));
+    shuttles.push_back(location->shuttle.get());
+    return location->shuttle.get();
+}
+
 Shuttle *Game::createShuttle(Facility *facility)
 {
     // create a shuttle at a location, starting at the given facility
@@ -226,6 +245,22 @@ Shuttle *Game::createShuttle(Facility *facility)
     return location->shuttle.get();
 }
 
+IOS *Game::createIOS(Location *location)
+{
+    // create an IOS at a location, starting at the given location (used for loading saved game where we already have location info)
+    if (!location)
+    {
+        TraceLog(LOG_ERROR, "Null location provided to createIOS");
+        return nullptr;
+    }
+
+    ios.emplace_back(std::make_unique<IOS>(CS_ORBIT_DOCKED, 3, location));
+    auto i = ios.back().get();
+    i->destinations[0] = Endpoint(location, SLOC_ORBIT, true);
+    i->destinations[1] = Endpoint(location, SLOC_ORBIT, true);
+    return i;
+}
+
 IOS *Game::createIOS(Facility *facility)
 {
     // create an IOS at a location, starting at the given facility
@@ -236,10 +271,7 @@ IOS *Game::createIOS(Facility *facility)
         return nullptr;
     }
 
-    ios.emplace_back(std::make_unique<IOS>(CS_ORBIT_DOCKED, 3, location));
-    auto i = ios.back().get();
-    i->destinations[0] = Endpoint(location, SLOC_ORBIT, true);
-    i->destinations[1] = Endpoint(location, SLOC_ORBIT, true);
+    auto i = createIOS(location);
 
     // generate a name based on creation count
     std::snprintf(i->name, sizeof i->name, "IOS-%04d", ios_number++);

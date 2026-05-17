@@ -13,6 +13,7 @@ class Stores;
 class Factory;
 class Loader;
 class SQLiteQuery;
+class Craft;
 
 /// Saves the current game state into a SQLite database file.
 /// Uses Loader and SQLiteQuery helpers for persistence of systems, locations, facilities, and stores.
@@ -46,6 +47,16 @@ class SaveGame
 
     /// Persist research topics
     int saveResearchTopics(Game *game);
+
+    /// Persist craft state (shuttles and IOS)
+    int saveCraft(Game *game);
+    int saveCraft(Craft *craft, int craftId);
+
+    /// Persist craft destinations (for shuttles and IOS)
+    int saveCraftDestinations(Craft *craft, int craftId);
+
+    /// Persist autopilot against a craft
+    int saveAutopilot(Craft *craft, int craftId);
 
 public:
     SaveGame();

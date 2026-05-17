@@ -65,6 +65,9 @@ public:
     /// Load research topics
     bool loadResearchTopics();
 
+    /// Load craft state (shuttles and IOS)
+    bool loadCraft();
+
 private:
     Location *findLocation(int system_id, int location_id);
 };

@@ -88,6 +88,7 @@ public:
     const Bases &allBases() const;
     const Orbitals &allOrbitals() const;
     const IOSs &allIOS() const;
+    const std::vector<Shuttle *> &allShuttles() const { return shuttles; }
 
     EarthCity *createEarthCity(Location *location);
     ResourceFacility *createResourceFacility(Location *location);
@@ -107,7 +108,9 @@ public:
 
     // create objects
     Factory *createFactory(Facility *facility);
+    Shuttle *createShuttle(Location *location); // create at location - may not have a facility. Used by save/load
     Shuttle *createShuttle(Facility *facility);
+    IOS *createIOS(Location *location); // create at location - may not have a facility. Used by save/load
     IOS *createIOS(Facility *facility);
     ResearchFacility *createResearchFacility(Facility *facility);
 

@@ -45,5 +45,11 @@ bool Game::initialise(Loader *loader)
         return false;
     }
 
+    if (!loader->loadCraft())
+    {
+        TraceLog(LOG_ERROR, "Failed to load craft");
+        return false;
+    }
+
     return true;
 }
