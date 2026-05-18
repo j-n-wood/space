@@ -119,12 +119,16 @@ int SaveGame::save(const char *filename)
         return initResult;
     }
 
+    sqlite3_exec(loader->db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+
     // Save game state
     int result = saveGame(Game::getCurrent());
     if (result != 0)
     {
         return result;
     }
+
+    sqlite3_exec(loader->db, "COMMIT;", NULL, NULL, NULL);
 
     TraceLog(LOG_INFO, "SaveGame: Game state saved successfully");
 
@@ -382,20 +386,7 @@ int SaveGame::saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locati
         std::snprintf(colorText, sizeof colorText, "FFFFFFFF");
     }
 
-    sqlite3_reset(bodyQuery.stmt);
-    sqlite3_clear_bindings(bodyQuery.stmt);
-
-    if (!bodyQuery.bind(1, location->id)
-             .bind(2, systemId)
-             .bind(3, location->primary_id)
-             .bind(4, static_cast<int>(location->type))
-             .bind(5, location->name)
-             .bind(6, orbitalRadius)
-             .bind(7, orbitalVelocity)
-             .bind(8, initialAngle)
-             .bind(9, radius)
-             .bind(10, colorText)
-             .step("SaveGame: Failed to insert body record"))
+    if (!bodyQuery.reset().bind(1, location->id).bind(2, systemId).bind(3, location->primary_id).bind(4, static_cast<int>(location->type)).bind(5, location->name).bind(6, orbitalRadius).bind(7, orbitalVelocity).bind(8, initialAngle).bind(9, radius).bind(10, colorText).step("SaveGame: Failed to insert body record"))
     {
         return -15;
     }
@@ -721,15 +712,7 @@ int SaveGame::saveCraft(Craft *craft, int craftId)
     {
         const Pod &pod = craft->pods[podIndex];
 
-        sqlite3_reset(podQuery.stmt);
-        sqlite3_clear_bindings(podQuery.stmt);
-
-        if (!podQuery.bind(1, craftId)
-                 .bind(2, podIndex)
-                 .bind(3, static_cast<int>(pod.type))
-                 .bind(4, pod.contentType)
-                 .bind(5, pod.amount)
-                 .step("SaveGame: Failed to execute craft_pods insert"))
+        if (!podQuery.reset().bind(1, craftId).bind(2, podIndex).bind(3, static_cast<int>(pod.type)).bind(4, pod.contentType).bind(5, pod.amount).step("SaveGame: Failed to execute craft_pods insert"))
         {
             return -14;
         }
@@ -764,13 +747,7 @@ int SaveGame::saveCraftDestinations(Craft *craft, int craftId)
             return -9;
         }
 
-        if (!destQuery.bind(1, craftId)
-                 .bind(2, i)
-                 .bind(3, systemId)
-                 .bind(4, locationId)
-                 .bind(5, static_cast<int>(dest.sublocation))
-                 .bind(6, dest.docked)
-                 .step("SaveGame: Failed to execute craft_destinations insert"))
+        if (!destQuery.reset().bind(1, craftId).bind(2, i).bind(3, systemId).bind(4, locationId).bind(5, static_cast<int>(dest.sublocation)).bind(6, dest.docked).step("SaveGame: Failed to execute craft_destinations insert"))
         {
             return -14;
         }
@@ -818,12 +795,7 @@ int SaveGame::saveAutopilot(Craft *craft, int craftId)
             continue; // skip inactive flows
         }
         // reset statement for next execution
-        sqlite3_reset(flowQuery.stmt);
-        sqlite3_clear_bindings(flowQuery.stmt);
-        if (!flowQuery.bind(1, craftId)
-                 .bind(2, i)
-                 .bind(3, flowFlags)
-                 .step("SaveGame: Failed to execute craft_autopilot_flows insert"))
+        if (!flowQuery.reset().bind(1, craftId).bind(2, i).bind(3, flowFlags).step("SaveGame: Failed to execute craft_autopilot_flows insert"))
         {
             return -14;
         }
@@ -839,12 +811,7 @@ int SaveGame::saveAutopilot(Craft *craft, int craftId)
     for (int endpoint = 0; endpoint < 2; ++endpoint)
     {
         uint8_t cursorPos = craft->autopilot->cursors[endpoint];
-        sqlite3_reset(cursorQuery.stmt);
-        sqlite3_clear_bindings(cursorQuery.stmt);
-        if (!cursorQuery.bind(1, craftId)
-                 .bind(2, endpoint)
-                 .bind(3, cursorPos)
-                 .step("SaveGame: Failed to execute craft_autopilot_cursors insert"))
+        if (!cursorQuery.reset().bind(1, craftId).bind(2, endpoint).bind(3, cursorPos).step("SaveGame: Failed to execute craft_autopilot_cursors insert"))
         {
             return -14;
         }
