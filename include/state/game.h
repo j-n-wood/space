@@ -25,6 +25,9 @@ class Game
     // owning collection of systems
     Systems systems;
 
+    // owning collection of locations - system references. All locations to have unique ID for persistence.
+    Locations locations;
+
     // owning collections of facilities
     Bases bases;
     Orbitals orbitals;
@@ -107,12 +110,15 @@ public:
     }
 
     // create objects
+    Location *createLocation(System *system, const int id, const char *name, LocationType type);
     Factory *createFactory(Facility *facility);
     Shuttle *createShuttle(Location *location); // create at location - may not have a facility. Used by save/load
     Shuttle *createShuttle(Facility *facility);
     IOS *createIOS(Location *location); // create at location - may not have a facility. Used by save/load
     IOS *createIOS(Facility *facility);
     ResearchFacility *createResearchFacility(Facility *facility);
+
+    Location *locationByID(int id);
 
     // requirements checks
     bool canCommissionShuttle(Facility *facility) const;

@@ -3,6 +3,7 @@
 #include "state/research_facility.h"
 
 #include <cstdio>
+#include <algorithm>
 
 std::unique_ptr<Game> Game::current;
 
@@ -113,6 +114,34 @@ Facility *Game::facilityAt(const Endpoint &endpoint)
         return orbitalAt(endpoint.location);
     }
     return nullptr;
+}
+
+Location *Game::createLocation(System *system, const int id, const char *name, LocationType type)
+{
+    auto location = std::make_unique<Location>(system, id, name, type);
+    Location *locPtr = location.get();
+    locations.push_back(std::move(location));
+    if (system)
+    {
+        system->locations.push_back(locPtr);
+    }
+    return locPtr;
+}
+
+Location *Game::locationByID(int id)
+{
+    // binary search as locations are sorted by ID after loading
+    // use std::lower_bound
+
+    auto it = std::lower_bound(locations.begin(), locations.end(), id, [](const auto &loc, int lid)
+                               { return loc->id < lid; });
+
+    if (it != locations.end() && (*it)->id == id)
+    {
+        return it->get();
+    }
+
+    return nullptr; // not found
 }
 
 Factory *Game::createFactory(Facility *facility)
@@ -248,13 +277,8 @@ Shuttle *Game::createShuttle(Facility *facility)
 IOS *Game::createIOS(Location *location)
 {
     // create an IOS at a location, starting at the given location (used for loading saved game where we already have location info)
-    if (!location)
-    {
-        TraceLog(LOG_ERROR, "Null location provided to createIOS");
-        return nullptr;
-    }
-
-    ios.emplace_back(std::make_unique<IOS>(CS_ORBIT_DOCKED, 3, location));
+    CraftState cs{location != nullptr ? CS_ORBIT_DOCKED : CS_TRANSIT}; // default to orbit if location provided, otherwise transit (space)
+    ios.emplace_back(std::make_unique<IOS>(cs, 3, location));
     auto i = ios.back().get();
     i->destinations[0] = Endpoint(location, SLOC_ORBIT, true);
     i->destinations[1] = Endpoint(location, SLOC_ORBIT, true);

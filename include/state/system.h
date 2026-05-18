@@ -34,15 +34,14 @@ public:
     std::vector<Vector2> planetPositions;
     std::vector<int> planetPrimaryIndexes; // array index of primary body for each planet, -1 if primary (e.g. star)
 
-    // owning collection of locations
-    std::vector<std::unique_ptr<Location>> locations; // e.g. planets, moons, asteroid belt, earth city, etc. populated based on the system data
+    // non-owning collection of locations
+    std::vector<Location *> locations; // e.g. planets, moons, asteroid belt, earth city, etc. populated based on the system data
     // primary location (star)
     Location *primary;
 
     void update(float time);
 
     System &setNumBodies(int numBodies);
-    Location *addLocation(const char *name, LocationType type);
 
     Vector2 getResolvedPosition(const int index);
     Vector2 getResolvedPosition(Location *location)

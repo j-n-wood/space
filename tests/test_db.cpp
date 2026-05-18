@@ -42,7 +42,7 @@ TEST_CASE("loadSystem populates system from database")
 
     SystemPtr system = std::make_unique<System>();
     REQUIRE(system);
-    REQUIRE(loadSystem(&loader, 1, system.get()));
+    REQUIRE(loader.loadSystem(1, system.get()));
 
     SUBCASE("loads correct number of bodies")
     {
@@ -102,7 +102,7 @@ TEST_CASE("loadSystem populates system from database")
     {
         REQUIRE(system->locations.size() >= 12);
         // Earth should have Luna as a child
-        Location *earth = system->locations[3].get();
+        Location *earth = system->locations[3];
         CHECK(earth->children.size() == 1);
         if (!earth->children.empty())
         {
@@ -110,7 +110,7 @@ TEST_CASE("loadSystem populates system from database")
         }
 
         // Mars should have Phobos and Deimos
-        Location *mars = system->locations[4].get();
+        Location *mars = system->locations[4];
         CHECK(mars->children.size() == 2);
     }
 
@@ -259,7 +259,7 @@ static Game *createTestGame()
 
     // Add facilities like main.cpp does at startup
     System *system = game->allSystems()[0].get();
-    Location *earth = system->locations[3].get(); // Earth
+    Location *earth = system->locations[3]; // Earth
 
     ResourceFacility *rf = game->createResourceFacility(earth);
     rf->num_derricks = 3;
@@ -327,10 +327,10 @@ TEST_CASE("SaveGame produces a loadable database")
         auto &sys = loaded.allSystems()[0];
         REQUIRE(sys->locations.size() >= 12);
 
-        Location *earth = sys->locations[3].get();
+        Location *earth = sys->locations[3];
         CHECK(earth->children.size() == 1);
 
-        Location *mars = sys->locations[4].get();
+        Location *mars = sys->locations[4];
         CHECK(mars->children.size() == 2);
     }
 

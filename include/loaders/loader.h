@@ -12,6 +12,7 @@ extern "C"
 }
 
 class Game;
+class System;
 class Location;
 
 inline void copyFixed(char *dst, size_t dstSize, const char *src)
@@ -49,6 +50,7 @@ public:
 
     /// Load all systems from the opened database into the current game.
     bool loadSystems();
+    bool loadSystem(int system_id, System *system);
 
     /// Load game state (e.g., game_time) from the database.
     bool loadGame();
@@ -122,6 +124,17 @@ public:
     bool step()
     {
         return step("SQLiteQuery: Failed to execute statement");
+    }
+
+    SQLiteQuery &reset()
+    {
+        if (stmt)
+        {
+            sqlite3_reset(stmt);
+            sqlite3_clear_bindings(stmt);
+            valid = true; // allow reuse after reset
+        }
+        return *this;
     }
 
     SQLiteQuery &bind(int index, int value)

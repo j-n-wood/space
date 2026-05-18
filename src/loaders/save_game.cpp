@@ -111,6 +111,8 @@ int SaveGame::save(const char *filename)
         return -2;
     }
 
+    TraceLog(LOG_INFO, "SaveGame: Opened database successfully: %s", filename);
+
     int initResult = initialiseSaveFile();
     if (initResult != 0)
     {
@@ -123,6 +125,8 @@ int SaveGame::save(const char *filename)
     {
         return result;
     }
+
+    TraceLog(LOG_INFO, "SaveGame: Game state saved successfully");
 
     return 0; // Success
 }
@@ -303,7 +307,7 @@ int SaveGame::saveSystem(System *system)
         }
 
         // save body resources
-        Location *loc = system->locations[idx].get();
+        Location *loc = system->locations[idx];
         if (!loc)
         {
             continue;
@@ -352,7 +356,7 @@ int SaveGame::saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locati
         return -13;
     }
 
-    Location *location = system->locations[locationIndex].get();
+    Location *location = system->locations[locationIndex];
     if (!location)
     {
         return 0;
