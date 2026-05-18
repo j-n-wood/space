@@ -7,13 +7,9 @@ const char *SublocationTypeName[SLOC_COUNT] = {
     "Earth City",
 };
 
-Location::Location(System *s, const char *n, LocationType t) : system(s),
-                                                               type(t)
+Location::Location(System *s, const int id, const char *n, LocationType t) : system(s), id(id), type(t)
 {
     copyFixed(name, sizeof name, n);
-    // set some default resource availability
-    resources.availability[ResourceType::Iron] = 1;
-    resources.availability[ResourceType::Titanium] = 1;
 }
 
 LocationResources::LocationResources()

@@ -57,9 +57,10 @@ Location *Loader::findLocation(int system_id, int location_id)
             {
                 if (loc->id == location_id)
                 {
-                    return loc.get();
+                    return loc;
                 }
             }
+            return nullptr; // system found but location not found
         }
     }
     return nullptr;
@@ -326,12 +327,13 @@ bool Loader::loadCraft()
         bool drive = sqlite3_column_int(query, 9) > 0;
         int destination_index = sqlite3_column_int(query, 10);
 
-        Location *loc = findLocation(1, location_id); // system_id is not stored for craft locations, assuming single system for now // TODO
-        if (!loc)
+        // TODO do we need system ID?
+        Location *loc = game->locationByID(location_id);
+        if ((location_id > 0) && (!loc))
         {
             TraceLog(LOG_ERROR, "Failed to find location %d for craft %d", location_id, id);
             return false;
-        }
+        } // otherwise in the 'space' location (0)
 
         Craft *craft = nullptr;
         if (type == CT_SHUTTLE)
@@ -365,7 +367,7 @@ bool Loader::loadCraft()
 
         // load destinations for this craft
 
-        if (!destQuery.bind(1, id))
+        if (!destQuery.reset().bind(1, id))
         {
             TraceLog(LOG_ERROR, "Failed to bind craft_id for craft_destinations query for craft %d", id);
             return false;
@@ -383,7 +385,7 @@ bool Loader::loadCraft()
 
         // load autopilot for this craft if any
 
-        if (!autopilotQuery.bind(1, id))
+        if (!autopilotQuery.reset().bind(1, id))
         {
             TraceLog(LOG_ERROR, "Failed to bind craft_id for autopilot query for craft %d", id);
             return false;
@@ -397,7 +399,7 @@ bool Loader::loadCraft()
 
         // load autopilot flows for this craft if any
 
-        if (!autopilotFlowsQuery.bind(1, id))
+        if (!autopilotFlowsQuery.reset().bind(1, id))
         {
             TraceLog(LOG_ERROR, "Failed to bind craft_id for autopilot_flows query for craft %d", id);
             return false;
@@ -412,7 +414,7 @@ bool Loader::loadCraft()
 
         // load autopilot cursors for this craft if any
 
-        if (!autopilotCursorsQuery.bind(1, id))
+        if (!autopilotCursorsQuery.reset().bind(1, id))
         {
             TraceLog(LOG_ERROR, "Failed to bind craft_id for autopilot_cursors query for craft %d", id);
             return false;

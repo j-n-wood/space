@@ -80,7 +80,7 @@ void Orrery::input()
             TraceLog(LOG_INFO, "Clicked on body: %s", system->locations[body_index]->name);
             if (onDestinationSelectedCallback)
             {
-                onDestinationSelectedCallback(caller, system->locations[body_index].get());
+                onDestinationSelectedCallback(caller, system->locations[body_index]);
             }
         }
     }

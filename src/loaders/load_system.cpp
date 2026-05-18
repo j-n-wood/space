@@ -78,11 +78,11 @@ int getPrimaryBodyId(Loader *loader, int system_id)
     return queryInt(loader, "SELECT id FROM bodies WHERE system_id = ? AND primary_id = 0 LIMIT 1", system_id);
 }
 
-bool loadSystem(Loader *loader, int system_id, System *system)
+bool Loader::loadSystem(int system_id, System *system)
 {
 
     // get ID of primary body (e.g. the star) for this system
-    int primary_id = getPrimaryBodyId(loader, system_id);
+    int primary_id = getPrimaryBodyId(this, system_id);
     if (primary_id == -1)
     {
         TraceLog(LOG_ERROR, "Failed to get primary body ID for system %d", system_id);
@@ -91,13 +91,13 @@ bool loadSystem(Loader *loader, int system_id, System *system)
 
     // get number of planets in system
 
-    system->setNumBodies(countSystemBodies(loader, system_id));
+    system->setNumBodies(countSystemBodies(this, system_id));
 
     TraceLog(LOG_INFO, "Loading system %d with primary body ID %d and %d bodies", system_id, primary_id, system->numPlanets);
 
-    SQLiteQuery query(loader, "SELECT id, primary_id, name, type, orbital_radius, orbital_velocity, initial_angle, radius, color FROM bodies WHERE system_id = ? ORDER BY id");
+    SQLiteQuery query(this, "SELECT id, primary_id, name, type, orbital_radius, orbital_velocity, initial_angle, radius, color FROM bodies WHERE system_id = ? ORDER BY id");
 
-    sqlite3_bind_int(query.stmt, 1, system_id);
+    query.bind(1, system_id);
 
     // need to map primary_id to array index for that ID - build a simple lookup table first
     int *idToIndex = (int *)malloc(sizeof(int) * system->numPlanets * 2); // pairs of (id, index)
@@ -139,8 +139,7 @@ bool loadSystem(Loader *loader, int system_id, System *system)
         system->planetPositions[index] = (Vector2){orbital_radius * cosf(initial_angle), orbital_radius * sinf(initial_angle)};
         system->planetPrimaryIndexes[index] = local_primary_id;
 
-        auto location = system->addLocation(name, LocationType(type));
-        location->id = id;
+        auto location = game->createLocation(system, id, name, LocationType(type));
         location->primary_id = local_primary_id;
         location->index = index; // set array index for this location
 
@@ -179,6 +178,7 @@ bool loadSystem(Loader *loader, int system_id, System *system)
     free(idToIndex);
 
     // iterate Location collection, and if there is a primary_id, find the corresponding Location and add child
+    system->primary = game->locationByID(primary_id);
     for (const auto &loc : system->locations)
     {
         if (loc->primary_id != 0)
@@ -189,13 +189,13 @@ bool loadSystem(Loader *loader, int system_id, System *system)
             {
                 if (potential_parent->id == loc->primary_id)
                 {
-                    parent = potential_parent.get();
+                    parent = potential_parent;
                     break;
                 }
             }
             if (parent)
             {
-                parent->children.push_back(loc.get());
+                parent->children.push_back(loc);
             }
             else
             {
@@ -207,7 +207,7 @@ bool loadSystem(Loader *loader, int system_id, System *system)
     // iterate locations and read resource availability for each from body_resources table
     for (const auto &loc : system->locations)
     {
-        SQLiteQuery resourceQuery(loader, "SELECT resource_id, availability FROM body_resources WHERE body_id  = ?");
+        SQLiteQuery resourceQuery(this, "SELECT resource_id, availability FROM body_resources WHERE body_id  = ?");
         resourceQuery.bind(1, loc->id);
         while (resourceQuery.next())
         {
@@ -244,7 +244,7 @@ bool Loader::loadSystems()
     // now load the system content
     for (auto &system : game->allSystems())
     {
-        loadSystem(this, system->id, system.get());
+        loadSystem(system->id, system.get());
     }
 
     return true;

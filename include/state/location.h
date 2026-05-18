@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <memory>
 
 #include "state/resources.h"
 #include "state/string_caps.h"
@@ -27,6 +28,8 @@ enum LocationType
 
 class System; // forward declaration to avoid circular dependency
 class Location;
+typedef std::unique_ptr<Location> LocationPtr;
+typedef std::vector<LocationPtr> Locations;
 
 // body availability of resources - could use a bitfield or array
 class LocationResources
@@ -57,5 +60,5 @@ public:
     // location can have a shuttle, owns
     ShuttlePtr shuttle;
 
-    Location(System *s, const char *n, LocationType t);
+    Location(System *s, const int id, const char *n, LocationType t);
 };
