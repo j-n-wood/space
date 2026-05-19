@@ -7,7 +7,7 @@ const char *SublocationTypeName[SLOC_COUNT] = {
     "Earth City",
 };
 
-Location::Location(System *s, const int id, const char *n, LocationType t) : system(s), id(id), type(t)
+Location::Location(System *s, const int lid, const char *n, LocationType t) : system(s), id(lid), type(t)
 {
     copyFixed(name, sizeof name, n);
 }

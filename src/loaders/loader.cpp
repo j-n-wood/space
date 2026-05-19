@@ -312,6 +312,13 @@ bool Loader::loadCraft()
         return false;
     }
 
+    SQLiteQuery podsQuery(this, "SELECT pod_index, type, content_type, amount FROM craft_pods WHERE craft_id = ? ORDER BY pod_index");
+    if (!podsQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "Failed to prepare craft_pods query");
+        return false;
+    }
+
     SQLiteQuery query(this, "SELECT id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index FROM craft");
     while (query.next())
     {
@@ -365,6 +372,32 @@ bool Loader::loadCraft()
         craft->drive = drive;
         craft->destination_index = destination_index;
 
+        // load pods
+
+        if (!podsQuery.reset().bind(1, id))
+        {
+            TraceLog(LOG_ERROR, "Failed to bind craft_id for craft_pods query for craft %d", id);
+            return false;
+        }
+        while (podsQuery.next())
+        {
+            int pod_index = sqlite3_column_int(podsQuery, 0);
+            int pod_type = sqlite3_column_int(podsQuery, 1);
+            int content_type = sqlite3_column_int(podsQuery, 2);
+            int amount = sqlite3_column_int(podsQuery, 3);
+            if (pod_index >= 0 && pod_index < craft->max_pods)
+            {
+                craft->pods[pod_index].type = PodType(pod_type);
+            }
+            else
+            {
+                TraceLog(LOG_ERROR, "Invalid pod_index %d for craft %d", pod_index, id);
+            }
+
+            craft->pods[pod_index].contentType = content_type;
+            craft->pods[pod_index].amount = amount;
+        }
+
         // load destinations for this craft
 
         if (!destQuery.reset().bind(1, id))
@@ -393,7 +426,7 @@ bool Loader::loadCraft()
 
         if (autopilotQuery.next())
         {
-            int ap_state = sqlite3_column_int(autopilotQuery, 0) > 0;
+            int ap_state = sqlite3_column_int(autopilotQuery, 0);
             craft->autopilot->state = (AutopilotState)ap_state;
         }
 
@@ -423,7 +456,7 @@ bool Loader::loadCraft()
         while (autopilotCursorsQuery.next())
         {
             int endpoint_index = sqlite3_column_int(autopilotCursorsQuery, 0);
-            float cursor_position = (float)sqlite3_column_double(autopilotCursorsQuery, 1);
+            uint8_t cursor_position = (uint8_t)sqlite3_column_int(autopilotCursorsQuery, 1);
             craft->autopilot->cursors[endpoint_index] = cursor_position;
         }
     }

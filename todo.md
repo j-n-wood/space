@@ -14,7 +14,7 @@
 
 * ~~select dest~~
 * ~~calculate some kind of transit time~~
-* persistence
+* persistence - does not re-engage after load
 
 ## bay view animation
 

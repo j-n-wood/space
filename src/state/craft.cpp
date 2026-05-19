@@ -251,6 +251,7 @@ bool Craft::engageAutopilot()
     }
     if (!has_supply_pod)
     {
+        TraceLog(LOG_DEBUG, "Autopilot: Cannot engage autopilot on %s as no supply pod fitted", name);
         return false;
     }
 
