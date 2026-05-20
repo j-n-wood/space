@@ -12,6 +12,10 @@
 #include "../include/state/item.h"
 #include "../include/state/resources.h"
 #include "../include/state/autopilot.h"
+#include "../include/state/craft.h"
+#include "../include/state/shuttle.h"
+#include "../include/state/ios.h"
+#include "../include/state/waypoint.h"
 #include <sqlite3.h>
 #include <cstdio>
 #include <cstring>
@@ -456,6 +460,298 @@ TEST_CASE("Autopilot::nextFlagged returns -1 when nothing flagged")
     Autopilot ap;
     CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0]) == -1);
     CHECK(ap.nextFlagged(RF_LOAD_AT_DEST, &ap.cursors[1]) == -1);
+}
+
+TEST_CASE("SaveGame round-trips game-level counters")
+{
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+
+    game->ios_number = 42;
+    game->scg_number = 99;
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Game loaded;
+    Loader loader(SAVE_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(loaded.initialise(&loader));
+
+    CHECK(loaded.ios_number == 42);
+    CHECK(loaded.scg_number == 99);
+
+    removeSaveFile();
+}
+
+TEST_CASE("SaveGame round-trips body resource availability")
+{
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+
+    Location *earth = game->allSystems()[0]->locations[3];
+    earth->resources.availability[ResourceType::Iron] = 7;
+    earth->resources.availability[ResourceType::Carbon] = 3;
+    earth->resources.availability[ResourceType::HedFuel] = 1; // index 16, boundary
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Game loaded;
+    Loader loader(SAVE_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(loaded.initialise(&loader));
+
+    Location *loadedEarth = loaded.allSystems()[0]->locations[3];
+    CHECK(loadedEarth->resources.availability[ResourceType::Iron] == 7);
+    CHECK(loadedEarth->resources.availability[ResourceType::Carbon] == 3);
+    CHECK(loadedEarth->resources.availability[ResourceType::HedFuel] == 1);
+
+    removeSaveFile();
+}
+
+TEST_CASE("SaveGame round-trips research topics")
+{
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+    REQUIRE(game->researchTopics.size() > 0);
+
+    auto &t0 = game->researchTopics[0];
+    t0.progress = 12.5f;
+    t0.available = true;
+    t0.unlocksItems.clear();
+    t0.unlocksItems.push_back(static_cast<ItemType>(0));
+    t0.unlocksTopics.clear();
+    if (game->researchTopics.size() > 1)
+    {
+        t0.unlocksTopics.push_back(1);
+    }
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Game loaded;
+    Loader loader(SAVE_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(loaded.initialise(&loader));
+
+    REQUIRE(loaded.researchTopics.size() == game->researchTopics.size());
+    auto &l0 = loaded.researchTopics[0];
+
+    SUBCASE("round-trips progress")
+    {
+        CHECK(l0.progress == doctest::Approx(12.5f));
+    }
+    SUBCASE("round-trips available flag")
+    {
+        CHECK(l0.available == true);
+    }
+    SUBCASE("round-trips unlocksItems")
+    {
+        REQUIRE(l0.unlocksItems.size() == 1);
+        CHECK(l0.unlocksItems[0] == static_cast<ItemType>(0));
+    }
+    SUBCASE("round-trips unlocksTopics")
+    {
+        if (game->researchTopics.size() > 1)
+        {
+            REQUIRE(l0.unlocksTopics.size() == 1);
+            CHECK(l0.unlocksTopics[0] == 1);
+        }
+    }
+
+    removeSaveFile();
+}
+
+TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
+{
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+
+    Location *earth = game->allSystems()[0]->locations[3];
+    REQUIRE(earth != nullptr);
+    Orbital *orb = game->orbitalAt(earth);
+    REQUIRE(orb != nullptr);
+
+    // --- Shuttle: docked, drive fitted, pods loaded, autopilot AS_ON, varied flow + cursors
+    Shuttle *shuttle = game->createShuttle(orb);
+    REQUIRE(shuttle != nullptr);
+
+    std::snprintf(shuttle->name, sizeof shuttle->name, "Discovery");
+    shuttle->state = CS_ORBIT_DOCKED;
+    shuttle->state_timer = 0.0f;
+    shuttle->total_state_timer = 0.0f;
+    shuttle->fuel = 100;
+    shuttle->max_pods = 2;
+    shuttle->drive = true;
+    shuttle->destination_index = 1;
+
+    shuttle->pods[0].type = PT_SUPPLY;
+    shuttle->pods[0].contentType = ResourceType::Iron;
+    shuttle->pods[0].amount = 75;
+    shuttle->pods[1].type = PT_TOOL;
+    shuttle->pods[1].contentType = 0; // Derrick
+    shuttle->pods[1].amount = 2;
+
+    shuttle->destinations[0] = Endpoint(earth, SLOC_SURFACE, true);
+    shuttle->destinations[1] = Endpoint(earth, SLOC_ORBIT, false);
+
+    shuttle->autopilot->state = AS_ON;
+    for (int i = 0; i < ResourceType::Count; ++i)
+    {
+        shuttle->autopilot->flow[i] = 0;
+    }
+    shuttle->autopilot->flow[ResourceType::Iron] = RF_LOAD_AT_SOURCE;        // first non-trivial index
+    shuttle->autopilot->flow[ResourceType::Copper] = RF_BALANCE;
+    shuttle->autopilot->flow[ResourceType::HedFuel] = RF_LOAD_AT_DEST;       // boundary: ResourceType::Count - 1 (= 16)
+    shuttle->autopilot->cursors[0] = 5;
+    shuttle->autopilot->cursors[1] = 12;
+
+    // --- IOS: terminal state, autopilot AS_COMPLETE
+    IOS *ios = game->createIOS(orb);
+    REQUIRE(ios != nullptr);
+    std::snprintf(ios->name, sizeof ios->name, "IOS-Test");
+    ios->state = CS_ORBIT_DOCKED;
+    ios->state_timer = 1.5f;
+    ios->total_state_timer = 3.0f;
+    ios->fuel = 250;
+    ios->drive = true;
+    ios->autopilot->state = AS_COMPLETE;
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Game loaded;
+    Loader loader(SAVE_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(loaded.initialise(&loader));
+
+    const auto &lShuttles = loaded.allShuttles();
+    REQUIRE(lShuttles.size() == 1);
+    Shuttle *ls = lShuttles[0];
+
+    const auto &lIOS = loaded.allIOS();
+    REQUIRE(lIOS.size() == 1);
+    IOS *li = lIOS[0].get();
+
+    SUBCASE("round-trips shuttle fields")
+    {
+        CHECK_STREQ(ls->name, "Discovery");
+        CHECK(ls->type == CT_SHUTTLE);
+        CHECK(ls->state == CS_ORBIT_DOCKED);
+        CHECK(ls->state_timer == doctest::Approx(0.0f));
+        CHECK(ls->total_state_timer == doctest::Approx(0.0f));
+        CHECK(ls->fuel == 100);
+        CHECK(ls->max_pods == 2);
+        CHECK(ls->drive == true);
+        CHECK(ls->destination_index == 1);
+        REQUIRE(ls->location != nullptr);
+        CHECK_STREQ(ls->location->name, "Earth");
+    }
+
+    SUBCASE("round-trips IOS fields")
+    {
+        CHECK_STREQ(li->name, "IOS-Test");
+        CHECK(li->type == CT_IOS);
+        CHECK(li->state == CS_ORBIT_DOCKED);
+        CHECK(li->state_timer == doctest::Approx(1.5f));
+        CHECK(li->total_state_timer == doctest::Approx(3.0f));
+        CHECK(li->fuel == 250);
+        CHECK(li->drive == true);
+    }
+
+    SUBCASE("round-trips pods")
+    {
+        CHECK(ls->pods[0].type == PT_SUPPLY);
+        CHECK(ls->pods[0].contentType == ResourceType::Iron);
+        CHECK(ls->pods[0].amount == 75);
+        CHECK(ls->pods[1].type == PT_TOOL);
+        CHECK(ls->pods[1].contentType == 0);
+        CHECK(ls->pods[1].amount == 2);
+    }
+
+    SUBCASE("round-trips destinations")
+    {
+        REQUIRE(ls->destinations[0].location != nullptr);
+        CHECK_STREQ(ls->destinations[0].location->name, "Earth");
+        CHECK(ls->destinations[0].sublocation == SLOC_SURFACE);
+        CHECK(ls->destinations[0].docked == true);
+
+        REQUIRE(ls->destinations[1].location != nullptr);
+        CHECK_STREQ(ls->destinations[1].location->name, "Earth");
+        CHECK(ls->destinations[1].sublocation == SLOC_ORBIT);
+        CHECK(ls->destinations[1].docked == false);
+    }
+
+    SUBCASE("round-trips autopilot state (AS_ON for shuttle)")
+    {
+        // Regression guard for the `> 0` bug fixed in a6abd19.
+        CHECK(ls->autopilot->state == AS_ON);
+    }
+
+    SUBCASE("round-trips autopilot state (AS_COMPLETE for IOS)")
+    {
+        // Regression guard: any value > 1 was collapsed to AS_OFF prior to a6abd19.
+        CHECK(li->autopilot->state == AS_COMPLETE);
+    }
+
+    SUBCASE("round-trips autopilot flow at low and high indices")
+    {
+        CHECK(ls->autopilot->flow[ResourceType::Iron] == RF_LOAD_AT_SOURCE);
+        CHECK(ls->autopilot->flow[ResourceType::Copper] == RF_BALANCE);
+        // Boundary: last legal index (ResourceType::Count - 1).
+        CHECK(ls->autopilot->flow[ResourceType::HedFuel] == RF_LOAD_AT_DEST);
+        // Untouched entry should remain zero.
+        CHECK(ls->autopilot->flow[ResourceType::Aluminium] == 0);
+    }
+
+    SUBCASE("round-trips autopilot cursors with non-zero values")
+    {
+        // Regression guard for the column-type bug fixed in a6abd19.
+        CHECK(ls->autopilot->cursors[0] == 5);
+        CHECK(ls->autopilot->cursors[1] == 12);
+    }
+
+    removeSaveFile();
+}
+
+TEST_CASE("SaveGame round-trips autopilot state across all values")
+{
+    // Exercises every AutopilotState value independently to guard the recently
+    // fixed `> 0` bug across the full enum range.
+
+    auto roundTripWithAutopilot = [](AutopilotState s)
+    {
+        Game *game = createTestGame();
+        REQUIRE(game != nullptr);
+
+        Location *earth = game->allSystems()[0]->locations[3];
+        REQUIRE(earth != nullptr);
+        Orbital *orb = game->orbitalAt(earth);
+        REQUIRE(orb != nullptr);
+
+        Shuttle *shuttle = game->createShuttle(orb);
+        REQUIRE(shuttle != nullptr);
+        shuttle->autopilot->state = s;
+
+        SaveGame saver;
+        REQUIRE(saver.save(SAVE_PATH) == 0);
+
+        Game loaded;
+        Loader loader(SAVE_PATH);
+        REQUIRE(loader.isValid());
+        REQUIRE(loaded.initialise(&loader));
+
+        REQUIRE(loaded.allShuttles().size() == 1);
+        CHECK(loaded.allShuttles()[0]->autopilot->state == s);
+
+        removeSaveFile();
+    };
+
+    SUBCASE("AS_DISABLED") { roundTripWithAutopilot(AS_DISABLED); }
+    SUBCASE("AS_OFF") { roundTripWithAutopilot(AS_OFF); }
+    SUBCASE("AS_ON") { roundTripWithAutopilot(AS_ON); }
+    SUBCASE("AS_COMPLETE") { roundTripWithAutopilot(AS_COMPLETE); }
 }
 
 TEST_CASE("Autopilot::nextFlagged with predicate skips rejected resources")
