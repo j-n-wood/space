@@ -53,6 +53,7 @@ EarthCity *Game::createEarthCity(Location *location)
     auto factory = createFactory(ec); // EC production
     factory->is_orbital = false;      // EC is surface facility, so set factory accordingly
     factory->tech_level = 1;          // EC starts with tech level 1, can build basic items
+    createResearchFacility(ec);
     return ec;
 }
 
@@ -83,6 +84,7 @@ Orbital *Game::createOrbital(Location *location)
 {
     orbitals.emplace_back(std::make_unique<Orbital>(location));
     auto o = orbitals.back().get();
+    createFactory(o);
     return o;
 }
 

@@ -9,6 +9,7 @@
 #include "../include/state/facility.h"
 #include "../include/state/resourceFacility.h"
 #include "../include/state/orbital.h"
+#include "../include/state/earth_city.h"
 #include "../include/state/item.h"
 #include "../include/state/resources.h"
 #include "../include/state/autopilot.h"
@@ -157,6 +158,83 @@ TEST_CASE("Game::initialise loads full game state")
         // Derrick requires: Iron(1)=3, Titanium(2)=4, Carbon(4)=1
         CHECK(reqs.size() == 3);
     }
+}
+
+TEST_CASE("Game::initialise works on a stack-allocated Game (no singleton)")
+{
+    // initial.db ships with both an Orbital and an EarthCity at Earth. Both
+    // constructors used to reach Game::getCurrent() during construction
+    // (Orbital for createFactory, EarthCity for createResearchFacility),
+    // which crashed when the singleton was unset. The owning Game methods
+    // now wire those collaborators themselves, so any Game instance can
+    // initialise from disk.
+    {
+        std::unique_ptr<Game> empty;
+        Game::setCurrent(empty);
+    }
+    REQUIRE(Game::getCurrent() == nullptr);
+
+    Game game;
+    Loader loader(DB_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(game.initialise(&loader));
+
+    Location *earth = game.locationByID(4);
+    REQUIRE(earth != nullptr);
+
+    Orbital *orb = game.orbitalAt(earth);
+    REQUIRE(orb != nullptr);
+    CHECK(orb->factory != nullptr); // wired by Game::createOrbital
+
+    // Find the EarthCity in bases.
+    EarthCity *ec = nullptr;
+    for (auto &b : game.allBases())
+    {
+        if (auto *cand = dynamic_cast<EarthCity *>(b.get()))
+        {
+            ec = cand;
+            break;
+        }
+    }
+    REQUIRE(ec != nullptr);
+    CHECK(ec->factory != nullptr);          // wired by Game::createEarthCity
+    CHECK(ec->research_facility != nullptr); // wired by Game::createEarthCity
+
+    // Singleton is still null — the entire load path stayed on this Game.
+    CHECK(Game::getCurrent() == nullptr);
+}
+
+TEST_CASE("Game::createOrbital works on a stack-allocated Game (no singleton)")
+{
+    // Regression guard: Orbital's constructor used to call
+    // Game::getCurrent()->createFactory(this), which crashed if no Game
+    // singleton was set. The factory creation now lives in
+    // Game::createOrbital itself, so the orbital can be built by any Game
+    // instance — including one allocated on the stack.
+    //
+    // Clear any prior singleton to prove createOrbital does not reach for it.
+    {
+        std::unique_ptr<Game> empty;
+        Game::setCurrent(empty);
+    }
+    REQUIRE(Game::getCurrent() == nullptr);
+
+    Game game;
+    System *sys = game.createSystem(1, "TestSys");
+    Location *body = game.createLocation(sys, 1, "TestBody", LOCATION_TYPE_PLANET);
+    REQUIRE(body != nullptr);
+
+    Orbital *orb = game.createOrbital(body);
+    REQUIRE(orb != nullptr);
+    CHECK(orb->location == body);
+    CHECK(orb->sublocation == SLOC_ORBIT);
+    // The factory is what used to be wired via Game::getCurrent(); now wired
+    // by Game::createOrbital itself.
+    CHECK(orb->factory != nullptr);
+
+    // Singleton remained empty — proves the construction path did not depend
+    // on it.
+    CHECK(Game::getCurrent() == nullptr);
 }
 
 TEST_CASE("SQLiteQuery basic operations")
