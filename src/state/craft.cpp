@@ -195,14 +195,6 @@ const char *Craft::statusText(char *status, size_t len)
     return status;
 }
 
-float computeTransitTime(Location *source, Location *destination)
-{
-    auto sv2 = source->system->getResolvedPosition(source);
-    auto dv2 = destination->system->getResolvedPosition(destination);
-    float distance = sqrtf(powf(sv2.x - dv2.x, 2) + powf(sv2.y - dv2.y, 2));
-    return distance / 20.0f; // arbitrary speed factor to get reasonable transit times based on system scale
-}
-
 Craft &Craft::engageDrive()
 {
     if (destinations[destination_index].location)
@@ -211,14 +203,14 @@ Craft &Craft::engageDrive()
         auto destination = destinations[destination_index].location;
 
         // make up a transit time based on location distance
-        total_state_timer = computeTransitTime(source, destination);
+        Game *game = Game::getCurrent();
+
+        total_state_timer = game->transitTimeCalculator->calculateTransitTime(source, destination);
         state_timer = total_state_timer;
         TraceLog(LOG_INFO, "Engaging drive from %s to %s, transit time %.1f seconds", source ? source->name : "Space", destination->name, total_state_timer);
 
         state = CS_TRANSIT;
         location = nullptr; // in transit, not at a location
-        // total_state_timer = 10.0f;
-        // state_timer = total_state_timer; // TODO transit time could be based on distance and drive type
     }
     return *this;
 }

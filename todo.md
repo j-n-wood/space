@@ -6,15 +6,9 @@
 
 ## Craft persistence
 
-* shuttle(s)
-* ios
 * scg
 
-## autopilot specification
-
-* ~~select dest~~
-* ~~calculate some kind of transit time~~
-* persistence - does not re-engage after load
+## tool pod activation
 
 ## bay view animation
 
@@ -29,5 +23,7 @@
 ## seam model
 
 * resource abundance, survey delay.
+
+## drone fleets
 
 ## master control / orrery craft view

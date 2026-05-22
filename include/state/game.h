@@ -20,6 +20,19 @@ class Loader;
 
 class ResearchFacility;
 
+// abstracted, so we can test different simulations, or provide static values for testing
+class TransitTimeCalculator
+{
+public:
+    virtual float calculateTransitTime(Location *from, Location *to) = 0;
+};
+
+class LinearTransitTimeCalculator : public TransitTimeCalculator
+{
+public:
+    float calculateTransitTime(Location *from, Location *to) override;
+};
+
 class Game
 {
     // owning collection of systems
@@ -61,6 +74,8 @@ public:
 
     // research topics - array of instances as not passed around
     std::vector<ResearchTopic> researchTopics;
+
+    std::unique_ptr<TransitTimeCalculator> transitTimeCalculator;
 
     Game();
     ~Game();

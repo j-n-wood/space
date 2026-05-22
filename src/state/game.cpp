@@ -3,13 +3,30 @@
 #include "state/research_facility.h"
 
 #include <cstdio>
+#include <cmath>
 #include <algorithm>
 
 std::unique_ptr<Game> Game::current;
 
 const float MAX_TIMESTEP = 1.0f;
 
-Game::Game() : game_time(0.0f), time_rate(1.0f)
+float LinearTransitTimeCalculator::calculateTransitTime(Location *from, Location *to)
+{
+    // simple implementation based on distance and fixed speed. Could be improved with more complex logic based on e.g. fuel efficiency, gravity assists, etc.
+    if (!from || !to)
+    {
+        TraceLog(LOG_ERROR, "Null location provided to calculateTransitTime");
+        return 0.0f;
+    }
+    auto sv2 = from->system->getResolvedPosition(from);
+    auto dv2 = to->system->getResolvedPosition(to);
+    float distance = sqrtf(powf(sv2.x - dv2.x, 2) + powf(sv2.y - dv2.y, 2));
+    const float speed = 20.0f; // arbitrary speed factor to get reasonable transit times based on system scale
+
+    return distance / speed;
+}
+
+Game::Game() : game_time(0.0f), time_rate(1.0f), transitTimeCalculator(std::make_unique<LinearTransitTimeCalculator>())
 {
 }
 
