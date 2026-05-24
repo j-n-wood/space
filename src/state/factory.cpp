@@ -47,7 +47,7 @@ void Factory::update()
     {
         auto &queueItem{queue[0]};
 
-        if (!queueItem.progress)
+        if (!queueItem.started)
         {
             // starting, see if we can get resources
             auto &item{Game::getCurrent()->items[queueItem.item_id]};
@@ -68,8 +68,10 @@ void Factory::update()
                 {
                     stores->resources[req.resource] -= req.amount;
                 }
+                queueItem.started = true;
             }
             // else wait for resources
+            return; // if can't start, don't progress time
         }
 
         if (++queueItem.progress >= queueItem.build_time)

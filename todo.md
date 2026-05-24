@@ -10,6 +10,12 @@
 
 ## tool pod activation
 
+## locations -> array
+
+* define location 0 as space (per system?)
+* ditch <algorithm>
+* asteriod locations?
+
 ## bay view animation
 
 * use local copy of e.g. pod state to animate transitions. Data is updated immediately.

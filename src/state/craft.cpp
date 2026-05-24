@@ -199,6 +199,13 @@ Craft &Craft::engageDrive()
 {
     if (destinations[destination_index].location)
     {
+        // cannot engage drive if docked
+        if (state == CS_SURFACE_DOCKED || state == CS_ORBIT_DOCKED)
+        {
+            TraceLog(LOG_WARNING, "Cannot engage drive while docked");
+            return *this;
+        }
+
         auto source = location;
         auto destination = destinations[destination_index].location;
 

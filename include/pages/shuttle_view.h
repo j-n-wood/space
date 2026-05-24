@@ -5,6 +5,7 @@
 #include "state/shuttle.h"
 #include "pages/autopilot_view.h"
 #include "pages/destination_view.h"
+#include "pages/page_log.h"
 
 class ShuttleView : public BasePage
 {
@@ -12,6 +13,8 @@ class ShuttleView : public BasePage
     const TextureAsset *bodyTexture;
     const TextureAsset *itemsTexture;
     std::unique_ptr<AutopilotView> autopilotView;
+
+    PageLog pageLog;
 
 public:
     Craft *craft;
@@ -23,9 +26,12 @@ public:
         itemsTexture = TextureManager::getInstance().getTexture(TEXTURE_ITEMS);
         backgroundSource = pageBackgroundSources[PB_COCKPIT];
         std::snprintf(title, sizeof title, "Shuttle");
+        pageLog.top = 750;
+        pageLog.left = 350;
     }
 
     void activate(ViewState &viewState) override;
     void input() override;
     void render() override;
+    void update(const float delta) override;
 };

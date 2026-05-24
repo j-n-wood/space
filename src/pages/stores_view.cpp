@@ -95,7 +95,7 @@ void StoresView::listItems()
             sprintf(buf, "%d", stores->items[idx]);
             DrawText(buf, cursor.x + 120, cursor.y, 20, WHITE);
             cursor.y += 24;
-            ++idx;
         }
+        ++idx;
     }
 }

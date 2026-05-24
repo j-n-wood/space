@@ -33,6 +33,8 @@ public:
     float calculateTransitTime(Location *from, Location *to) override;
 };
 
+class LogSink;
+
 class Game
 {
     // owning collection of systems
@@ -147,7 +149,7 @@ public:
     void setSupplyPodContent(Pod *pod, Stores *stores, int resource_id, int amount);
     void setToolPodContent(Pod *pod, Stores *stores, int item_id);
     bool canActivatePod(Craft *craft, int pod_index);
-    bool activatePod(Craft *craft, int pod_index);
+    bool activatePod(Craft *craft, int pod_index, LogSink *logsink = nullptr);
 
     // update by delta
     void update(float delta);

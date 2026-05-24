@@ -53,7 +53,9 @@ void buildTestData(Game *game)
 	sh->setPodType(0, PT_SUPPLY);
 	sh->autopilot->flow[ResourceType::Iron] = RF_LOAD_AT_SOURCE;
 	sh->autopilot->flow[ResourceType::Titanium] = RF_LOAD_AT_SOURCE;
+	sh->autopilot->flow[ResourceType::Aluminium] = RF_LOAD_AT_SOURCE;
 	sh->autopilot->flow[ResourceType::Copper] = RF_LOAD_AT_SOURCE;
+	sh->autopilot->flow[ResourceType::Carbon] = RF_LOAD_AT_SOURCE;
 	sh->engageAutopilot();
 
 	// test pod loading
@@ -82,6 +84,7 @@ void buildTestData(Game *game)
 	pod.amount = 1;
 	// set dest -> earth orbital
 	ios2->setDestination(0, earth);
+	ios2->setDestination(1, luna);
 
 	// mars orbital
 	Orbital *mars_orbital{game->createOrbital(mars)};
@@ -89,6 +92,11 @@ void buildTestData(Game *game)
 
 	auto ec = game->resourceFacilityAt(earth);
 	PageManager::getInstance().viewState.setCurrentResearchFacility(ec->research_facility.get()); // currently global and single
+
+	// set OF frame research complete so we can test orbital construction
+	game->researchTopics[6].progress = game->researchTopics[6].requiredTime;
+	game->items[ItemType::Of_Frame].researched = true;
+	of->stores.items[ItemType::Of_Frame] = 1; // put an OF frame in orbit so we can test construction
 }
 
 int main()
@@ -147,19 +155,21 @@ int main()
 			// Setup the back buffer for drawing (clear color and depth buffers)
 			ClearBackground(BLACK);
 
-			pageManager.getCurrentPage()->render();
+			auto currentPage = pageManager.getCurrentPage();
+
+			currentPage->render();
 
 			// input can affect rendering as tooltips can come from buttons
-			pageManager.getCurrentPage()->input();
+			currentPage->input();
 
 			// end the frame and get ready for the next one  (display frame, poll input, etc...)
 			overlay.render(); // render the overlay after all pages
 
 			EndDrawing();
 
-			if (IsKeyPressed(KEY_SPACE))
+			if (IsKeyPressed(KEY_TAB))
 			{
-				advanceTime = !advanceTime;
+				advanceTime = !advanceTime; // auto-advance mode
 			}
 
 			// hotkeys to switch pages
@@ -184,7 +194,7 @@ int main()
 				{
 					pageManager.viewState.setCurrentCraft(ioss[0].get());
 					pageManager.switchToPage(PAGE_COCKPIT);
-					pageManager.getCurrentPage()->activate(pageManager.viewState); // force update of page state to reflect new craft focus
+					currentPage->activate(pageManager.viewState); // force update of page state to reflect new craft focus
 				}
 			}
 			else if (IsKeyPressed(KEY_F4))
@@ -195,7 +205,7 @@ int main()
 				{
 					pageManager.viewState.setCurrentCraft(ioss[1].get());
 					pageManager.switchToPage(PAGE_COCKPIT);
-					pageManager.getCurrentPage()->activate(pageManager.viewState); // force update of page state to reflect new craft focus
+					currentPage->activate(pageManager.viewState); // force update of page state to reflect new craft focus
 				}
 			}
 
@@ -223,7 +233,7 @@ int main()
 
 					// force UI pages to reset
 					auto &pm{PageManager::getInstance()};
-					pm.getCurrentPage()->activate(pm.viewState); // TODO ugly
+					currentPage->activate(pm.viewState); // TODO ugly
 				}
 				else
 				{
@@ -252,13 +262,17 @@ int main()
 				TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
 			}
 
+			// time
+
 			float currentTime = GetTime();
 			float deltaTime = currentTime - lastTime;
 			lastTime = currentTime;
-			if (advanceTime)
+			if (advanceTime || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused
 			{
 				game->update(deltaTime);
 			}
+
+			currentPage->update(deltaTime); // not game state, view state
 		}
 
 		TextureManager::getInstance().dispose(); // explicitly dispose of textures before exiting, to ensure proper cleanup, though the destructor should also handle this when the program exits and static objects are destroyed

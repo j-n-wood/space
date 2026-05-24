@@ -265,7 +265,7 @@ void ShuttleView::render()
                 if (overlay.addToolTip("Activate", pod_icon_coordinates[idx]) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                 {
                     // clicked on pod icon, activate
-                    Game::getCurrent()->activatePod(craft, idx);
+                    Game::getCurrent()->activatePod(craft, idx, &pageLog);
                 }
             }
         }
@@ -326,4 +326,11 @@ void ShuttleView::render()
     {
         destinationPicker->render();
     }
+
+    pageLog.render();
+}
+
+void ShuttleView::update(const float delta)
+{
+    pageLog.update(delta);
 }

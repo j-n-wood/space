@@ -10,6 +10,7 @@ public:
     int item_id;
     int build_time;
     int progress;
+    bool started;
     bool repeat;
 
     explicit QueueItem(const int id, bool repeat);

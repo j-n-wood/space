@@ -1,6 +1,7 @@
 #include "loaders/loader.h"
 #include "state/game.h"
 #include "state/research_facility.h"
+#include "state/log_sink.h"
 
 #include <cstdio>
 #include <cmath>
@@ -449,17 +450,23 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
     switch (item.id)
     {
     case ItemType::Of_Frame:
-        // must be in orbit, and no existing facility
-        if (craft->state == CS_ORBIT && (!orbitalAt(craft->location)))
+        // must be in orbit, and no existing facility, or facility incomplete
         {
-            return true;
+            Orbital *orbital = orbitalAt(craft->location);
+            if (craft->state == CS_ORBIT && (!orbital || !orbital->operational))
+            {
+                return true;
+            }
         }
         break;
     case ItemType::R_Frame:
-        // must be on surface, not docked, no facility at location
-        if (craft->state == CS_SURFACE && !resourceFacilityAt(craft->location))
+        // must be on surface, not docked, no facility at location or facility incomplete
         {
-            return true;
+            ResourceFacility *rf = resourceFacilityAt(craft->location);
+            if (craft->state == CS_SURFACE && (!rf || !rf->operational))
+            {
+                return true;
+            }
         }
         break;
     // grapple - must be in orbit, and have something to take/release
@@ -473,8 +480,11 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
     return false;
 }
 
-bool Game::activatePod(Craft *craft, int pod_index)
+NullLogSink nullLogSink;
+
+bool Game::activatePod(Craft *craft, int pod_index, LogSink *logsink)
 {
+    LogSink *effectiveLogSink = logsink ? logsink : &nullLogSink; // use provided log sink or create a dummy one if not provided
     // sanity check
     if (!canActivatePod(craft, pod_index))
     {
@@ -485,6 +495,8 @@ bool Game::activatePod(Craft *craft, int pod_index)
     Pod &pod{craft->pods[pod_index]};
     const Item &item{items[pod.contentType]};
 
+    char buffer[256]; // message buffer. Copied by logsink
+
     switch (item.id)
     {
     case ItemType::Of_Frame:
@@ -494,11 +506,20 @@ bool Game::activatePod(Craft *craft, int pod_index)
         if (!orbital)
         {
             orbital = createOrbital(craft->location);
+            std::snprintf(buffer, sizeof buffer, "Construction started on orbital facility at location %s", craft->location->name);
+            effectiveLogSink->addLog(buffer);
         }
         if (orbital->construction_progress++ >= 8)
         {
             TraceLog(LOG_INFO, "Orbital construction complete at location %s", craft->location->name);
             orbital->operational = true;
+            std::snprintf(buffer, sizeof buffer, "Orbital facility operational at location %s", craft->location->name);
+            effectiveLogSink->addLog(buffer);
+        }
+        else
+        {
+            std::snprintf(buffer, sizeof buffer, "Orbital construction progress at location %s: %d%%", craft->location->name, orbital->construction_progress * 100 / 8);
+            effectiveLogSink->addLog(buffer);
         }
         // remove pod content
         pod.amount = 0;
@@ -510,11 +531,15 @@ bool Game::activatePod(Craft *craft, int pod_index)
         if (!rf)
         {
             rf = createResourceFacility(craft->location);
+            std::snprintf(buffer, sizeof buffer, "Construction started on resource facility at location %s", craft->location->name);
+            effectiveLogSink->addLog(buffer);
         }
         if (rf->construction_progress++ >= 2)
         {
             TraceLog(LOG_INFO, "Resource facility construction complete at location %s", craft->location->name);
             rf->operational = true;
+            std::snprintf(buffer, sizeof buffer, "Resource facility operational at location %s", craft->location->name);
+            effectiveLogSink->addLog(buffer);
         }
         // remove pod content
         pod.amount = 0;
