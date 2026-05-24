@@ -17,8 +17,11 @@ public:
     SublocationType sublocation;
     Stores stores;
     std::unique_ptr<Factory> factory; // RF bases typically do not have factory, orbitals do
+    bool operational;                 // fully constructed
+    uint8_t construction_progress;    // 0-100, for construction progress of facility, if under construction
+    uint8_t damage;                   // 0-100, for damage level of facility, if damaged
 
-    explicit Facility(Location *l) : id{0}, location{l}, sublocation{SLOC_ORBIT}
+    explicit Facility(Location *l) : id{0}, location{l}, sublocation{SLOC_ORBIT}, operational{false}, construction_progress{0}, damage{0}
     {
     }
     virtual ~Facility() {}

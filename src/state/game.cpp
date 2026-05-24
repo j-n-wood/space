@@ -424,6 +424,113 @@ void Game::setToolPodContent(Pod *pod, Stores *stores, int item_id)
     }
 }
 
+bool Game::canActivatePod(Craft *craft, int pod_index)
+{
+    if (!craft)
+    {
+        TraceLog(LOG_ERROR, "Missing craft to canActivatePod");
+        return false;
+    }
+    if (pod_index > craft->max_pods)
+    {
+        TraceLog(LOG_ERROR, "Invalid index to canActivatePod");
+        return false;
+    }
+
+    Pod &pod{craft->pods[pod_index]};
+
+    // currently only tool pods can activate
+    if (pod.type != PT_TOOL || pod.amount == 0)
+    {
+        return false;
+    }
+    // switch on content type of tool pod to check specific activation requirements
+    const Item &item{items[pod.contentType]};
+    switch (item.id)
+    {
+    case ItemType::Of_Frame:
+        // must be in orbit, and no existing facility
+        if (craft->state == CS_ORBIT && (!orbitalAt(craft->location)))
+        {
+            return true;
+        }
+        break;
+    case ItemType::R_Frame:
+        // must be on surface, not docked, no facility at location
+        if (craft->state == CS_SURFACE && !resourceFacilityAt(craft->location))
+        {
+            return true;
+        }
+        break;
+    // grapple - must be in orbit, and have something to take/release
+    // AMA - must be in orbit, at location of type asteroids
+    // bandaid - bust be docked on surface, and have damaged facility
+    default:
+        // some other thing
+        break;
+    }
+
+    return false;
+}
+
+bool Game::activatePod(Craft *craft, int pod_index)
+{
+    // sanity check
+    if (!canActivatePod(craft, pod_index))
+    {
+        TraceLog(LOG_ERROR, "Attempting to activate pod that cannot be activated: craft %s, pod index %d", craft->name, pod_index);
+        return false;
+    }
+
+    Pod &pod{craft->pods[pod_index]};
+    const Item &item{items[pod.contentType]};
+
+    switch (item.id)
+    {
+    case ItemType::Of_Frame:
+    {
+        // if no orbital at location, create one.
+        Orbital *orbital = orbitalAt(craft->location);
+        if (!orbital)
+        {
+            orbital = createOrbital(craft->location);
+        }
+        if (orbital->construction_progress++ >= 8)
+        {
+            TraceLog(LOG_INFO, "Orbital construction complete at location %s", craft->location->name);
+            orbital->operational = true;
+        }
+        // remove pod content
+        pod.amount = 0;
+    }
+    break;
+    case ItemType::R_Frame:
+    {
+        ResourceFacility *rf = resourceFacilityAt(craft->location);
+        if (!rf)
+        {
+            rf = createResourceFacility(craft->location);
+        }
+        if (rf->construction_progress++ >= 2)
+        {
+            TraceLog(LOG_INFO, "Resource facility construction complete at location %s", craft->location->name);
+            rf->operational = true;
+        }
+        // remove pod content
+        pod.amount = 0;
+    }
+    break;
+    // grapple - must be in orbit, and have something to take/release
+    // AMA - must be in orbit, at location of type asteroids
+    // bandaid - bust be docked on surface, and have damaged facility
+    default:
+        TraceLog(LOG_ERROR, "Attempting to activate unsupported item %d in activatePod", item.id);
+        return false;
+    }
+
+    return true;
+}
+
 void Game::update(float delta)
 {
     // add to time, if ticks over one second call advanceTick

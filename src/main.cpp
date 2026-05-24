@@ -62,16 +62,30 @@ void buildTestData(Game *game)
 	of->stores.items[I_Drive] = 2;
 
 	// test IOS
-	Location *mars = system->primary->children[3];
 	IOS *ios = game->createIOS(of);
 	ios->drive = true;
 	ios->fuel = 250;
 	ios->setPodType(0, PT_SUPPLY);
+	Location *mars = system->primary->children[3];
 	ios->setDestination(0, mars); // where to go next
 	ios->engageAutopilot();
 
+	// test IOS 2 at luna
+	Location *luna = earth->children[0];
+	IOS *ios2 = game->createIOS(luna);
+	ios2->state = CS_ORBIT; // there is no orbital here
+	ios2->drive = true;
+	ios2->fuel = 250;
+	ios2->setPodType(0, PT_TOOL);
+	Pod &pod = ios2->pods[0];
+	pod.contentType = ItemType::Of_Frame;
+	pod.amount = 1;
+	// set dest -> earth orbital
+	ios2->setDestination(0, earth);
+
 	// mars orbital
 	Orbital *mars_orbital{game->createOrbital(mars)};
+	mars_orbital->operational = true;
 
 	auto ec = game->resourceFacilityAt(earth);
 	PageManager::getInstance().viewState.setCurrentResearchFacility(ec->research_facility.get()); // currently global and single
@@ -135,12 +149,13 @@ int main()
 
 			pageManager.getCurrentPage()->render();
 
+			// input can affect rendering as tooltips can come from buttons
+			pageManager.getCurrentPage()->input();
+
 			// end the frame and get ready for the next one  (display frame, poll input, etc...)
 			overlay.render(); // render the overlay after all pages
 
 			EndDrawing();
-
-			pageManager.getCurrentPage()->input();
 
 			if (IsKeyPressed(KEY_SPACE))
 			{
@@ -168,6 +183,17 @@ int main()
 				if (!ioss.empty())
 				{
 					pageManager.viewState.setCurrentCraft(ioss[0].get());
+					pageManager.switchToPage(PAGE_COCKPIT);
+					pageManager.getCurrentPage()->activate(pageManager.viewState); // force update of page state to reflect new craft focus
+				}
+			}
+			else if (IsKeyPressed(KEY_F4))
+			{
+				// switch to luna IOS
+				auto &ioss = game->allIOS();
+				if (!ioss.empty())
+				{
+					pageManager.viewState.setCurrentCraft(ioss[1].get());
 					pageManager.switchToPage(PAGE_COCKPIT);
 					pageManager.getCurrentPage()->activate(pageManager.viewState); // force update of page state to reflect new craft focus
 				}

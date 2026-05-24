@@ -146,6 +146,8 @@ public:
     void setPodType(Craft *craft, int index, PodType pt, Facility *facility);
     void setSupplyPodContent(Pod *pod, Stores *stores, int resource_id, int amount);
     void setToolPodContent(Pod *pod, Stores *stores, int item_id);
+    bool canActivatePod(Craft *craft, int pod_index);
+    bool activatePod(Craft *craft, int pod_index);
 
     // update by delta
     void update(float delta);

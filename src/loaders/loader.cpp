@@ -68,7 +68,7 @@ Location *Loader::findLocation(int system_id, int location_id)
 
 bool Loader::loadFacilities()
 {
-    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks FROM facilities ORDER BY id");
+    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks, operational, construction_progress, damage FROM facilities ORDER BY id");
 
     while (query.next())
     {
@@ -77,6 +77,9 @@ bool Loader::loadFacilities()
         int location_id = sqlite3_column_int(query, 2);
         int type = sqlite3_column_int(query, 3);
         int num_derricks = sqlite3_column_int(query, 4);
+        int operational = sqlite3_column_int(query, 5);
+        int construction_progress = sqlite3_column_int(query, 6);
+        int damage = sqlite3_column_int(query, 7);
 
         Location *loc = findLocation(system_id, location_id);
         if (!loc)
@@ -90,16 +93,24 @@ bool Loader::loadFacilities()
         {
             auto rf = game->createResourceFacility(loc);
             rf->num_derricks = num_derricks;
+            rf->operational = operational;
+            rf->construction_progress = construction_progress;
+            rf->damage = damage;
             fac = rf;
         }
         else if (type == SLOC_ORBIT)
         {
-            fac = game->createOrbital(loc);
+            auto orbital = game->createOrbital(loc);
+            orbital->operational = operational;
+            orbital->construction_progress = construction_progress;
+            orbital->damage = damage;
+            fac = orbital;
         }
         else if (type == SLOC_EARTH_CITY)
         {
             auto ec = game->createEarthCity(loc);
             ec->num_derricks = num_derricks;
+            ec->damage = damage;
             fac = ec;
         }
         else

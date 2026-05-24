@@ -9,12 +9,18 @@ extern "C"
 
 typedef enum
 {
-    UI_CONTROLS, // empty control frame
+    UI_CONTROLS,        // empty control frame
+    UI_POD_ICON_TOOL,   // tool pod icon in cockpit
+    UI_POD_ICON_SUPPLY, // supply pod icon in cockpit
+    UI_POD_ICON_CRYO,   // cryo pod icon in cockpit
     UI_ELEMENT_COUNT
 } UIElementID;
 
 const Rectangle uiElementSources[UI_ELEMENT_COUNT] = {
     {174, 23, 51, 120},
+    {48, 696, 24, 16},
+    {113, 696, 24, 16},
+    {80, 696, 24, 16},
 };
 
 // standard buttons are from 175, 24 (TL) width 24, height 17, 2 columns, 6 rows

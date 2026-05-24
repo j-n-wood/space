@@ -18,7 +18,7 @@ public:
     char nameBuffers[ResourceType::Count][32]; // buffers
     char *names[ResourceType::Count];          // pointers to buffers
 
-    ResourceList(Stores *s, const Rectangle &d) : stores{s}, dest{d}, scrollIndex{0}, itemActive{0}, itemFocused{0}
+    ResourceList(Stores *s, const Rectangle &d) : stores{s}, dest{d}, visible{false}, scrollIndex{0}, itemActive{0}, itemFocused{0}
     {
         for (int i = 0; i < ResourceType::Count; i++)
         {

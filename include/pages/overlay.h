@@ -28,6 +28,16 @@ public:
         }
     }
 
+    bool addToolTip(const char *toolTip, const Rectangle &hoverArea)
+    {
+        if (toolTip != nullptr && CheckCollisionPointRec(GetMousePosition(), hoverArea))
+        {
+            setCurrentToolTip(toolTip);
+            return true;
+        }
+        return false; // not shown
+    }
+
     // singleton pattern
     static Overlay &getInstance()
     {

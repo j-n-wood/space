@@ -48,6 +48,15 @@ Rectangle viewportImages[CS_COUNT] = {
     {1152, 408, 208, 120}, // transit
 };
 
+Rectangle pod_icon_coordinates[6] = {
+    {810, 910, 96, 64},
+    {920, 850, 96, 64},
+    {1040, 800, 96, 64},
+    {950, 940, 96, 64},
+    {1090, 880, 96, 64},
+    {1150, 940, 96, 64},
+};
+
 // if viewstate is set to a craft, show cockpit for that
 // if not, look for shuttle at location
 void ShuttleView::activate(ViewState &viewState)
@@ -230,16 +239,39 @@ void ShuttleView::render()
         }
     }
 
+    // controls and possibly clickable status for pods
+    Overlay &overlay = Overlay::getInstance(); // get the overlay instance to set tooltips when hovering buttons
+
     // pods
     float y{160};
     for (int idx = 0; idx < craft->max_pods; ++idx)
     {
         DrawText(craft->pods[idx].description(status, sizeof status), 900, y, 20, YELLOW);
         y += 24;
+
+        // pod icons, potentially clickable
+        if (craft->pods[idx].type != PT_EMPTY)
+        {
+            // by construction, the icon image element ID happens to equal the pod type
+            DrawTexturePro(*itemsTexture, uiElementSources[craft->pods[idx].type], pod_icon_coordinates[idx], (Vector2){0, 0}, 0.f, WHITE);
+
+            // if is tool pod, and can activate in current state:
+            bool canActivate = (craft->pods[idx].type == PT_TOOL) && Game::getCurrent()->canActivatePod(craft, idx);
+            // check game logic for activation conditions
+
+            if (canActivate)
+            {
+                // add hovertext
+                if (overlay.addToolTip("Activate", pod_icon_coordinates[idx]) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                {
+                    // clicked on pod icon, activate
+                    Game::getCurrent()->activatePod(craft, idx);
+                }
+            }
+        }
     }
 
     // controls
-    Overlay &overlay = Overlay::getInstance(); // get the overlay instance to set tooltips when hovering buttons
     {
         UITransparentButtonState transparentButtonState;
         // dock (561,838 - 633, 890)
@@ -249,7 +281,18 @@ void ShuttleView::render()
         const Rectangle descendButton{642, 831, 76, 57};
         const Rectangle ascendButton{722, 832, 76, 49};
 
-        if ((craft->state == CS_ORBIT) && (overlay.renderButton(dockButton, "", "Dock", WHITE)))
+        // can dock if: in orbit, there is an orbital, it is complete
+        Game *game = Game::getCurrent();
+        bool can_dock = false;
+        if (craft->state == CS_ORBIT)
+        {
+            if (Orbital *o = game->orbitalAt(craft->location))
+            {
+                can_dock = o->operational;
+            }
+        }
+
+        if (can_dock && (overlay.renderButton(dockButton, "", "Dock", WHITE)))
         {
             craft->state = CS_ORBIT_DOCKING;
             craft->state_timer = CSTD_DOCK;
@@ -259,7 +302,10 @@ void ShuttleView::render()
             craft->state = CS_ORBIT_LAUNCH;
             craft->state_timer = CSTD_LAUNCH;
         }
-        if ((craft->state == CS_ORBIT) && (overlay.renderButton(descendButton, "", "Descend to surface", WHITE)))
+
+        // can descend IF in orbit and a shuttle
+        bool can_descend = (craft->state == CS_ORBIT) && (craft->type == CT_SHUTTLE);
+        if (can_descend && (overlay.renderButton(descendButton, "", "Descend to surface", WHITE)))
         {
             craft->state = CS_DESCENDING;
             craft->state_timer = CSTD_DESCENT;

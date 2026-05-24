@@ -58,7 +58,7 @@ Schema:
 
 CREATE TABLE bodies ( id INTEGER PRIMARY key, system_id INT, primary_id INT, type INT, name text, orbital_radius float, orbital_velocity float, initial_angle float, radius float, color text )
 CREATE TABLE systems ( id INTEGER primary key, name text )
-CREATE TABLE facilities ( id int, system_id int, location_id int, type int )
+CREATE TABLE facilities ( id int, system_id int, location_id int, type int, num_derricks int, operational int, construction_progress int, damage int);
 CREATE TABLE stores ( facility_id int, resource_id int, amount int )
 CREATE TABLE game ( game_time FLOAT )
 CREATE TABLE items ( id int, name text, description text, tool int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);
@@ -147,7 +147,7 @@ int SaveGame::initialiseSaveFile()
         "BEGIN TRANSACTION;"
         "CREATE TABLE IF NOT EXISTS bodies ( id INTEGER, system_id INT, primary_id INT, type INT, name TEXT, orbital_radius FLOAT, orbital_velocity FLOAT, initial_angle FLOAT, radius FLOAT, color TEXT );"
         "CREATE TABLE IF NOT EXISTS systems ( id INTEGER, name TEXT );"
-        "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT);"
+        "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT, operational INT, construction_progress INT, damage INT);"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT, ios_number INT, scg_number INT );"
         "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, tool int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);"
@@ -414,7 +414,7 @@ int SaveGame::saveBase(ResourceFacility *rf, int facilityId)
         return -8;
     }
 
-    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks) VALUES (?, ?, ?, ?, ?);");
+    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
     if (!facilityQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare facility insert for base");
@@ -432,6 +432,9 @@ int SaveGame::saveBase(ResourceFacility *rf, int facilityId)
              .bind(3, rf->location->id)
              .bind(4, sublocation)
              .bind(5, (int)rf->num_derricks)
+             .bind(6, rf->operational)
+             .bind(7, rf->construction_progress)
+             .bind(8, rf->damage)
              .step("SaveGame: Failed to execute facility insert for base"))
     {
         return -14;
@@ -460,7 +463,7 @@ int SaveGame::saveOrbital(Orbital *orbital, int facilityId)
         return -8;
     }
 
-    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type) VALUES (?, ?, ?, ?);");
+    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
     if (!facilityQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare facility insert for orbital");
@@ -471,6 +474,10 @@ int SaveGame::saveOrbital(Orbital *orbital, int facilityId)
              .bind(2, orbital->location->system->id)
              .bind(3, orbital->location->id)
              .bind(4, SLOC_ORBIT)
+             .bind(5, 0) // num derricks, not applicable to orbitals
+             .bind(6, orbital->operational)
+             .bind(7, orbital->construction_progress)
+             .bind(8, orbital->damage)
              .step("SaveGame: Failed to execute facility insert for orbital"))
     {
         return -14;

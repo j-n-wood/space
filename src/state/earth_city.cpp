@@ -5,6 +5,8 @@
 EarthCity::EarthCity(Location *l) : ResourceFacility{l}
 {
     training_facility = std::make_unique<TrainingFacility>();
+    operational = true; // start operational, as we don't have construction progress implemented yet
+    construction_progress = 1;
 }
 
 EarthCity::~EarthCity() {}

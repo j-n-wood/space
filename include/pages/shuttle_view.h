@@ -10,6 +10,7 @@ class ShuttleView : public BasePage
 {
     Location *location;
     const TextureAsset *bodyTexture;
+    const TextureAsset *itemsTexture;
     std::unique_ptr<AutopilotView> autopilotView;
 
 public:
@@ -19,6 +20,7 @@ public:
     ShuttleView()
     {
         bodyTexture = TextureManager::getInstance().getTexture(TEXTURE_BODIES);
+        itemsTexture = TextureManager::getInstance().getTexture(TEXTURE_ITEMS);
         backgroundSource = pageBackgroundSources[PB_COCKPIT];
         std::snprintf(title, sizeof title, "Shuttle");
     }

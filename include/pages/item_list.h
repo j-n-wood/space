@@ -19,7 +19,7 @@ public:
     char *names[MAX_ITEM_TYPE];          // pointers to buffers
     int currentCount;
 
-    ItemList(const Rectangle &d) : stores{nullptr}, game{nullptr}, dest{d}, scrollIndex{0}, itemActive{0}, itemFocused{0}, currentCount{0}
+    ItemList(const Rectangle &d) : stores{nullptr}, game{nullptr}, dest{d}, visible(false), scrollIndex{0}, itemActive{0}, itemFocused{0}, currentCount{0}
     {
         for (int i = 0; i < MAX_ITEM_TYPE; i++)
         {

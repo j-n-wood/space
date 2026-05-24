@@ -110,6 +110,12 @@ void BayView::loadToolPod(Pod *pod)
 
 void BayView::input()
 {
+    if (!craft)
+    {
+        // can't do much
+        return;
+    }
+
     if (IsKeyPressed(KEY_A) && section > 0)
     {
         --section;
@@ -117,57 +123,6 @@ void BayView::input()
     if (IsKeyPressed(KEY_D) && (section < driveSection))
     {
         ++section;
-    }
-    if ((section > 0) && (section < driveSection))
-    {
-        if (craft)
-        {
-            int podIndex = section - 1;
-            if (IsKeyPressed(KEY_ONE))
-            {
-                // set to tool
-                Game::getCurrent()->setPodType(craft, podIndex, PT_TOOL, facility);
-            }
-            if (IsKeyPressed(KEY_TWO))
-            {
-                // set to supply
-                Game::getCurrent()->setPodType(craft, podIndex, PT_SUPPLY, facility);
-            }
-            if (IsKeyPressed(KEY_THREE))
-            {
-                // set to cryo
-                Game::getCurrent()->setPodType(craft, podIndex, PT_CRYO, facility);
-            }
-
-            bool inspectPod = false;
-
-            if (IsKeyPressed(KEY_S))
-            {
-                inspectPod = true;
-            }
-
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-            {
-                Vector2 mousePos = GetMousePosition();
-                if (CheckCollisionPointRec(mousePos, main_section_dest))
-                {
-                    inspectPod = true;
-                }
-            }
-
-            if (inspectPod)
-            {
-                // if supply pod, choose resource
-                if (craft->pods[podIndex].type == PT_SUPPLY)
-                {
-                    loadSupplyPod(&craft->pods[podIndex]);
-                }
-                else if (craft->pods[podIndex].type == PT_TOOL)
-                {
-                    loadToolPod(&craft->pods[podIndex]);
-                }
-            }
-        }
     }
 
     if (resourceList.visible)
@@ -201,6 +156,49 @@ void BayView::input()
             // clicked on an item, get the ID and set it for the current pod
             int item_id = itemList.getFocusItemID();
             itemList.game->setToolPodContent(&craft->pods[section - 1], &facility->stores, item_id);
+        }
+    }
+
+    if ((section > 0) && (section < driveSection))
+    {
+        int podIndex = section - 1;
+        if (IsKeyPressed(KEY_ONE))
+        {
+            // set to tool
+            Game::getCurrent()->setPodType(craft, podIndex, PT_TOOL, facility);
+        }
+        if (IsKeyPressed(KEY_TWO))
+        {
+            // set to supply
+            Game::getCurrent()->setPodType(craft, podIndex, PT_SUPPLY, facility);
+        }
+        if (IsKeyPressed(KEY_THREE))
+        {
+            // set to cryo
+            Game::getCurrent()->setPodType(craft, podIndex, PT_CRYO, facility);
+        }
+
+        bool inspectPod = false;
+
+        Overlay &overlay = Overlay::getInstance();
+
+        // debug render outline of target rect
+        // DrawRectangle(main_section_dest.x, main_section_dest.y, main_section_dest.width, main_section_dest.height, GRAY);
+
+        inspectPod = (overlay.addToolTip("Inspect pod", main_section_dest) && (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))) || IsKeyPressed(KEY_S);
+
+        if (inspectPod)
+        {
+            // if supply pod, choose resource
+            if (craft->pods[podIndex].type == PT_SUPPLY)
+            {
+                loadSupplyPod(&craft->pods[podIndex]);
+            }
+            else if (craft->pods[podIndex].type == PT_TOOL)
+            {
+                loadToolPod(&craft->pods[podIndex]);
+            }
+            return; // no other input
         }
     }
 
