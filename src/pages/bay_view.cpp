@@ -159,6 +159,8 @@ void BayView::input()
         }
     }
 
+    Overlay &overlay = Overlay::getInstance();
+
     if ((section > 0) && (section < driveSection))
     {
         int podIndex = section - 1;
@@ -179,8 +181,6 @@ void BayView::input()
         }
 
         bool inspectPod = false;
-
-        Overlay &overlay = Overlay::getInstance();
 
         // debug render outline of target rect
         // DrawRectangle(main_section_dest.x, main_section_dest.y, main_section_dest.width, main_section_dest.height, GRAY);
@@ -203,26 +203,24 @@ void BayView::input()
     }
 
     // if click in background space, go to cockpit
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    bool clickCockpit = ((section == 0) && (overlay.addToolTip("Cockpit", cockpit_dest) && (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)))) || IsKeyPressed(KEY_C);
+
+    if (clickCockpit)
     {
-        Vector2 mousePos = GetMousePosition();
-        if (CheckCollisionPointRec(mousePos, cockpit_dest))
+        // set viewState to cockpit view for this craft
+        auto &pm{PageManager::getInstance()};
+        if (craft->type == CT_SHUTTLE)
         {
-            // set viewState to cockpit view for this craft
-            auto &pm{PageManager::getInstance()};
-            if (craft->type == CT_SHUTTLE)
-            {
-                pm.viewState.setCurrentCraft(craft);
-                pm.switchToPage(PAGE_SHUTTLE);
-            }
-            else if (craft->type == CT_IOS)
-            {
-                pm.viewState.setCurrentCraft(craft);
-                pm.switchToPage(PAGE_COCKPIT);
-            }
+            pm.viewState.setCurrentCraft(craft);
+            pm.switchToPage(PAGE_SHUTTLE);
+        }
+        else if (craft->type == CT_IOS)
+        {
+            pm.viewState.setCurrentCraft(craft);
+            pm.switchToPage(PAGE_COCKPIT);
         }
     }
-};
+}
 
 Craft *BayView::getCraft()
 {

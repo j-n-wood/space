@@ -506,7 +506,7 @@ bool Game::activatePod(Craft *craft, int pod_index)
         {
             orbital = createOrbital(craft->location);
         }
-        if (orbital->construction_progress++ >= 8)
+        if (++orbital->construction_progress >= 8)
         {
             TraceLog(LOG_INFO, "Orbital construction complete at location %s", craft->location->name);
             orbital->operational = true;
@@ -523,7 +523,7 @@ bool Game::activatePod(Craft *craft, int pod_index)
         {
             rf = createResourceFacility(craft->location);
         }
-        if (rf->construction_progress++ >= 2)
+        if (++rf->construction_progress >= 2)
         {
             TraceLog(LOG_INFO, "Resource facility construction complete at location %s", craft->location->name);
             rf->operational = true;

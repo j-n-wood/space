@@ -62,6 +62,7 @@ void buildTestData(Game *game)
 	of->stores.items[0] = 3; // lets put derricks into orbit :)
 	of->stores.items[I_Chassis] = 1;
 	of->stores.items[I_Drive] = 2;
+	of->stores.items[Of_Frame] = 5;
 
 	// test IOS
 	IOS *ios = game->createIOS(of);
@@ -82,6 +83,15 @@ void buildTestData(Game *game)
 	Pod &pod = ios2->pods[0];
 	pod.contentType = ItemType::Of_Frame;
 	pod.amount = 1;
+
+	ios2->setPodType(1, PT_TOOL);
+	ios2->pods[1].contentType = ItemType::Of_Frame;
+	ios2->pods[1].amount = 1;
+
+	ios2->setPodType(2, PT_TOOL);
+	ios2->pods[2].contentType = ItemType::Of_Frame;
+	ios2->pods[2].amount = 1;
+
 	// set dest -> earth orbital
 	ios2->setDestination(0, earth);
 	ios2->setDestination(1, luna);
@@ -96,7 +106,6 @@ void buildTestData(Game *game)
 	// set OF frame research complete so we can test orbital construction
 	game->researchTopics[6].progress = game->researchTopics[6].requiredTime;
 	game->items[ItemType::Of_Frame].researched = true;
-	of->stores.items[ItemType::Of_Frame] = 1; // put an OF frame in orbit so we can test construction
 }
 
 int main()
