@@ -7,7 +7,7 @@
 
 const int MAX_BODY_COUNT = 64;
 
-Orrery::Orrery() : last_time(-1.0f), focus_index(-1), system(nullptr), focus({0.0f, 0.0f})
+Orrery::Orrery() : last_time(-1.0f), focus_index(-1), system(nullptr), focus({0.0f, 0.0f}), onDestinationSelectedCallback(nullptr), onDestinationSelectCancelledCallback(nullptr)
 {
     // constructor can be used to initialise any state the orrery needs to track
     // e.g. cached body positions, etc.

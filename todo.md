@@ -8,13 +8,11 @@
 
 * scg
 
-## tool pod activation
-
 ## locations -> array
 
 * define location 0 as space (per system?)
 * ditch <algorithm>
-* asteriod locations?
+* asteriod locations? Generic belt, major asteriods?
 
 ## bay view animation
 
@@ -25,6 +23,10 @@
 ## production details
 
 * need restrictions, tech level speed
+
+## resource scan
+
+* hierarchical selection
 
 ## seam model
 

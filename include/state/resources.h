@@ -23,3 +23,9 @@ enum ResourceType
 };
 
 extern const char *ResourceName[ResourceType::Count];
+
+inline ResourceType &operator++(ResourceType &res)
+{
+    res = static_cast<ResourceType>(static_cast<int>(res) + 1);
+    return res;
+}
