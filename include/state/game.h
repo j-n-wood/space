@@ -33,7 +33,7 @@ public:
     float calculateTransitTime(Location *from, Location *to) override;
 };
 
-class LogSink;
+class EventSink;
 
 class Game
 {
@@ -76,6 +76,8 @@ public:
 
     // research topics - array of instances as not passed around
     std::vector<ResearchTopic> researchTopics;
+
+    std::vector<EventSink *> eventSinks; // non-owning collection of event sinks to send game events to, e.g. for logging or triggering UI updates
 
     std::unique_ptr<TransitTimeCalculator> transitTimeCalculator;
 
@@ -149,12 +151,17 @@ public:
     void setSupplyPodContent(Pod *pod, Stores *stores, int resource_id, int amount);
     void setToolPodContent(Pod *pod, Stores *stores, int item_id);
     bool canActivatePod(Craft *craft, int pod_index);
-    bool activatePod(Craft *craft, int pod_index, LogSink *logsink = nullptr);
+    bool activatePod(Craft *craft, int pod_index);
 
     // update by delta
     void update(float delta);
     void advanceTick();
 
     // events
+    void addEventSink(EventSink *sink);
+    void removeEventSink(EventSink *sink);
+
+    void raiseLogEvent(const char *log_text);
+
     void onSpacecraftArrival(Craft *craft);
 };

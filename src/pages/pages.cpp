@@ -53,8 +53,22 @@ BasePage *PageManager::switchToPage(Page newPage)
 
     if (newPageInstance != nullptr && newPageInstance != currentPage)
     {
+        if (currentPage)
+        {
+            currentPage->deactivate(); // call deactivate on the old page to clean up any state
+        }
         currentPage = newPageInstance;
         currentPage->activate(viewState); // call activate on the new page to set it up
+    }
+    return currentPage;
+}
+
+BasePage *PageManager::reactivateCurrentPage()
+{
+    if (currentPage)
+    {
+        currentPage->deactivate();        // call deactivate to clean up any existing state
+        currentPage->activate(viewState); // re-activate current page to update any state based on new game state
     }
     return currentPage;
 }

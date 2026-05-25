@@ -52,6 +52,7 @@ public:
     BasePage();
     virtual ~BasePage() {}
     virtual void activate(ViewState &viewState); // on change to this page, set any required state
+    virtual void deactivate() {};                // on change away from this page, clear any state if needed
     virtual void render();                       // render page contents. May use raygui to handle interactive elements
     virtual void input();                        // process input (keyboard, mouse). Also interactive elements that can perform the same actions, so can render content such as tooltips.
     virtual void update(const float delta) {}    // default no update behavior, override for pages with dynamic elements;

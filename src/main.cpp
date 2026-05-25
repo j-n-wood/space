@@ -233,7 +233,7 @@ int main()
 
 					// force UI pages to reset
 					auto &pm{PageManager::getInstance()};
-					currentPage->activate(pm.viewState); // TODO ugly
+					pm.reactivateCurrentPage();
 				}
 				else
 				{

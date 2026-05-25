@@ -1,7 +1,7 @@
 #include "loaders/loader.h"
 #include "state/game.h"
 #include "state/research_facility.h"
-#include "state/log_sink.h"
+#include "state/event_sink.h"
 
 #include <cstdio>
 #include <cmath>
@@ -10,6 +10,8 @@
 std::unique_ptr<Game> Game::current;
 
 const float MAX_TIMESTEP = 1.0f;
+
+EventSink nullEventSink;
 
 float LinearTransitTimeCalculator::calculateTransitTime(Location *from, Location *to)
 {
@@ -480,11 +482,8 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
     return false;
 }
 
-NullLogSink nullLogSink;
-
-bool Game::activatePod(Craft *craft, int pod_index, LogSink *logsink)
+bool Game::activatePod(Craft *craft, int pod_index)
 {
-    LogSink *effectiveLogSink = logsink ? logsink : &nullLogSink; // use provided log sink or create a dummy one if not provided
     // sanity check
     if (!canActivatePod(craft, pod_index))
     {
@@ -507,19 +506,19 @@ bool Game::activatePod(Craft *craft, int pod_index, LogSink *logsink)
         {
             orbital = createOrbital(craft->location);
             std::snprintf(buffer, sizeof buffer, "Construction started on orbital facility at location %s", craft->location->name);
-            effectiveLogSink->addLog(buffer);
+            raiseLogEvent(buffer);
         }
         if (orbital->construction_progress++ >= 8)
         {
             TraceLog(LOG_INFO, "Orbital construction complete at location %s", craft->location->name);
             orbital->operational = true;
             std::snprintf(buffer, sizeof buffer, "Orbital facility operational at location %s", craft->location->name);
-            effectiveLogSink->addLog(buffer);
+            raiseLogEvent(buffer);
         }
         else
         {
             std::snprintf(buffer, sizeof buffer, "Orbital construction progress at location %s: %d%%", craft->location->name, orbital->construction_progress * 100 / 8);
-            effectiveLogSink->addLog(buffer);
+            raiseLogEvent(buffer);
         }
         // remove pod content
         pod.amount = 0;
@@ -532,14 +531,14 @@ bool Game::activatePod(Craft *craft, int pod_index, LogSink *logsink)
         {
             rf = createResourceFacility(craft->location);
             std::snprintf(buffer, sizeof buffer, "Construction started on resource facility at location %s", craft->location->name);
-            effectiveLogSink->addLog(buffer);
+            raiseLogEvent(buffer);
         }
         if (rf->construction_progress++ >= 2)
         {
             TraceLog(LOG_INFO, "Resource facility construction complete at location %s", craft->location->name);
             rf->operational = true;
             std::snprintf(buffer, sizeof buffer, "Resource facility operational at location %s", craft->location->name);
-            effectiveLogSink->addLog(buffer);
+            raiseLogEvent(buffer);
         }
         // remove pod content
         pod.amount = 0;
@@ -617,4 +616,25 @@ void Game::onSpacecraftArrival(Craft *craft)
 {
     // craft->arrive() already called
     // this can trigger game events
+}
+
+void Game::addEventSink(EventSink *sink)
+{
+    if (sink)
+    {
+        eventSinks.push_back(sink);
+    }
+}
+
+void Game::removeEventSink(EventSink *sink)
+{
+    eventSinks.erase(std::remove(eventSinks.begin(), eventSinks.end(), sink), eventSinks.end());
+}
+
+void Game::raiseLogEvent(const char *log_text)
+{
+    for (auto sink : eventSinks)
+    {
+        sink->addLog(log_text);
+    }
 }

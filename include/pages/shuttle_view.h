@@ -31,6 +31,7 @@ public:
     }
 
     void activate(ViewState &viewState) override;
+    void deactivate() override;
     void input() override;
     void render() override;
     void update(const float delta) override;

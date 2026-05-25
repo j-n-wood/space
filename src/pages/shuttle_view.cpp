@@ -88,6 +88,13 @@ void ShuttleView::activate(ViewState &viewState)
     {
         std::snprintf(title, sizeof title, "No Shuttle");
     }
+
+    Game::getCurrent()->addEventSink(&pageLog);
+}
+
+void ShuttleView::deactivate()
+{
+    Game::getCurrent()->removeEventSink(&pageLog);
 }
 
 void destinationSelected(void *state, Location *loc)
@@ -265,7 +272,7 @@ void ShuttleView::render()
                 if (overlay.addToolTip("Activate", pod_icon_coordinates[idx]) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                 {
                     // clicked on pod icon, activate
-                    Game::getCurrent()->activatePod(craft, idx, &pageLog);
+                    Game::getCurrent()->activatePod(craft, idx);
                 }
             }
         }

@@ -50,6 +50,7 @@ public:
     PageManager &operator=(const PageManager &) = delete;
 
     BasePage *switchToPage(Page newPage);
+    BasePage *reactivateCurrentPage(); // on load of game state, reactivate current page to update any page state based on new game state
     inline BasePage *getCurrentPage() const { return currentPage; }
 
     // singleton access
