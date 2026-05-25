@@ -505,21 +505,13 @@ bool Game::activatePod(Craft *craft, int pod_index)
         if (!orbital)
         {
             orbital = createOrbital(craft->location);
-            std::snprintf(buffer, sizeof buffer, "Construction started on orbital facility at location %s", craft->location->name);
-            raiseLogEvent(buffer);
         }
         if (orbital->construction_progress++ >= 8)
         {
             TraceLog(LOG_INFO, "Orbital construction complete at location %s", craft->location->name);
             orbital->operational = true;
-            std::snprintf(buffer, sizeof buffer, "Orbital facility operational at location %s", craft->location->name);
-            raiseLogEvent(buffer);
         }
-        else
-        {
-            std::snprintf(buffer, sizeof buffer, "Orbital construction progress at location %s: %d%%", craft->location->name, orbital->construction_progress * 100 / 8);
-            raiseLogEvent(buffer);
-        }
+        raiseOrbitalConstructionEvent(orbital);
         // remove pod content
         pod.amount = 0;
     }
@@ -530,16 +522,13 @@ bool Game::activatePod(Craft *craft, int pod_index)
         if (!rf)
         {
             rf = createResourceFacility(craft->location);
-            std::snprintf(buffer, sizeof buffer, "Construction started on resource facility at location %s", craft->location->name);
-            raiseLogEvent(buffer);
         }
         if (rf->construction_progress++ >= 2)
         {
             TraceLog(LOG_INFO, "Resource facility construction complete at location %s", craft->location->name);
             rf->operational = true;
-            std::snprintf(buffer, sizeof buffer, "Resource facility operational at location %s", craft->location->name);
-            raiseLogEvent(buffer);
         }
+        raiseResourceFacilityConstructionEvent(rf);
         // remove pod content
         pod.amount = 0;
     }
@@ -636,5 +625,30 @@ void Game::raiseLogEvent(const char *log_text)
     for (auto sink : eventSinks)
     {
         sink->addLog(log_text);
+    }
+}
+
+void Game::raiseOrbitalConstructionEvent(Orbital *orbital)
+{
+    for (auto sink : eventSinks)
+    {
+        sink->onOrbitalConstruction(orbital);
+    }
+}
+
+void Game::raiseResourceFacilityConstructionEvent(ResourceFacility *rf)
+{
+    for (auto sink : eventSinks)
+    {
+        sink->onResourceFacilityConstruction(rf);
+    }
+}
+
+void Game::raiseProductionCompleteEvent(Factory *factory, int item_id)
+{
+    TraceLog(LOG_INFO, "Production complete: item %d", item_id);
+    for (auto sink : eventSinks)
+    {
+        sink->onProductionComplete(factory, item_id);
     }
 }

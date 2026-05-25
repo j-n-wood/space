@@ -7,7 +7,7 @@
 #include "pages/destination_view.h"
 #include "pages/page_log.h"
 
-class ShuttleView : public BasePage
+class ShuttleView : public BasePage, EventSink
 {
     Location *location;
     const TextureAsset *bodyTexture;
@@ -35,4 +35,7 @@ public:
     void input() override;
     void render() override;
     void update(const float delta) override;
+
+    // events
+    void onOrbitalConstruction(Orbital *orbital) override;
 };

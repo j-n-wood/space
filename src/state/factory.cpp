@@ -77,6 +77,9 @@ void Factory::update()
         if (++queueItem.progress >= queueItem.build_time)
         {
             ++stores->items[queueItem.item_id];
+
+            Game::getCurrent()->raiseProductionCompleteEvent(this, queueItem.item_id);
+
             // done!
             if (queueItem.repeat)
             {

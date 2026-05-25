@@ -30,7 +30,13 @@ void FactoryView::activate(ViewState &viewState)
     if (f)
     {
         factory = f->factory.get();
+        Game::getCurrent()->addEventSink(this);
     }
+}
+
+void FactoryView::deactivate()
+{
+    Game::getCurrent()->removeEventSink(this);
 }
 
 void FactoryView::input()
@@ -140,4 +146,26 @@ void FactoryView::render()
             DrawTexturePro(*docImageTexture, itemImageSources[imagine_index], itemImageTarget, (Vector2){0, 0}, 0.f, WHITE);
         }
     }
+
+    pageLog.render();
+}
+
+void FactoryView::update(const float delta)
+{
+    pageLog.update(delta);
+}
+
+void FactoryView::onProductionComplete(Factory *f, int item_id)
+{
+    if (f != this->factory)
+    {
+        return;
+    }
+
+    auto game{Game::getCurrent()};
+    auto &item{game->items[item_id]};
+
+    char log[256];
+    std::snprintf(log, sizeof log, "Produced %s", item.name);
+    pageLog.addLog(log);
 }

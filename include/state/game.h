@@ -162,6 +162,9 @@ public:
     void removeEventSink(EventSink *sink);
 
     void raiseLogEvent(const char *log_text);
+    void raiseOrbitalConstructionEvent(Orbital *orbital);
+    void raiseResourceFacilityConstructionEvent(ResourceFacility *rf);
+    void raiseProductionCompleteEvent(Factory *factory, int item_id);
 
     void onSpacecraftArrival(Craft *craft);
 };

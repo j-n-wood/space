@@ -89,12 +89,12 @@ void ShuttleView::activate(ViewState &viewState)
         std::snprintf(title, sizeof title, "No Shuttle");
     }
 
-    Game::getCurrent()->addEventSink(&pageLog);
+    Game::getCurrent()->addEventSink(this);
 }
 
 void ShuttleView::deactivate()
 {
-    Game::getCurrent()->removeEventSink(&pageLog);
+    Game::getCurrent()->removeEventSink(this);
 }
 
 void destinationSelected(void *state, Location *loc)
@@ -340,4 +340,22 @@ void ShuttleView::render()
 void ShuttleView::update(const float delta)
 {
     pageLog.update(delta);
+}
+
+void ShuttleView::onOrbitalConstruction(Orbital *orbital)
+{
+    char buffer[256];
+    if (craft->location == orbital->location)
+    {
+        if (orbital->operational)
+        {
+            std::snprintf(buffer, sizeof buffer, "Orbital construction complete at location %s", craft->location->name);
+            pageLog.addLog(buffer);
+        }
+        else
+        {
+            std::snprintf(buffer, sizeof buffer, "Orbital construction progress at location %s: %d%%", craft->location->name, orbital->construction_progress * 100 / 8);
+            pageLog.addLog(buffer);
+        }
+    }
 }
