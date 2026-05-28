@@ -3,7 +3,7 @@
 #include "state/event_sink.h"
 
 const int log_history_size = 4;
-const int log_display_duration = 1.2; // seconds
+const float log_display_duration = 1.2; // seconds
 
 class PageLog : public EventSink
 {
