@@ -339,6 +339,12 @@ void Game::setPodType(Craft *craft, int index, PodType pt, Facility *facility)
         return;
     }
 
+    // weapons are craft-wide: changing the type of any weapon pod unloads the whole craft first
+    if (craft->pods[index].type == PT_WEAPON)
+    {
+        unloadAllPods(craft, facility);
+    }
+
     // unload existing
     Pod &pod{craft->pods[index]};
     switch (pod.type)
@@ -401,6 +407,12 @@ void Game::setToolPodContent(Pod *pod, Stores *stores, int item_id)
         return;
     }
 
+    if (items[item_id].pod_type != PT_TOOL)
+    {
+        TraceLog(LOG_ERROR, "Item %d is not a tool-pod item; use loadWeapon for weapons", item_id);
+        return;
+    }
+
     // remove existing content if any
     if (pod->amount > 0)
     {
@@ -425,6 +437,88 @@ void Game::setToolPodContent(Pod *pod, Stores *stores, int item_id)
         // remove from stores
         stores->items[item_id] -= pod->amount;
     }
+}
+
+void Game::unloadAllPods(Craft *craft, Facility *facility)
+{
+    if (!craft || !facility)
+    {
+        TraceLog(LOG_ERROR, "Missing craft or facility to unloadAllPods");
+        return;
+    }
+
+    bool weaponReturned{false};
+    for (int i = 0; i < craft->max_pods; ++i)
+    {
+        Pod &pod{craft->pods[i]};
+        switch (pod.type)
+        {
+        case PT_TOOL:
+            if (pod.amount)
+            {
+                facility->stores.items[pod.contentType] += pod.amount;
+            }
+            break;
+        case PT_SUPPLY:
+            if (pod.amount)
+            {
+                facility->stores.resources[pod.contentType] += pod.amount;
+            }
+            break;
+        case PT_WEAPON:
+            // weapon is craft-wide: one item back to stores, not one per pod
+            if (!weaponReturned)
+            {
+                facility->stores.items[pod.contentType] += 1;
+                weaponReturned = true;
+            }
+            break;
+        case PT_CRYO:
+            // TODO
+            break;
+        default:
+            break;
+        }
+        pod.type = PT_EMPTY;
+        pod.contentType = 0;
+        pod.amount = 0;
+    }
+}
+
+bool Game::loadWeapon(Craft *craft, int item_id, Facility *facility)
+{
+    if (!craft || !facility)
+    {
+        TraceLog(LOG_ERROR, "Missing craft or facility to loadWeapon");
+        return false;
+    }
+    if (item_id < 0 || item_id >= (int)items.size())
+    {
+        TraceLog(LOG_ERROR, "Invalid item_id %d to loadWeapon", item_id);
+        return false;
+    }
+    if (items[item_id].pod_type != PT_WEAPON)
+    {
+        TraceLog(LOG_ERROR, "Item %d is not a weapon", item_id);
+        return false;
+    }
+    if (facility->stores.items[item_id] < 1)
+    {
+        return false;
+    }
+
+    unloadAllPods(craft, facility);
+
+    for (int i = 0; i < craft->max_pods; ++i)
+    {
+        Pod &pod{craft->pods[i]};
+        pod.type = PT_WEAPON;
+        pod.contentType = item_id;
+        pod.amount = 0;
+    }
+
+    facility->stores.items[item_id] -= 1;
+    return true;
 }
 
 bool Game::canActivatePod(Craft *craft, int pod_index)

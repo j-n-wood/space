@@ -154,7 +154,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT, operational INT, construction_progress INT, damage INT);"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT, ios_number INT, scg_number INT );"
-        "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, tool int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);"
+        "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, pod_type int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);"
         "CREATE TABLE IF NOT EXISTS item_build_requirements ( item_id int, resource_id int, amount int);"
         "CREATE TABLE IF NOT EXISTS research_topics ( id int, name text, description text, required_time float, progress float, available int);"
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_items ( topic_id int, item_id int);"
@@ -567,12 +567,12 @@ int SaveGame::saveItems(Game *game)
 
     std::vector<ItemBuildRequirement> reqs;
     {
-        SQLiteQuery itemQ(loader, "INSERT INTO items (id, name, description, tool, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        SQLiteQuery itemQ(loader, "INSERT INTO items (id, name, description, pod_type, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
         for (auto &item : game->items)
         {
             sqlite3_reset(itemQ.stmt);
             sqlite3_clear_bindings(itemQ.stmt);
-            if (!itemQ.bind(1, idx).bind(2, item.name).bind(3, item.description).bind(4, item.tool).bind(5, item.researched).bind(6, item.tech_level).bind(7, item.orbital).bind(8, item.mass).bind(9, item.production_time).bind(10, item.doc_image_index).bind(11, item.production_image_index).bind(12, item.pod_capacity).step("SaveGame: Failed to save item"))
+            if (!itemQ.bind(1, idx).bind(2, item.name).bind(3, item.description).bind(4, item.pod_type).bind(5, item.researched).bind(6, item.tech_level).bind(7, item.orbital).bind(8, item.mass).bind(9, item.production_time).bind(10, item.doc_image_index).bind(11, item.production_image_index).bind(12, item.pod_capacity).step("SaveGame: Failed to save item"))
             {
                 return -15;
             }

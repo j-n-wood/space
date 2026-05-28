@@ -161,6 +161,19 @@ void BayView::input()
 
     Overlay &overlay = Overlay::getInstance();
 
+    // TEMP: debug hotkeys for craft-wide weapon loading until dedicated UI lands
+    if (IsKeyPressed(KEY_W))
+    {
+        int weapon_id = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)
+                            ? (int)ItemType::Pulse_Blaster_Laser
+                            : (int)ItemType::DFCC;
+        Game::getCurrent()->loadWeapon(craft, weapon_id, facility);
+    }
+    if (IsKeyPressed(KEY_U))
+    {
+        Game::getCurrent()->unloadAllPods(craft, facility);
+    }
+
     if ((section > 0) && (section < driveSection))
     {
         int podIndex = section - 1;
@@ -393,6 +406,15 @@ void BayView::renderPod(Pod *pod)
         break;
     case PT_CRYO:
         DrawTexturePro(*partsTexture, cryo_pod, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);
+        break;
+    case PT_WEAPON:
+        DrawTexturePro(*partsTexture, tool_pod, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);
+        {
+            char buffer[64];
+            std::snprintf(buffer, sizeof buffer, "%s", Game::getCurrent()->items[pod->contentType].name);
+            int textWidth = MeasureText(buffer, 20);
+            DrawText(buffer, (int)(main_section_dest.x + main_section_dest.width / 2 - textWidth / 2), (int)(main_section_dest.y + main_section_dest.height + 10), 20, WHITE);
+        }
         break;
     default:
         break;

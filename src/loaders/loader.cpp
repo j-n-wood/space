@@ -184,7 +184,7 @@ bool Loader::loadItems()
     game->items.clear();
 
     {
-        SQLiteQuery query(this, "SELECT id, name, description, tool, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity FROM items ORDER BY id");
+        SQLiteQuery query(this, "SELECT id, name, description, pod_type, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity FROM items ORDER BY id");
 
         while (query.next())
         {
@@ -192,7 +192,7 @@ bool Loader::loadItems()
             item.id = sqlite3_column_int(query, 0);
             copyFixed(item.name, sizeof item.name, (const char *)sqlite3_column_text(query, 1));
             copyFixed(item.description, sizeof item.description, (const char *)sqlite3_column_text(query, 2));
-            item.tool = sqlite3_column_int(query, 3) > 0;
+            item.pod_type = sqlite3_column_int(query, 3);
             item.researched = sqlite3_column_int(query, 4) > 0;
             item.tech_level = sqlite3_column_int(query, 5);
             item.orbital = sqlite3_column_int(query, 6) > 0;

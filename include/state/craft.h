@@ -44,6 +44,7 @@ typedef enum
     PT_TOOL,
     PT_SUPPLY,
     PT_CRYO,
+    PT_WEAPON,
     PT_COUNT
 } PodType;
 

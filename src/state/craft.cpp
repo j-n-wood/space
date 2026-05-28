@@ -9,7 +9,8 @@ const char *PodTypeName[PT_COUNT] = {
     "EMPTY",
     "TOOL",
     "SUPPLY",
-    "CRYO"};
+    "CRYO",
+    "WEAPON"};
 
 const char *Pod::description(char *dest, size_t len)
 {
@@ -51,6 +52,9 @@ const char *Pod::description(char *dest, size_t len)
         break;
     case PT_CRYO:
         // TODO
+        break;
+    case PT_WEAPON:
+        std::snprintf(dest, len, "%s", Game::getCurrent()->items[contentType].name);
         break;
     default:
         std::snprintf(dest, len, "EMPTY");

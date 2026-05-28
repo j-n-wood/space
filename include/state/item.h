@@ -93,7 +93,7 @@ public:
     int id;
     char name[NAME_MAX_LEN];
     char description[DESC_MAX_LEN];
-    bool tool;       // can tool pod
+    int pod_type;    // PodType this loads onto; PT_EMPTY for non-pod items
     bool researched; // can produce
     int tech_level;  // required to produce
     bool orbital;    // produced in orbit only
