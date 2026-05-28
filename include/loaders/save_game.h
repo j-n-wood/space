@@ -58,6 +58,12 @@ class SaveGame
     /// Persist autopilot against a craft
     int saveAutopilot(Craft *craft, int craftId);
 
+    /// Persist a factory's queue belonging to a facility.
+    int saveFactoryQueue(Factory *factory, int facilityId);
+
+    /// Persist a research facility's active project belonging to a facility.
+    int saveResearchState(ResourceFacility *rf, int facilityId);
+
 public:
     SaveGame();
     ~SaveGame();

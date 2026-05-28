@@ -41,9 +41,21 @@ bool Game::initialise(Loader *loader)
         return false;
     }
 
+    if (!loader->loadFactoryQueues())
+    {
+        TraceLog(LOG_ERROR, "Failed to load factory queues");
+        return false;
+    }
+
     if (!loader->loadResearchTopics())
     {
         TraceLog(LOG_ERROR, "Failed to load research topics");
+        return false;
+    }
+
+    if (!loader->loadResearchFacilities())
+    {
+        TraceLog(LOG_ERROR, "Failed to load research facilities");
         return false;
     }
 

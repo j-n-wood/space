@@ -8,6 +8,8 @@
 #include "state/stores.h"
 #include "state/resources.h"
 #include "state/autopilot.h"
+#include "state/factory.h"
+#include "state/research_facility.h"
 
 #include <cstdio>
 #include <cstring>
@@ -67,6 +69,8 @@ CREATE TABLE research_topics ( id int, name text, description text, required_tim
 CREATE TABLE research_topic_unlocks_items ( topic_id int, item_id int);
 CREATE TABLE research_topic_unlocks_topics ( topic_id int, unlocks_topic_id int);
 CREATE TABLE body_resources ( body_id int, resource_id int, availability int );
+CREATE TABLE factory_queue ( facility_id int, queue_position int, item_id int, build_time int, progress int, started int, repeat int );
+CREATE TABLE research_facilities ( facility_id int, current_project int );
 */
 
 SaveGame::SaveGame()
@@ -150,7 +154,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT, operational INT, construction_progress INT, damage INT);"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT, ios_number INT, scg_number INT );"
-        "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, tool int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);"
+        "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, pod_type int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);"
         "CREATE TABLE IF NOT EXISTS item_build_requirements ( item_id int, resource_id int, amount int);"
         "CREATE TABLE IF NOT EXISTS research_topics ( id int, name text, description text, required_time float, progress float, available int);"
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_items ( topic_id int, item_id int);"
@@ -162,6 +166,8 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS craft_autopilot ( craft_id int, state int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot_flows ( craft_id int, resource_index int, flow_flags int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot_cursors ( craft_id int, endpoint_index int, cursor_position int );"
+        "CREATE TABLE IF NOT EXISTS factory_queue ( facility_id INT, queue_position INT, item_id INT, build_time INT, progress INT, started INT, repeat INT );"
+        "CREATE TABLE IF NOT EXISTS research_facilities ( facility_id INT, current_project INT );"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -192,7 +198,7 @@ int SaveGame::saveGame(Game *game)
 
     ScopedSqliteError errorMessage;
     char sql[256];
-    const char *clearSql = "DELETE FROM game; DELETE FROM stores; DELETE FROM facilities; DELETE FROM bodies; DELETE FROM systems;";
+    const char *clearSql = "DELETE FROM game; DELETE FROM stores; DELETE FROM facilities; DELETE FROM bodies; DELETE FROM systems; DELETE FROM factory_queue; DELETE FROM research_facilities;";
     int rc = sqlite3_exec(loader->db, clearSql, nullptr, nullptr, errorMessage);
     if (rc != SQLITE_OK)
     {
@@ -440,7 +446,19 @@ int SaveGame::saveBase(ResourceFacility *rf, int facilityId)
         return -14;
     }
 
-    return saveStores(&rf->stores, facilityId);
+    int rc = saveStores(&rf->stores, facilityId);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    rc = saveFactoryQueue(rf->factory.get(), facilityId);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    return saveResearchState(rf, facilityId);
 }
 
 int SaveGame::saveOrbital(Orbital *orbital, int facilityId)
@@ -483,7 +501,13 @@ int SaveGame::saveOrbital(Orbital *orbital, int facilityId)
         return -14;
     }
 
-    return saveStores(&orbital->stores, facilityId);
+    int rc = saveStores(&orbital->stores, facilityId);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    return saveFactoryQueue(orbital->factory.get(), facilityId);
 }
 
 int SaveGame::saveStores(Stores *stores, int facilityId)
@@ -543,12 +567,12 @@ int SaveGame::saveItems(Game *game)
 
     std::vector<ItemBuildRequirement> reqs;
     {
-        SQLiteQuery itemQ(loader, "INSERT INTO items (id, name, description, tool, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        SQLiteQuery itemQ(loader, "INSERT INTO items (id, name, description, pod_type, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
         for (auto &item : game->items)
         {
             sqlite3_reset(itemQ.stmt);
             sqlite3_clear_bindings(itemQ.stmt);
-            if (!itemQ.bind(1, idx).bind(2, item.name).bind(3, item.description).bind(4, item.tool).bind(5, item.researched).bind(6, item.tech_level).bind(7, item.orbital).bind(8, item.mass).bind(9, item.production_time).bind(10, item.doc_image_index).bind(11, item.production_image_index).bind(12, item.pod_capacity).step("SaveGame: Failed to save item"))
+            if (!itemQ.bind(1, idx).bind(2, item.name).bind(3, item.description).bind(4, item.pod_type).bind(5, item.researched).bind(6, item.tech_level).bind(7, item.orbital).bind(8, item.mass).bind(9, item.production_time).bind(10, item.doc_image_index).bind(11, item.production_image_index).bind(12, item.pod_capacity).step("SaveGame: Failed to save item"))
             {
                 return -15;
             }
@@ -822,6 +846,82 @@ int SaveGame::saveAutopilot(Craft *craft, int craftId)
         {
             return -14;
         }
+    }
+
+    return 0;
+}
+
+int SaveGame::saveFactoryQueue(Factory *factory, int facilityId)
+{
+    if (!loader || !loader->db)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Null loader pointer");
+        return -6;
+    }
+
+    if (!factory || factory->queue.empty())
+    {
+        return 0;
+    }
+
+    SQLiteQuery query(loader, "INSERT INTO factory_queue (facility_id, queue_position, item_id, build_time, progress, started, repeat) VALUES (?, ?, ?, ?, ?, ?, ?);");
+    if (!query.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare factory_queue insert");
+        return -9;
+    }
+
+    for (size_t i = 0; i < factory->queue.size(); ++i)
+    {
+        const QueueItem &qi = factory->queue[i];
+        if (!query.reset()
+                 .bind(1, facilityId)
+                 .bind(2, (int)i)
+                 .bind(3, qi.item_id)
+                 .bind(4, qi.build_time)
+                 .bind(5, qi.progress)
+                 .bind(6, qi.started)
+                 .bind(7, qi.repeat)
+                 .step("SaveGame: Failed to insert factory_queue row"))
+        {
+            return -14;
+        }
+    }
+
+    return 0;
+}
+
+int SaveGame::saveResearchState(ResourceFacility *rf, int facilityId)
+{
+    if (!loader || !loader->db)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Null loader pointer");
+        return -6;
+    }
+
+    if (!rf || !rf->research_facility)
+    {
+        return 0;
+    }
+
+    // Skip idle facilities to keep the table sparse (matches saveStores skipping zero rows).
+    if (rf->research_facility->current_project == -1)
+    {
+        return 0;
+    }
+
+    SQLiteQuery query(loader, "INSERT INTO research_facilities (facility_id, current_project) VALUES (?, ?);");
+    if (!query.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare research_facilities insert");
+        return -9;
+    }
+
+    if (!query.bind(1, facilityId)
+             .bind(2, rf->research_facility->current_project)
+             .step("SaveGame: Failed to insert research_facilities row"))
+    {
+        return -14;
     }
 
     return 0;

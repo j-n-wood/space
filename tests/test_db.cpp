@@ -10,6 +10,8 @@
 #include "../include/state/resourceFacility.h"
 #include "../include/state/orbital.h"
 #include "../include/state/earth_city.h"
+#include "../include/state/factory.h"
+#include "../include/state/research_facility.h"
 #include "../include/state/item.h"
 #include "../include/state/resources.h"
 #include "../include/state/autopilot.h"
@@ -639,6 +641,135 @@ TEST_CASE("SaveGame round-trips research topics")
             CHECK(l0.unlocksTopics[0] == 1);
         }
     }
+
+    removeSaveFile();
+}
+
+TEST_CASE("SaveGame round-trips factory queue")
+{
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+
+    Location *earth = game->locationByID(4);
+    REQUIRE(earth != nullptr);
+    Orbital *orb = game->orbitalAt(earth);
+    REQUIRE(orb != nullptr);
+    REQUIRE(orb->factory != nullptr);
+    REQUIRE(game->items.size() >= 2);
+
+    // First item: started, mid-progress, repeating.
+    QueueItem first(0, true);
+    first.progress = 3;
+    first.started = true;
+    orb->factory->queue.push_back(first);
+
+    // Second item: not yet started, non-repeating. Captures the
+    // resources-not-yet-deducted state.
+    QueueItem second(1, false);
+    second.progress = 0;
+    second.started = false;
+    orb->factory->queue.push_back(second);
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Game loaded;
+    Loader loader(SAVE_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(loaded.initialise(&loader));
+
+    Location *loadedEarth = loaded.locationByID(4);
+    REQUIRE(loadedEarth != nullptr);
+    Orbital *lOrb = loaded.orbitalAt(loadedEarth);
+    REQUIRE(lOrb != nullptr);
+    REQUIRE(lOrb->factory != nullptr);
+    REQUIRE(lOrb->factory->queue.size() == 2);
+
+    SUBCASE("preserves queue order")
+    {
+        CHECK(lOrb->factory->queue[0].item_id == 0);
+        CHECK(lOrb->factory->queue[1].item_id == 1);
+    }
+
+    SUBCASE("preserves started/progress on in-flight item")
+    {
+        const QueueItem &qi = lOrb->factory->queue[0];
+        CHECK(qi.progress == 3);
+        CHECK(qi.started == true);
+        CHECK(qi.repeat == true);
+        CHECK(qi.build_time == first.build_time);
+    }
+
+    SUBCASE("preserves unstarted item state")
+    {
+        const QueueItem &qi = lOrb->factory->queue[1];
+        CHECK(qi.progress == 0);
+        CHECK(qi.started == false);
+        CHECK(qi.repeat == false);
+    }
+
+    removeSaveFile();
+}
+
+TEST_CASE("SaveGame round-trips research facility current_project")
+{
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+    REQUIRE(game->researchTopics.size() >= 1);
+
+    EarthCity *ec = nullptr;
+    for (auto &b : game->allBases())
+    {
+        if (auto *cand = dynamic_cast<EarthCity *>(b.get()))
+        {
+            ec = cand;
+            break;
+        }
+    }
+    REQUIRE(ec != nullptr);
+    REQUIRE(ec->research_facility != nullptr);
+    ec->research_facility->current_project = 0;
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Game loaded;
+    Loader loader(SAVE_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(loaded.initialise(&loader));
+
+    EarthCity *loadedEc = nullptr;
+    for (auto &b : loaded.allBases())
+    {
+        if (auto *cand = dynamic_cast<EarthCity *>(b.get()))
+        {
+            loadedEc = cand;
+            break;
+        }
+    }
+    REQUIRE(loadedEc != nullptr);
+    REQUIRE(loadedEc->research_facility != nullptr);
+    CHECK(loadedEc->research_facility->current_project == 0);
+
+    removeSaveFile();
+}
+
+TEST_CASE("SaveGame omits idle research facilities from the save file")
+{
+    // current_project == -1 (idle) is the default; skipping the insert keeps
+    // the table sparse, matching the convention used by saveStores for
+    // zero-amount rows.
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Loader verify(SAVE_PATH);
+    REQUIRE(verify.isValid());
+    SQLiteQuery q(&verify, "SELECT count(*) FROM research_facilities");
+    REQUIRE(q.next());
+    CHECK(sqlite3_column_int(q, 0) == 0);
 
     removeSaveFile();
 }

@@ -11,6 +11,8 @@
 #include "state/resources.h"
 #include "state/earth_city.h"
 #include "state/autopilot.h"
+#include "state/factory.h"
+#include "state/research_facility.h"
 
 Loader::Loader(const char *dbPath) : game(nullptr)
 {
@@ -61,6 +63,25 @@ Location *Loader::findLocation(int system_id, int location_id)
                 }
             }
             return nullptr; // system found but location not found
+        }
+    }
+    return nullptr;
+}
+
+Facility *Loader::findFacilityById(int facility_id)
+{
+    for (auto &base : game->allBases())
+    {
+        if (base->id == facility_id)
+        {
+            return base.get();
+        }
+    }
+    for (auto &orb : game->allOrbitals())
+    {
+        if (orb->id == facility_id)
+        {
+            return orb.get();
         }
     }
     return nullptr;
@@ -138,28 +159,7 @@ bool Loader::loadStores()
         int resource_id = sqlite3_column_int(query, 1);
         int amount = sqlite3_column_int(query, 2);
 
-        Facility *fac = nullptr;
-        // Find facility by id
-        for (auto &base : game->allBases())
-        {
-            if (base->id == facility_id)
-            {
-                fac = base.get();
-                break;
-            }
-        }
-        if (!fac)
-        {
-            for (auto &orb : game->allOrbitals())
-            {
-                if (orb->id == facility_id)
-                {
-                    fac = orb.get();
-                    break;
-                }
-            }
-        }
-
+        Facility *fac = findFacilityById(facility_id);
         if (!fac)
         {
             TraceLog(LOG_ERROR, "Failed to find facility with id %d for stores", facility_id);
@@ -184,7 +184,7 @@ bool Loader::loadItems()
     game->items.clear();
 
     {
-        SQLiteQuery query(this, "SELECT id, name, description, tool, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity FROM items ORDER BY id");
+        SQLiteQuery query(this, "SELECT id, name, description, pod_type, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity FROM items ORDER BY id");
 
         while (query.next())
         {
@@ -192,7 +192,7 @@ bool Loader::loadItems()
             item.id = sqlite3_column_int(query, 0);
             copyFixed(item.name, sizeof item.name, (const char *)sqlite3_column_text(query, 1));
             copyFixed(item.description, sizeof item.description, (const char *)sqlite3_column_text(query, 2));
-            item.tool = sqlite3_column_int(query, 3) > 0;
+            item.pod_type = sqlite3_column_int(query, 3);
             item.researched = sqlite3_column_int(query, 4) > 0;
             item.tech_level = sqlite3_column_int(query, 5);
             item.orbital = sqlite3_column_int(query, 6) > 0;
@@ -471,5 +471,72 @@ bool Loader::loadCraft()
             craft->autopilot->cursors[endpoint_index] = cursor_position;
         }
     }
+    return true;
+}
+
+bool Loader::loadFactoryQueues()
+{
+    SQLiteQuery query(this, "SELECT facility_id, queue_position, item_id, build_time, progress, started, repeat FROM factory_queue ORDER BY facility_id, queue_position");
+
+    while (query.next())
+    {
+        int facility_id = sqlite3_column_int(query, 0);
+        int item_id = sqlite3_column_int(query, 2);
+        int build_time = sqlite3_column_int(query, 3);
+        int progress = sqlite3_column_int(query, 4);
+        bool started = sqlite3_column_int(query, 5) != 0;
+        bool repeat = sqlite3_column_int(query, 6) != 0;
+
+        Facility *fac = findFacilityById(facility_id);
+        if (!fac)
+        {
+            TraceLog(LOG_ERROR, "Failed to find facility with id %d for factory_queue", facility_id);
+            return false;
+        }
+        if (!fac->factory)
+        {
+            TraceLog(LOG_WARNING, "Facility %d has no factory; skipping queued item %d", facility_id, item_id);
+            continue;
+        }
+
+        QueueItem qi(item_id, repeat);
+        if (!qi.isValid())
+        {
+            TraceLog(LOG_WARNING, "Skipping invalid queued item id %d for facility %d", item_id, facility_id);
+            continue;
+        }
+        qi.build_time = build_time;
+        qi.progress = progress;
+        qi.started = started;
+        fac->factory->queue.push_back(qi);
+    }
+
+    return true;
+}
+
+bool Loader::loadResearchFacilities()
+{
+    SQLiteQuery query(this, "SELECT facility_id, current_project FROM research_facilities");
+
+    while (query.next())
+    {
+        int facility_id = sqlite3_column_int(query, 0);
+        int current_project = sqlite3_column_int(query, 1);
+
+        Facility *fac = findFacilityById(facility_id);
+        if (!fac)
+        {
+            TraceLog(LOG_ERROR, "Failed to find facility with id %d for research_facilities", facility_id);
+            return false;
+        }
+        auto *rf = dynamic_cast<ResourceFacility *>(fac);
+        if (!rf || !rf->research_facility)
+        {
+            TraceLog(LOG_WARNING, "Facility %d has no research facility; skipping", facility_id);
+            continue;
+        }
+        rf->research_facility->current_project = current_project;
+    }
+
     return true;
 }
