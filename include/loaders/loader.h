@@ -14,6 +14,7 @@ extern "C"
 class Game;
 class System;
 class Location;
+class Facility;
 
 inline void copyFixed(char *dst, size_t dstSize, const char *src)
 {
@@ -70,8 +71,15 @@ public:
     /// Load craft state (shuttles and IOS)
     bool loadCraft();
 
+    /// Load per-facility factory queues.
+    bool loadFactoryQueues();
+
+    /// Load per-facility research state (which topic is currently active).
+    bool loadResearchFacilities();
+
 private:
     Location *findLocation(int system_id, int location_id);
+    Facility *findFacilityById(int facility_id);
 };
 
 /// Scoped SQLite statement wrapper.
