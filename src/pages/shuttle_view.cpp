@@ -281,6 +281,25 @@ void ShuttleView::render()
     }
 
     // controls
+
+    // render control buttons (normal rendering)
+    if ((craft->type != CT_SHUTTLE) && (craft->drive))
+    {
+        // has interorbit drive
+        auto &source{uiElementSources[UI_DRIVE_CONTROLS]};
+        const Rectangle driveButton{1127, 640, source.width * 4, source.height * 4};
+        DrawTexturePro(*uiTexture, source, driveButton, (Vector2){0, 0}, 0.f, WHITE);
+    }
+
+    // if has weapon
+    if ((craft->type != CT_SHUTTLE) && craft->pods[0].type == PT_WEAPON)
+    {
+        // has weapon in pod 0
+        auto &source{uiElementSources[UI_DRONE_CONTROLS]};
+        const Rectangle droneButton{1280 - source.width * 4, 838, source.width * 4, source.height * 4};
+        DrawTexturePro(*uiTexture, source, droneButton, (Vector2){0, 0}, 0.f, WHITE);
+    }
+
     {
         UITransparentButtonState transparentButtonState;
         // dock (561,838 - 633, 890)

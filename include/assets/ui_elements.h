@@ -13,14 +13,19 @@ typedef enum
     UI_POD_ICON_TOOL,   // tool pod icon in cockpit
     UI_POD_ICON_SUPPLY, // supply pod icon in cockpit
     UI_POD_ICON_CRYO,   // cryo pod icon in cockpit
+    UI_DRIVE_CONTROLS,  // drive controls in cockpit
+    UI_DRONE_CONTROLS,  // drone controls in cockpit
     UI_ELEMENT_COUNT
 } UIElementID;
 
+// altas coordinates of UI elements
 const Rectangle uiElementSources[UI_ELEMENT_COUNT] = {
     {174, 23, 51, 120},
     {48, 696, 24, 16},
     {113, 696, 24, 16},
     {80, 696, 24, 16},
+    {104, 560, 40, 37},
+    {152, 560, 96, 40},
 };
 
 // standard buttons are from 175, 24 (TL) width 24, height 17, 2 columns, 6 rows

@@ -12,6 +12,7 @@ class ShuttleView : public BasePage, EventSink
     Location *location;
     const TextureAsset *bodyTexture;
     const TextureAsset *itemsTexture;
+    const TextureAsset *uiTexture;
     std::unique_ptr<AutopilotView> autopilotView;
 
     PageLog pageLog;
@@ -24,6 +25,7 @@ public:
     {
         bodyTexture = TextureManager::getInstance().getTexture(TEXTURE_BODIES);
         itemsTexture = TextureManager::getInstance().getTexture(TEXTURE_ITEMS);
+        uiTexture = TextureManager::getInstance().getTexture(TEXTURE_UI);
         backgroundSource = pageBackgroundSources[PB_COCKPIT];
         std::snprintf(title, sizeof title, "Shuttle");
         pageLog.top = 750;
