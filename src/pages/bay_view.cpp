@@ -23,6 +23,7 @@ Rectangle gantry_upper{1056, 176, 96, 32};
 Rectangle tool_pod{1160, 128, 96, 80};
 Rectangle supply_pod{1472, 128, 96, 80};
 Rectangle cryo_pod{1368, 128, 96, 80};
+Rectangle dfcc{1472, 301, 96, 86};
 
 Rectangle shuttle_chassis{783, 389, 432, 80};
 Rectangle ios_chassis{786, 508, 880, 80};
@@ -34,6 +35,7 @@ Rectangle cockpit_spine_dest{1214 - 32 * 4, 300 + 24 * 4, 32 * 4, 48 * 4};
 Rectangle drive_spine_dest{640 - 80 * 4, 300 + 24 * 4, 80 * 4, 48 * 4};
 Rectangle pod_spine_dest{320, 300 + 24 * 4, 224 * 4, 48 * 4};
 Rectangle main_section_dest{640, 300, 96 * 4, 80 * 4};
+Rectangle main_section_dest_dfcc{640 + 4, 300, 96 * 4, 86 * 4};
 
 void BayView::activate(ViewState &viewState)
 {
@@ -182,15 +184,20 @@ void BayView::input()
             // set to tool
             Game::getCurrent()->setPodType(craft, podIndex, PT_TOOL, facility);
         }
-        if (IsKeyPressed(KEY_TWO))
+        else if (IsKeyPressed(KEY_TWO))
         {
             // set to supply
             Game::getCurrent()->setPodType(craft, podIndex, PT_SUPPLY, facility);
         }
-        if (IsKeyPressed(KEY_THREE))
+        else if (IsKeyPressed(KEY_THREE))
         {
             // set to cryo
             Game::getCurrent()->setPodType(craft, podIndex, PT_CRYO, facility);
+        }
+        else if (IsKeyPressed(KEY_FOUR))
+        {
+            // set to weapon
+            Game::getCurrent()->loadWeapon(craft, ItemType::DFCC, facility);
         }
 
         bool inspectPod = false;
@@ -408,12 +415,20 @@ void BayView::renderPod(Pod *pod)
         DrawTexturePro(*partsTexture, cryo_pod, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);
         break;
     case PT_WEAPON:
-        DrawTexturePro(*partsTexture, tool_pod, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);
+        // which weapon?
+        if (pod->contentType == (int)ItemType::DFCC)
         {
-            char buffer[64];
-            std::snprintf(buffer, sizeof buffer, "%s", Game::getCurrent()->items[pod->contentType].name);
-            int textWidth = MeasureText(buffer, 20);
-            DrawText(buffer, (int)(main_section_dest.x + main_section_dest.width / 2 - textWidth / 2), (int)(main_section_dest.y + main_section_dest.height + 10), 20, WHITE);
+            DrawTexturePro(*partsTexture, dfcc, main_section_dest_dfcc, Vector2{0, 0}, 0.0f, WHITE);
+        }
+        else
+        {
+            DrawTexturePro(*partsTexture, tool_pod, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);
+            {
+                char buffer[64];
+                std::snprintf(buffer, sizeof buffer, "%s", Game::getCurrent()->items[pod->contentType].name);
+                int textWidth = MeasureText(buffer, 20);
+                DrawText(buffer, (int)(main_section_dest.x + main_section_dest.width / 2 - textWidth / 2), (int)(main_section_dest.y + main_section_dest.height + 10), 20, WHITE);
+            }
         }
         break;
     default:

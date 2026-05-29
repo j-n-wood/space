@@ -63,6 +63,7 @@ void buildTestData(Game *game)
 	of->stores.items[I_Chassis] = 1;
 	of->stores.items[I_Drive] = 2;
 	of->stores.items[Of_Frame] = 5;
+	of->stores.items[DFCC] = 1;
 
 	// test IOS
 	IOS *ios = game->createIOS(of);

@@ -257,7 +257,9 @@ void ShuttleView::render()
         y += 24;
 
         // pod icons, potentially clickable
-        if (craft->pods[idx].type != PT_EMPTY)
+        // render for tool, supply, cryo. Not empty or weapon (weapons have their own UI).
+        auto pt{craft->pods[idx].type};
+        if ((pt > PT_EMPTY) && (pt < PT_WEAPON))
         {
             // by construction, the icon image element ID happens to equal the pod type
             DrawTexturePro(*itemsTexture, uiElementSources[craft->pods[idx].type], pod_icon_coordinates[idx], (Vector2){0, 0}, 0.f, WHITE);
