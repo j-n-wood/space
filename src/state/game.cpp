@@ -5,7 +5,7 @@
 
 #include <cstdio>
 #include <cmath>
-#include <algorithm>
+#include <algorithm> // std::remove - needed?
 
 std::unique_ptr<Game> Game::current;
 
@@ -152,17 +152,10 @@ Location *Game::createLocation(System *system, const int id, const char *name, L
 
 Location *Game::locationByID(int id)
 {
-    // binary search as locations are sorted by ID after loading
-    // use std::lower_bound
-
-    auto it = std::lower_bound(locations.begin(), locations.end(), id, [](const auto &loc, int lid)
-                               { return loc->id < lid; });
-
-    if (it != locations.end() && (*it)->id == id)
+    if (id >= 0 && id < locations.size())
     {
-        return it->get();
+        return locations[id].get();
     }
-
     return nullptr; // not found
 }
 

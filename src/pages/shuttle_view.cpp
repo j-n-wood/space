@@ -210,6 +210,13 @@ void ShuttleView::input()
     {
         // test - set a destination
         // lazy create destination picker on demand
+
+        if (!location)
+        {
+            TraceLog(LOG_ERROR, "No location for craft to pick destination in"); // TODO - associate to system, or space location in system?
+            return;
+        }
+
         if (!destinationPicker)
         {
             destinationPicker.reset(DestinationPicker::create(location->system, (Vector2){600, 500}, 0.5f)); // owns picker

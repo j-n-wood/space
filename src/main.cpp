@@ -33,7 +33,7 @@ void takeDefaultFocus()
 {
 	auto &pm{PageManager::getInstance()};
 	Game *game = Game::getCurrent();
-	System *system = game->allSystems()[0].get();
+	System *system = game->allSystems()[1].get();
 	Location *earth = system->primary->children[2];
 	pm.viewState.setCurrentSystem(system);
 	pm.viewState.setCurrentLocation(earth);
@@ -43,7 +43,7 @@ void takeDefaultFocus()
 void buildTestData(Game *game)
 {
 
-	System *system = game->allSystems()[0].get();
+	System *system = game->allSystems()[1].get();
 	Location *earth = system->primary->children[2];
 	auto of = game->orbitalAt(earth);
 
@@ -190,7 +190,7 @@ int main()
 			}
 			else if (IsKeyPressed(KEY_F2))
 			{
-				System *system = game->allSystems()[0].get();
+				System *system = game->allSystems()[1].get();
 				Location *earth = system->primary->children[2];
 				pageManager.viewState.setCurrentSystem(system);
 				pageManager.viewState.setCurrentLocation(earth);

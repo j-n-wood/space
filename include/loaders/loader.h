@@ -5,6 +5,7 @@
 #include "sqlite3.h"
 #include <cstddef>
 #include <cstring>
+#include <vector>
 
 extern "C"
 {
@@ -39,6 +40,9 @@ class Loader
 {
     Game *game;
 
+    // list of mutable system data
+    std::vector<System *> systems;
+
 public:
     explicit Loader(const char *dbPath);
     ~Loader();
@@ -51,7 +55,7 @@ public:
 
     /// Load all systems from the opened database into the current game.
     bool loadSystems();
-    bool loadSystem(int system_id, System *system);
+    bool loadBodies();
 
     /// Load game state (e.g., game_time) from the database.
     bool loadGame();

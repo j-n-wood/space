@@ -52,9 +52,9 @@ TEST_CASE("loadSystem populates system from database")
     REQUIRE(loader.isValid());
     loader.setGame(game);
 
-    System *system = game->createSystem(1, "Sol");
-    REQUIRE(system != nullptr);
-    REQUIRE(loader.loadSystem(1, system));
+    REQUIRE(loader.loadSystems());
+
+    System *system = game->allSystems()[1].get();
 
     SUBCASE("loads bodies for system 1")
     {
@@ -199,7 +199,7 @@ TEST_CASE("Game::initialise works on a stack-allocated Game (no singleton)")
         }
     }
     REQUIRE(ec != nullptr);
-    CHECK(ec->factory != nullptr);          // wired by Game::createEarthCity
+    CHECK(ec->factory != nullptr);           // wired by Game::createEarthCity
     CHECK(ec->research_facility != nullptr); // wired by Game::createEarthCity
 
     // Singleton is still null — the entire load path stayed on this Game.
@@ -571,7 +571,7 @@ TEST_CASE("SaveGame round-trips body resource availability")
     Game *game = createTestGame();
     REQUIRE(game != nullptr);
 
-    Location *earth = game->allSystems()[0]->locations[3];
+    Location *earth = game->allSystems()[1]->locations[3];
     earth->resources.availability[ResourceType::Iron] = 7;
     earth->resources.availability[ResourceType::Carbon] = 3;
     earth->resources.availability[ResourceType::HedFuel] = 1; // index 16, boundary
@@ -779,7 +779,7 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     Game *game = createTestGame();
     REQUIRE(game != nullptr);
 
-    Location *earth = game->allSystems()[0]->locations[3];
+    Location *earth = game->allSystems()[1]->locations[3];
     REQUIRE(earth != nullptr);
     Orbital *orb = game->orbitalAt(earth);
     REQUIRE(orb != nullptr);
@@ -812,9 +812,9 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     {
         shuttle->autopilot->flow[i] = 0;
     }
-    shuttle->autopilot->flow[ResourceType::Iron] = RF_LOAD_AT_SOURCE;        // first non-trivial index
+    shuttle->autopilot->flow[ResourceType::Iron] = RF_LOAD_AT_SOURCE; // first non-trivial index
     shuttle->autopilot->flow[ResourceType::Copper] = RF_BALANCE;
-    shuttle->autopilot->flow[ResourceType::HedFuel] = RF_LOAD_AT_DEST;       // boundary: ResourceType::Count - 1 (= 16)
+    shuttle->autopilot->flow[ResourceType::HedFuel] = RF_LOAD_AT_DEST; // boundary: ResourceType::Count - 1 (= 16)
     shuttle->autopilot->cursors[0] = 5;
     shuttle->autopilot->cursors[1] = 12;
 
@@ -936,7 +936,7 @@ TEST_CASE("SaveGame round-trips autopilot state across all values")
         Game *game = createTestGame();
         REQUIRE(game != nullptr);
 
-        Location *earth = game->allSystems()[0]->locations[3];
+        Location *earth = game->allSystems()[1]->locations[3];
         REQUIRE(earth != nullptr);
         Orbital *orb = game->orbitalAt(earth);
         REQUIRE(orb != nullptr);

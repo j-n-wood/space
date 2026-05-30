@@ -1,5 +1,3 @@
-#include <algorithm>
-
 #include "state/game.h"
 #include "loaders/load_system.h"
 
@@ -64,11 +62,6 @@ bool Game::initialise(Loader *loader)
         TraceLog(LOG_ERROR, "Failed to load craft");
         return false;
     }
-
-    // by construction locations should be in order, but this is not certain after edits
-    // sort locations by ID for binary search
-    std::sort(locations.begin(), locations.end(), [](const auto &a, const auto &b)
-              { return a->id < b->id; });
 
     TraceLog(LOG_INFO, "Game initialisation complete");
 

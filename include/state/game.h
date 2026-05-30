@@ -137,6 +137,8 @@ public:
     IOS *createIOS(Facility *facility);
     ResearchFacility *createResearchFacility(Facility *facility);
 
+    // locations
+    Locations &allLocations() { return locations; }
     Location *locationByID(int id);
 
     // requirements checks

@@ -23,7 +23,9 @@ enum LocationType
     LOCATION_TYPE_PLANET,
     LOCATION_TYPE_MOON,
     LOCATION_TYPE_ASTEROID_BELT,
-    LOCATION_TYPE_EARTH_CITY
+    LOCATION_TYPE_EARTH_CITY,
+    LOCATION_TYPE_SPACE,
+    LOCATION_TYPE_MAX
 };
 
 class System; // forward declaration to avoid circular dependency
@@ -52,12 +54,13 @@ public:
     int id;         // unique ID for this location, used for persistence
     int primary_id; // ID of primary body this location orbits
     int index;      // array index of this location in the system's location collection, set when added to system
+    int system_id;
 
     std::vector<Location *> children; // e.g. moons orbiting a planet, or cities on a planet. This is not persisted, but built in memory based on the primary_id relationships
 
     LocationResources resources;
 
-    // location can have a shuttle, owns
+    // location can have a shuttle, owns the instance
     ShuttlePtr shuttle;
 
     Location(System *s, const int id, const char *n, LocationType t);
