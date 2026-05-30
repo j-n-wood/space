@@ -1,6 +1,7 @@
 #include "pages/drone_control_view.h"
 #include "state/game.h"
 #include "pages/overlay.h"
+#include "assets/textures.h"
 
 #include <cstdio>
 
@@ -64,6 +65,9 @@ void DroneControlView::render()
 
 void DroneControlView::render_manage()
 {
+    static auto docImageTexture = TextureManager::getInstance().getTexture(TEXTURE_ITEMS);
+    const Rectangle itemImageTarget = {(float)(left + 400.0), (float)(top + 60.0), 256, 224};
+
     DrawText("Drone Control - Manage", left, top, 20, WHITE);
 
     // can draw drones from orbital fleet and add to craft fleet
@@ -80,7 +84,11 @@ void DroneControlView::render_manage()
         char buffer[64];
         auto drone_count = game->droneCountForCraft(craft);
         std::snprintf(buffer, sizeof buffer, "Fleet Drones: %d", drone_count);
-        DrawText(buffer, left, top + 30, 20, YELLOW);
+        DrawText(buffer, (float)left, (float)(top + 30), 20, YELLOW);
+
+        // drone image - production image 3
+        auto source_rect = itemImageSources[II_PROD_IOSDRONE3];
+        DrawTexturePro(*docImageTexture, source_rect, itemImageTarget, (Vector2){0, 0}, 0.f, WHITE);
 
         // if at an orbital, can add/remove drones
         if (craft->state == CS_ORBIT)
