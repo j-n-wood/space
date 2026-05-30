@@ -119,13 +119,14 @@ int main()
 
 	// Create the window and OpenGL context
 	InitWindow(uiWidth, uiHeight, "Space");
+	TraceLog(LOG_INFO, "Window initialized: %d x %d", uiWidth, uiHeight);
+
+	BasePage::setWindowSize(uiWidth, uiHeight);
 
 	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
 	SearchAndSetResourceDir("resources");
 
 	Game *game = Game::createCurrent();
-
-	BasePage::setWindowSize(uiWidth, uiHeight);
 
 	{
 		{
@@ -194,6 +195,7 @@ int main()
 				pageManager.viewState.setCurrentSystem(system);
 				pageManager.viewState.setCurrentLocation(earth);
 				pageManager.viewState.setCurrentFacility(game->resourceFacilityAt(earth));
+				pageManager.viewState.setCurrentCraft(nullptr);
 				pageManager.switchToPage(PAGE_EARTH_CITY);
 			}
 			else if (IsKeyPressed(KEY_F3))

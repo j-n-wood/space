@@ -156,6 +156,35 @@ void ShuttleView::input()
         }
     }
 
+    auto &Overlay = Overlay::getInstance();
+
+    // transparent buttons seem like overkill, reimplement
+    if ((craft->type != CT_SHUTTLE) && (craft->drive))
+    {
+        auto &source{uiElementSources[UI_DRIVE_CONTROLS]};
+        const Rectangle driveButton{1127, 640, source.width * 4, source.height * 2};
+        if (Overlay.clickedArea(driveButton, "Engage drive"))
+        {
+            craft->engageDrive();
+        }
+        const Rectangle disengageDriveButton{1127, 640 + source.height * 2, source.width * 4, source.height * 2};
+        if (Overlay.clickedArea(disengageDriveButton, "Disengage drive"))
+        {
+            craft->disengageDrive();
+        }
+    }
+
+    // if has weapon
+    if ((craft->type != CT_SHUTTLE) && craft->pods[0].type == PT_WEAPON)
+    {
+        auto &source{uiElementSources[UI_DRONE_CONTROLS]};
+        const Rectangle droneButton{1280 - source.width * 4, 838, source.width * 4, source.height * 4};
+        if (Overlay.clickedArea(droneButton, "Activate drone computer"))
+        {
+            droneControlView->activate(craft);
+        }
+    }
+
     // engines
     if (IsKeyPressed(KEY_E))
     {
@@ -194,6 +223,8 @@ void ShuttleView::input()
     {
         destinationPicker->input();
     }
+
+    droneControlView->input();
 }
 
 void ShuttleView::render()
@@ -354,6 +385,8 @@ void ShuttleView::render()
     {
         destinationPicker->render();
     }
+
+    droneControlView->render();
 
     pageLog.render();
 }

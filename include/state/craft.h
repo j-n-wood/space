@@ -143,6 +143,8 @@ public:
 
     Craft &engageDrive();
 
+    Craft &disengageDrive();
+
     void setDestination(const uint8_t index, Location *loc);
 
     bool engageAutopilot();

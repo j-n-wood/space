@@ -18,6 +18,7 @@ public:
     void render();
     int renderButton(const Rectangle &buttonRect, const char *buttonText, const char *toolTip, const Color &color);
     int renderButtonHover(const Rectangle &buttonRect, const char *buttonText, const Color &color, onHover hover, void *state);
+    bool clickedArea(const Rectangle &area, const char *toolTip); // basically transparent button with hovertext, no outline
     void setDefaultStyle();
 
     inline void setCurrentToolTip(const char *toolTip)

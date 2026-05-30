@@ -226,6 +226,15 @@ Craft &Craft::engageDrive()
     return *this;
 }
 
+Craft &Craft::disengageDrive()
+{
+    if (state == CS_TRANSIT)
+    {
+        TraceLog(LOG_INFO, "Disengaging drive");
+    }
+    return *this;
+}
+
 void Craft::setDestination(const uint8_t index, Location *loc)
 {
     if (index >= MAX_DESTINATIONS)

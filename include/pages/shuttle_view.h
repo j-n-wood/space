@@ -5,6 +5,7 @@
 #include "state/shuttle.h"
 #include "pages/autopilot_view.h"
 #include "pages/destination_view.h"
+#include "pages/drone_control_view.h"
 #include "pages/page_log.h"
 
 class ShuttleView : public BasePage, EventSink
@@ -14,6 +15,7 @@ class ShuttleView : public BasePage, EventSink
     const TextureAsset *itemsTexture;
     const TextureAsset *uiTexture;
     std::unique_ptr<AutopilotView> autopilotView;
+    std::unique_ptr<DroneControlView> droneControlView;
 
     PageLog pageLog;
 
@@ -30,6 +32,7 @@ public:
         std::snprintf(title, sizeof title, "Shuttle");
         pageLog.top = 750;
         pageLog.left = 350;
+        droneControlView = std::make_unique<DroneControlView>(nullptr);
     }
 
     void activate(ViewState &viewState) override;

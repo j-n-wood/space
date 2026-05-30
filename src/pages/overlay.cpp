@@ -21,6 +21,19 @@ void Overlay::start()
     currentToolTip = nullptr; // reset tooltip when starting the overlay
 }
 
+bool Overlay::clickedArea(const Rectangle &area, const char *toolTip)
+{
+    if (CheckCollisionPointRec(GetMousePosition(), area))
+    {
+        setCurrentToolTip(toolTip);
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 int Overlay::renderButton(const Rectangle &buttonRect, const char *buttonText, const char *toolTip, const Color &color)
 {
     // Implementation for rendering a button with hover text
