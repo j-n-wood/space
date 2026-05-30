@@ -15,6 +15,7 @@
 // Singleton for the moment.
 
 const int MAX_SUPPLY_POD_AMOUNT = 250;
+const int MAX_DRONE_FLEET_SIZE = 200;
 
 class Loader;
 
@@ -149,6 +150,7 @@ public:
     Shuttle *commissionShuttle(Facility *facility);
     IOS *commissionIOS(Facility *facility);
 
+    // craft actions
     void setPodType(Craft *craft, int index, PodType pt, Facility *facility);
     void setSupplyPodContent(Pod *pod, Stores *stores, int resource_id, int amount);
     void setToolPodContent(Pod *pod, Stores *stores, int item_id);
@@ -156,6 +158,10 @@ public:
     bool loadWeapon(Craft *craft, int item_id, Facility *facility);
     bool canActivatePod(Craft *craft, int pod_index);
     bool activatePod(Craft *craft, int pod_index);
+
+    // weapon functions
+    ItemType droneTypeForCraft(const Craft *craft) const;
+    int droneCountForCraft(const Craft *craft) const;
 
     // update by delta
     void update(float delta);

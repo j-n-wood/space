@@ -32,7 +32,7 @@ public:
         std::snprintf(title, sizeof title, "Shuttle");
         pageLog.top = 750;
         pageLog.left = 350;
-        droneControlView = std::make_unique<DroneControlView>(nullptr);
+        droneControlView = std::make_unique<DroneControlView>(300, 300);
     }
 
     void activate(ViewState &viewState) override;

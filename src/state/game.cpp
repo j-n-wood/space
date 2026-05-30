@@ -506,7 +506,7 @@ bool Game::loadWeapon(Craft *craft, int item_id, Facility *facility)
         Pod &pod{craft->pods[i]};
         pod.type = PT_WEAPON;
         pod.contentType = item_id;
-        pod.amount = 0;
+        pod.amount = 0; // number of drones, etc
     }
 
     facility->stores.items[item_id] -= 1;
@@ -628,6 +628,49 @@ bool Game::activatePod(Craft *craft, int pod_index)
     }
 
     return true;
+}
+
+ItemType Game::droneTypeForCraft(const Craft *craft) const
+{
+    if (!craft)
+    {
+        TraceLog(LOG_ERROR, "Missing craft to droneTypeForCraft");
+        return MAX_ITEM_TYPE; // default to something non-weapon
+    }
+
+    if (craft->pods[0].contentType != ItemType::DFCC)
+    {
+        TraceLog(LOG_ERROR, "Craft has no DFCC in droneTypeForCraft");
+        return MAX_ITEM_TYPE; // default to something non-weapon
+    }
+
+    // for now we just return a single drone type based on craft type, but could be more complex in future with different drone types, or choice of drone type based on available items, etc.
+    switch (craft->type)
+    {
+    case CraftType::CT_SCG:
+        return ItemType::Star_Drone; // default to something non-weapon
+    case CraftType::CT_IOS:
+        return ItemType::Ios_Drone;
+    default:
+        TraceLog(LOG_ERROR, "Unknown craft type in droneTypeForCraft: %d", craft->type);
+        return MAX_ITEM_TYPE; // default to something non-weapon
+    }
+}
+
+int Game::droneCountForCraft(const Craft *craft) const
+{
+    // use amount on pod 0
+    if (!craft)
+    {
+        TraceLog(LOG_ERROR, "Missing craft to droneCountForCraft");
+        return 0;
+    }
+    if (craft->pods[0].contentType != ItemType::DFCC)
+    {
+        TraceLog(LOG_ERROR, "Craft has no DFCC in droneCountForCraft");
+        return 0;
+    }
+    return craft->pods[0].amount;
 }
 
 void Game::update(float delta)

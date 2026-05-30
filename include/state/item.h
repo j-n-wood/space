@@ -74,7 +74,8 @@ enum ItemType
     Star_Drone,
     Prison_Pod,
     Sonic_Blaster,
-    Pulse_Blaster_Laser
+    Pulse_Blaster_Laser,
+    MAX_ITEM_TYPE
 };
 
 class BuildRequirement
