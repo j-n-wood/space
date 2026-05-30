@@ -34,7 +34,7 @@ void takeDefaultFocus()
 	auto &pm{PageManager::getInstance()};
 	Game *game = Game::getCurrent();
 	System *system = game->allSystems()[1].get();
-	Location *earth = system->primary->children[2];
+	Location *earth = game->locationByID(4);
 	pm.viewState.setCurrentSystem(system);
 	pm.viewState.setCurrentLocation(earth);
 	pm.viewState.setCurrentFacility(game->orbitalAt(earth));
@@ -44,7 +44,7 @@ void buildTestData(Game *game)
 {
 
 	System *system = game->allSystems()[1].get();
-	Location *earth = system->primary->children[2];
+	Location *earth = game->locationByID(4);
 	auto of = game->orbitalAt(earth);
 
 	Shuttle *sh = game->createShuttle(of); // create shuttle at earth orbital
@@ -70,7 +70,7 @@ void buildTestData(Game *game)
 	ios->drive = true;
 	ios->fuel = 250;
 	ios->setPodType(0, PT_SUPPLY);
-	Location *mars = system->primary->children[3];
+	Location *mars = game->locationByID(6);
 	ios->setDestination(0, mars); // where to go next
 	ios->engageAutopilot();
 
@@ -191,7 +191,7 @@ int main()
 			else if (IsKeyPressed(KEY_F2))
 			{
 				System *system = game->allSystems()[1].get();
-				Location *earth = system->primary->children[2];
+				Location *earth = game->locationByID(4);
 				pageManager.viewState.setCurrentSystem(system);
 				pageManager.viewState.setCurrentLocation(earth);
 				pageManager.viewState.setCurrentFacility(game->resourceFacilityAt(earth));

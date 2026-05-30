@@ -107,8 +107,9 @@ void Orrery::render()
     // batch lines for orbital radius
     for (int i = 0; i < system->numPlanets; i++)
     {
+        Location *loc = system->locations[i];
         int parent_id = system->planetPrimaryIndexes[i];
-        if (parent_id == 0)
+        if (loc->type == LOCATION_TYPE_PLANET)
         {
             // offset center by focus
             Vector2 offset = {this->center.x - this->focus.x * this->scale, this->center.y - this->focus.y * this->scale};

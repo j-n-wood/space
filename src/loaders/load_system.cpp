@@ -142,12 +142,16 @@ bool Loader::loadBodies()
         System *system = systems[loc->system_id];
         if (loc->system_id == 0)
         {
-            // generic space
-            continue;
+            // interstellar space
+            break;
         }
-        if (loc->primary_id == 0)
+        if ((loc->type == LOCATION_TYPE_SPACE))
         {
-            // primary body, set to -1
+            system->planetPrimaryIndexes[loc->index] = -1; // nowhere
+        }
+        else if (loc->type == LOCATION_TYPE_STAR)
+        {
+            // star, also set to -1 but don't set primary as we want to support planets orbiting stars
             system->planetPrimaryIndexes[loc->index] = -1;
             system->primary = loc.get(); // set primary location for system
         }
@@ -198,12 +202,9 @@ bool Loader::loadBodies()
 
 bool Loader::loadSystems()
 {
-    // define location 0 as space
-    auto space_location = game->createLocation(nullptr, 0, "Space", LOCATION_TYPE_SPACE);
+    // conventionally, system 0 is interstellar space
+    // location 0 is interplanetary space in sol system for convenience
 
-    // set up system 0 for tests
-    auto system0 = game->createSystem(0, "Test System");
-    systems.push_back(system0);
     // query systems table and populate Game instance
     {
         SQLiteQuery query(this, "SELECT id, name FROM systems ORDER BY id");
