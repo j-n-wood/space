@@ -636,7 +636,7 @@ bool Game::activatePod(Craft *craft, int pod_index)
     {
         ResourceFacility *rf = resourceFacilityAt(craft->location);
         // set craft status to working on surface, and time based on current damage
-        craft->setTimedState(CS_SURFACE_DOCK_WORK, rf->damage); // time to repair is based on damage level        // TODO repair rate constant
+        craft->setTimedState(CS_SURFACE_DOCK_WORK, 1.0 + rf->damage / BANDAID_REPAIR_RATE); // time to repair is based on damage level
         TraceLog(LOG_INFO, "Started repairing facility at location %s, damage level %.1f", craft->location->name, rf->damage);
     }
     break;
@@ -646,6 +646,46 @@ bool Game::activatePod(Craft *craft, int pod_index)
     }
 
     return true;
+}
+
+bool Game::updateActivePod(Craft *craft, Pod &pod, float delta)
+{
+    if (!craft)
+    {
+        TraceLog(LOG_ERROR, "Missing craft to updateActivePod");
+        return false;
+    }
+
+    // currently only tool pods can activate, so look for active tool pod
+
+    if (pod.type == PT_TOOL && pod.amount > 0)
+    {
+        const Item &item{items[pod.contentType]};
+        switch (item.id)
+        {
+        case ItemType::Bandaid:
+            // repair based on time in state and repair rate, until fully repaired
+            {
+                ResourceFacility *rf = resourceFacilityAt(craft->location);
+                if (rf)
+                {
+                    rf->damage = std::max(0.0f, rf->damage - (delta * BANDAID_REPAIR_RATE));
+                    if (rf->damage == 0)
+                    {
+                        TraceLog(LOG_INFO, "Completed repairing facility at location %s", craft->location->name);
+                        craft->setState(CS_SURFACE_DOCKED); // back to docked state when repair complete
+                        return false;
+                    }
+                }
+            }
+            break;
+        default:
+            // nothing to update
+            return false;
+        }
+    }
+
+    return true; // still active
 }
 
 ItemType Game::droneTypeForCraft(const Craft *craft) const

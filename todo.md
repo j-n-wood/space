@@ -8,9 +8,13 @@
 
 * scg
 
+## factions
+
+* control of orbitals, craft
+* visibility in views
+
 ## locations -> array
 
-* define location 0 as space (per system?)
 * ditch <algorithm>
 * asteriod locations? Generic belt, major asteriods?
 
@@ -33,5 +37,7 @@
 * resource abundance, survey delay.
 
 ## drone fleets
+
+* battle
 
 ## master control / orrery craft view

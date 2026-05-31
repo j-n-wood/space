@@ -16,6 +16,7 @@
 
 const int MAX_SUPPLY_POD_AMOUNT = 250;
 const int MAX_DRONE_FLEET_SIZE = 200;
+const int BANDAID_REPAIR_RATE = 5; // how many damage points repaired per second of work
 
 class Loader;
 
@@ -158,6 +159,7 @@ public:
     bool loadWeapon(Craft *craft, int item_id, Facility *facility);
     bool canActivatePod(Craft *craft, int pod_index);
     bool activatePod(Craft *craft, int pod_index);
+    bool updateActivePod(Craft *craft, Pod &pod, float delta); // returns true if pod still active after update, false if completed
 
     // weapon functions
     ItemType droneTypeForCraft(const Craft *craft) const;

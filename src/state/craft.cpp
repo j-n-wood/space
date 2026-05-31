@@ -103,17 +103,14 @@ void Craft::update(float delta)
     }
 
     // working states
-    if ((state == CS_SURFACE_DOCK_WORK) && (pods[0].contentType == ItemType::Bandaid)) // TODO
+    if ((state == CS_SURFACE_DOCK_WORK) || (state == CS_ORBIT_DOCK_WORK))
     {
-        // reduce damage level as time passes
-        ResourceFacility *rf = Game::getCurrent()->resourceFacilityAt(location);
-        if (rf)
+        Game *game = Game::getCurrent();
+        for (int pod_idx = 0; pod_idx < max_pods; ++pod_idx)
         {
-            rf->damage = std::max(0.0f, rf->damage - (delta * 5.0f)); // repair rate constant, TODO move to game state
-            if (rf->damage == 0)
+            if (!isPodEmpty(pod_idx))
             {
-                TraceLog(LOG_INFO, "Completed repairing facility at location %s", location->name);
-                setTimedState(CS_SURFACE_DOCKED, 0); // back to docked state when repair complete
+                game->updateActivePod(this, pods[pod_idx], delta);
             }
         }
     }
