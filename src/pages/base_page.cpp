@@ -147,6 +147,42 @@ void BasePage::renderStandardButtons()
                 Page targetPage = STANDARD_BUTTON_TARGET_PAGES[i];
                 if (targetPage != PAGE_NONE)
                 {
+                    // update view state for facility switch // TODO does not belong here
+                    switch (targetPage)
+                    {
+                    case PAGE_ORBIT_STORES:
+                    case PAGE_ORBIT_SHUTTLE_BAY:
+                    case PAGE_ORBIT_SPACE_BAY:
+                        pm.viewState.setFacilityFocus(orbital);
+                        break;
+                    case PAGE_SURFACE_PRODUCTION:
+                    case PAGE_SURFACE_SHUTTLE_BAY:
+                    case PAGE_SURFACE_RESOURCES:
+                    case PAGE_SURFACE_STORES:
+                        pm.viewState.setFacilityFocus(surface);
+                        break;
+                    case PAGE_PRODUCTION:
+                        if (orbital)
+                        {
+                            pm.viewState.setFacilityFocus(orbital);
+                        }
+                        else if (surface)
+                        {
+                            pm.viewState.setFacilityFocus(surface);
+                        }
+                        break;
+                    case PAGE_SHUTTLE:
+                        // shuttle page can be accessed from either facility if shuttle is present, so just set location focus to ensure correct shuttle is shown
+                        pm.viewState.setLocationFocus(location);
+                        break;
+                    case PAGE_EARTH_TRAINING:
+                    case PAGE_EARTH_RESEARCH:
+                        pm.viewState.setFacilityFocus(surface); // currently training and research only available on surface
+                        break;
+                    default:
+                        break;
+                    }
+
                     pm.switchToPage(targetPage);
                 }
             }

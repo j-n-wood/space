@@ -13,11 +13,18 @@ class Overlay
 {
     bool toolTipSet;
     char currentToolTip[256] = {0}; // copy of input in case it is a shared buffer and changes
+
+    char consoleInput[256] = {0};
+
 public:
+    bool console;
+
     Overlay();
 
     void start();
     void render();
+    void input();
+
     int renderButton(const Rectangle &buttonRect, const char *buttonText, const char *toolTip, const Color &color);
     int renderButtonHover(const Rectangle &buttonRect, const char *buttonText, const Color &color, onHover hover, void *state);
     bool clickedArea(const Rectangle &area, const char *toolTip); // basically transparent button with hovertext, no outline

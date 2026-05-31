@@ -559,7 +559,17 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
         break;
     // grapple - must be in orbit, and have something to take/release
     // AMA - must be in orbit, at location of type asteroids
-    // bandaid - bust be docked on surface, and have damaged facility
+    // bandaid - must be docked on surface, and have damaged facility
+    case ItemType::Bandaid:
+        if (craft->state == CS_SURFACE_DOCKED)
+        {
+            ResourceFacility *rf = resourceFacilityAt(craft->location);
+            if (rf && rf->damage > 0)
+            {
+                return true;
+            }
+        }
+        break;
     default:
         // some other thing
         break;
@@ -622,6 +632,14 @@ bool Game::activatePod(Craft *craft, int pod_index)
     // grapple - must be in orbit, and have something to take/release
     // AMA - must be in orbit, at location of type asteroids
     // bandaid - bust be docked on surface, and have damaged facility
+    case ItemType::Bandaid:
+    {
+        ResourceFacility *rf = resourceFacilityAt(craft->location);
+        // set craft status to working on surface, and time based on current damage
+        craft->setTimedState(CS_SURFACE_DOCK_WORK, rf->damage); // time to repair is based on damage level        // TODO repair rate constant
+        TraceLog(LOG_INFO, "Started repairing facility at location %s, damage level %.1f", craft->location->name, rf->damage);
+    }
+    break;
     default:
         TraceLog(LOG_ERROR, "Attempting to activate unsupported item %d in activatePod", item.id);
         return false;

@@ -102,6 +102,13 @@ public:
 
     const char *statusText(char *status, size_t len);
 
+    void setTimedState(CraftState newState, float duration)
+    {
+        state = newState;
+        state_timer = duration;
+        total_state_timer = duration;
+    }
+
     inline const Endpoint &currentDestination() const
     {
         return destinations[destination_index];

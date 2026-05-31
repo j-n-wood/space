@@ -101,6 +101,22 @@ void Craft::update(float delta)
         // update autopilot logic here
         autopilot->update(this, delta);
     }
+
+    // working states
+    if ((state == CS_SURFACE_DOCK_WORK) && (pods[0].contentType == ItemType::Bandaid)) // TODO
+    {
+        // reduce damage level as time passes
+        ResourceFacility *rf = Game::getCurrent()->resourceFacilityAt(location);
+        if (rf)
+        {
+            rf->damage = std::max(0.0f, rf->damage - (delta * 5.0f)); // repair rate constant, TODO move to game state
+            if (rf->damage == 0)
+            {
+                TraceLog(LOG_INFO, "Completed repairing facility at location %s", location->name);
+                setTimedState(CS_SURFACE_DOCKED, 0); // back to docked state when repair complete
+            }
+        }
+    }
 }
 
 Craft &Craft::arriveAtLocation()

@@ -172,99 +172,107 @@ int main()
 			currentPage->render();
 
 			// input can affect rendering as tooltips can come from buttons
-			currentPage->input();
+			if (!overlay.console) // only process game input if console is not open, so that we can type into the console without affecting the game
+			{
+				currentPage->input();
+			}
 
 			// end the frame and get ready for the next one  (display frame, poll input, etc...)
 			overlay.render(); // render the overlay after all pages
 
+			overlay.input(); // handle input for the overlay, e.g. for a console or debug menu
+
 			EndDrawing();
 
-			if (IsKeyPressed(KEY_TAB))
+			if (!overlay.console) // only process game input if console is not open, so that we can type into the console without affecting the game
 			{
-				advanceTime = !advanceTime; // auto-advance mode
-			}
 
-			// hotkeys to switch pages
-			if (IsKeyPressed(KEY_F1))
-			{
-				pageManager.switchToPage(PAGE_SYSTEM_VIEW);
-			}
-			else if (IsKeyPressed(KEY_F2))
-			{
-				Location *earth = game->locationByID(4);
-				pageManager.viewState.setFacilityFocus(game->resourceFacilityAt(earth)); // set focus to resource facility to show correct buttons on page
-				pageManager.switchToPage(PAGE_EARTH_CITY);
-			}
-			else if (IsKeyPressed(KEY_F3))
-			{
-				pageManager.viewState.setLocationFocus(game->locationByID(0)); // set focus to space location to show correct buttons on page
-				pageManager.switchToPage(PAGE_MASTER_CONTROL);
-			}
-
-			// test save/load
-			if (IsKeyPressed(KEY_F5))
-			{
-				// save to quicksave.db
-				SaveGame savegame;
-				if (savegame.save("./quicksave.db") != 0)
+				if (IsKeyPressed(KEY_TAB))
 				{
-					TraceLog(LOG_ERROR, "Quicksave failed");
+					advanceTime = !advanceTime; // auto-advance mode
 				}
-			}
 
-			if (IsKeyPressed(KEY_F8))
-			{
-				// load from quicksave.db into a new gameState
-				std::unique_ptr<Game> tempGame = std::make_unique<Game>();
-				Loader quickload("./quicksave.db");
-				if (tempGame->initialise(&quickload))
+				// hotkeys to switch pages
+				if (IsKeyPressed(KEY_F1))
 				{
-					// reset current values
-					game = Game::setCurrent(tempGame);
-					takeDefaultFocus();
-
-					// force UI pages to reset
-					auto &pm{PageManager::getInstance()};
-					pm.reactivateCurrentPage();
+					pageManager.switchToPage(PAGE_SYSTEM_VIEW);
 				}
-				else
+				else if (IsKeyPressed(KEY_F2))
 				{
-					// bork!
-					TraceLog(LOG_ERROR, "Quickload failed");
+					Location *earth = game->locationByID(4);
+					pageManager.viewState.setFacilityFocus(game->resourceFacilityAt(earth)); // set focus to resource facility to show correct buttons on page
+					pageManager.switchToPage(PAGE_EARTH_CITY);
 				}
-			}
+				else if (IsKeyPressed(KEY_F3))
+				{
+					pageManager.viewState.setLocationFocus(game->locationByID(0)); // set focus to space location to show correct buttons on page
+					pageManager.switchToPage(PAGE_MASTER_CONTROL);
+				}
 
-			// gui design output
-			if (IsKeyPressed(KEY_F11))
-			{
-				// emit mouse coords
-				Vector2 mousePos = GetMousePosition();
-				TraceLog(LOG_INFO, "Mouse Position: (%.2f, %.2f)", mousePos.x, mousePos.y);
-			}
+				// test save/load
+				if (IsKeyPressed(KEY_F5))
+				{
+					// save to quicksave.db
+					SaveGame savegame;
+					if (savegame.save("./quicksave.db") != 0)
+					{
+						TraceLog(LOG_ERROR, "Quicksave failed");
+					}
+				}
 
-			// time rate
-			if (IsKeyPressed(KEY_EQUAL))
-			{
-				game->time_rate *= 2.0f;
-				TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
-			}
-			else if (IsKeyPressed(KEY_MINUS))
-			{
-				game->time_rate *= 0.5f;
-				TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
-			}
+				if (IsKeyPressed(KEY_F8))
+				{
+					// load from quicksave.db into a new gameState
+					std::unique_ptr<Game> tempGame = std::make_unique<Game>();
+					Loader quickload("./quicksave.db");
+					if (tempGame->initialise(&quickload))
+					{
+						// reset current values
+						game = Game::setCurrent(tempGame);
+						takeDefaultFocus();
 
-			// time
+						// force UI pages to reset
+						auto &pm{PageManager::getInstance()};
+						pm.reactivateCurrentPage();
+					}
+					else
+					{
+						// bork!
+						TraceLog(LOG_ERROR, "Quickload failed");
+					}
+				}
 
-			float currentTime = GetTime();
-			float deltaTime = currentTime - lastTime;
-			lastTime = currentTime;
-			if (advanceTime || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused
-			{
-				game->update(deltaTime);
+				// gui design output
+				if (IsKeyPressed(KEY_F11))
+				{
+					// emit mouse coords
+					Vector2 mousePos = GetMousePosition();
+					TraceLog(LOG_INFO, "Mouse Position: (%.2f, %.2f)", mousePos.x, mousePos.y);
+				}
+
+				// time rate
+				if (IsKeyPressed(KEY_EQUAL))
+				{
+					game->time_rate *= 2.0f;
+					TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
+				}
+				else if (IsKeyPressed(KEY_MINUS))
+				{
+					game->time_rate *= 0.5f;
+					TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
+				}
+
+				// time
+				float currentTime = GetTime();
+				float deltaTime = currentTime - lastTime;
+				lastTime = currentTime;
+				if (advanceTime || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused
+				{
+					game->update(deltaTime);
+				}
+
+				currentPage->update(deltaTime); // not game state, view state
 			}
-
-			currentPage->update(deltaTime); // not game state, view state
 		}
 
 		TextureManager::getInstance().dispose(); // explicitly dispose of textures before exiting, to ensure proper cleanup, though the destructor should also handle this when the program exits and static objects are destroyed

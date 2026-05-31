@@ -58,7 +58,7 @@ void Resources::listResources()
     {
         cursor.y += 48;
         char damageBuf[256];
-        sprintf(damageBuf, "Damage: %d%%", facility->damage);
+        sprintf(damageBuf, "Damage: %.1f%%", facility->damage);
         DrawText(damageBuf, 400, cursor.y, 20, ORANGE);
     }
 }

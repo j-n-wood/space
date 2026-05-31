@@ -482,8 +482,9 @@ void BayView::renderPod(Pod *pod)
         // text display of pod content item name and amount, centered below pod
         if (pod->amount > 0)
         {
+            auto game = Game::getCurrent();
             char buffer[64];
-            std::snprintf(buffer, sizeof buffer, "%s: %d", Game::getCurrent()->items[pod->contentType].name, pod->amount);
+            std::snprintf(buffer, sizeof buffer, "%s: %d", game->items[pod->contentType].name, pod->amount);
             int textWidth = MeasureText(buffer, 20);
             DrawText(buffer, (int)(main_section_dest.x + main_section_dest.width / 2 - textWidth / 2), (int)(main_section_dest.y + main_section_dest.height + 10), 20, WHITE);
         }

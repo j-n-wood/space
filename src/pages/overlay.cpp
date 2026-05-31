@@ -97,6 +97,78 @@ void Overlay::render()
     char buf[256];
     sprintf(buf, "%.2f", game->game_time);
     DrawText(buf, BasePage::timeDest.x, BasePage::timeDest.y, 20, WHITE);
+
+    // console
+    if (console)
+    {
+        Rectangle consoleRect = {50, 950, 400, 50};
+        GuiGroupBox(consoleRect, "Console");
+        Rectangle inputRect = {consoleRect.x + 10, consoleRect.y + consoleRect.height - 40, consoleRect.width - 20, 30};
+        GuiTextBox(inputRect, consoleInput, sizeof(consoleInput), true);
+        if (IsKeyPressed(KEY_ENTER))
+        {
+            // process console command in consoleInput
+            TraceLog(LOG_INFO, "Console command entered: %s", consoleInput);
+
+            // give {item id} {amount} command to add items to current location for testing
+            int item_id{ItemType::None};
+            int amount{0};
+            if (std::sscanf(consoleInput, "give %d %d", &item_id, &amount) == 2)
+            {
+                // TODO move to game state
+                Facility *f{pm.viewState.getCurrentFacility()};
+                f->stores.items[item_id] += amount;
+                TraceLog(LOG_INFO, "Added %d of item %d to current location %s", amount, item_id, f->location->name);
+            }
+            // 'orbital' command to create an orbital at the current location for testing, if not present
+            else if (std::strcmp(consoleInput, "orbital") == 0)
+            {
+                Location *loc{pm.viewState.getCurrentLocation()};
+                if (!game->orbitalAt(loc))
+                {
+                    Orbital *orbital{game->createOrbital(loc)};
+                    orbital->operational = true;
+                    TraceLog(LOG_INFO, "Orbital created at location: %s", loc->name);
+                }
+            }
+            // 'shuttle' to spawn shuttle at current facility if any
+            else if (std::strcmp(consoleInput, "shuttle") == 0)
+            {
+                Facility *f{pm.viewState.getCurrentFacility()};
+                if (f && !game->locationHasShuttle(f->location)) // location check is probably redundant as facility should always have a location, but just in case
+                {
+                    Shuttle *shuttle{game->createShuttle(f)};
+                    TraceLog(LOG_INFO, "Shuttle created at facility: %s", f->location->name);
+                }
+            }
+            // research {topic id} command to set research progress for testing
+            else if (std::sscanf(consoleInput, "research %d", &item_id) == 1)
+            {
+                if (item_id == -1)
+                {
+                    // set all research to complete
+                    for (auto &topic : game->researchTopics)
+                    {
+                        topic.progress = topic.requiredTime;
+                    }
+                    // set all items to researched as well
+                    for (auto &item : game->items)
+                    {
+                        item.researched = true;
+                    }
+                    TraceLog(LOG_INFO, "All research topics set to complete");
+                }
+                else if (item_id >= 0 && item_id < game->researchTopics.size())
+                {
+                    game->researchTopics[item_id].progress = game->researchTopics[item_id].requiredTime;
+                    TraceLog(LOG_INFO, "Research topic %d set to complete", item_id);
+                }
+            }
+
+            // clear input
+            consoleInput[0] = '\0';
+        }
+    }
 }
 
 void Overlay::setDefaultStyle()
@@ -194,4 +266,13 @@ void Overlay::setDefaultStyle()
         GuiSetStyle(DROPDOWNBOX, LINE_COLOR, 0x663333ff);
         GuiSetStyle(LISTVIEW, LINE_COLOR, 0x663333ff);
     */
+}
+
+void Overlay::input()
+{
+    // handle input for the overlay, e.g. for a console or debug menu
+    if (IsKeyPressed(KEY_F12))
+    {
+        console = !console; // toggle console on/off
+    }
 }
