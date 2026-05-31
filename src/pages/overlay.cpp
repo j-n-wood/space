@@ -271,7 +271,7 @@ void Overlay::setDefaultStyle()
 void Overlay::input()
 {
     // handle input for the overlay, e.g. for a console or debug menu
-    if (IsKeyPressed(KEY_F12))
+    if (IsKeyPressed(KEY_F9))
     {
         console = !console; // toggle console on/off
     }

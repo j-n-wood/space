@@ -11,6 +11,7 @@
 #include "state/shuttle.h"
 #include "state/ios.h"
 #include "state/research_topic.h"
+#include "state/faction.h"
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
 
@@ -72,12 +73,16 @@ public:
     // name counters
     int ios_number{1};
     int scg_number{1};
+    int craft_max_id{0};
 
     // item definitions - array of instances as not passed around
     std::vector<Item> items;
 
     // research topics - array of instances as not passed around
     std::vector<ResearchTopic> researchTopics;
+
+    // factions
+    std::vector<Faction> factions;
 
     std::vector<EventSink *> eventSinks; // non-owning collection of event sinks to send game events to, e.g. for logging or triggering UI updates
 

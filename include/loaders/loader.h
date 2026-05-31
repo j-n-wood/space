@@ -60,6 +60,9 @@ public:
     /// Load game state (e.g., game_time) from the database.
     bool loadGame();
 
+    /// Load factions
+    bool loadFactions();
+
     /// Load all facilities (bases and orbitals) and attach them to their locations.
     bool loadFacilities();
 

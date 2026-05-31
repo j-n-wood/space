@@ -49,6 +49,20 @@ bool Loader::loadGame()
     return false;
 }
 
+bool Loader::loadFactions()
+{
+    SQLiteQuery query(this, "SELECT id, name FROM factions ORDER BY id");
+
+    while (query.next())
+    {
+        int id = sqlite3_column_int(query, 0);
+        const char *name = (const char *)sqlite3_column_text(query, 1);
+        game->factions.emplace_back(id, name);
+    }
+
+    return true;
+}
+
 Location *Loader::findLocation(int system_id, int location_id)
 {
     for (auto &sys : game->allSystems())
@@ -89,7 +103,7 @@ Facility *Loader::findFacilityById(int facility_id)
 
 bool Loader::loadFacilities()
 {
-    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks, operational, construction_progress, damage FROM facilities ORDER BY id");
+    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id FROM facilities ORDER BY id");
 
     while (query.next())
     {
@@ -101,7 +115,7 @@ bool Loader::loadFacilities()
         int operational = sqlite3_column_int(query, 5);
         int construction_progress = sqlite3_column_int(query, 6);
         int damage = sqlite3_column_int(query, 7);
-
+        int faction_id = sqlite3_column_int(query, 8);
         Location *loc = findLocation(system_id, location_id);
         if (!loc)
         {
@@ -143,6 +157,7 @@ bool Loader::loadFacilities()
         if (fac)
         {
             fac->id = id;
+            fac->faction_id = faction_id;
         }
     }
 
@@ -330,7 +345,7 @@ bool Loader::loadCraft()
         return false;
     }
 
-    SQLiteQuery query(this, "SELECT id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index FROM craft");
+    SQLiteQuery query(this, "SELECT id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id FROM craft");
     while (query.next())
     {
         int id = sqlite3_column_int(query, 0);
@@ -344,7 +359,7 @@ bool Loader::loadCraft()
         int max_pods = sqlite3_column_int(query, 8);
         bool drive = sqlite3_column_int(query, 9) > 0;
         int destination_index = sqlite3_column_int(query, 10);
-
+        int faction_id = sqlite3_column_int(query, 11);
         // TODO do we need system ID?
         Location *loc = game->locationByID(location_id);
         if ((location_id > 0) && (!loc))
@@ -382,6 +397,13 @@ bool Loader::loadCraft()
         craft->max_pods = max_pods;
         craft->drive = drive;
         craft->destination_index = destination_index;
+        craft->faction_id = faction_id;
+        craft->id = id;
+
+        if (game->craft_max_id < id)
+        {
+            game->craft_max_id = id;
+        }
 
         // load pods
 

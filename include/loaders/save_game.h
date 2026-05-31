@@ -30,6 +30,8 @@ class SaveGame
     /// Persist top-level game metadata.
     int saveGame(Game *game);
 
+    int saveFactions(Game *game);
+
     /// Persist one body within a system.
     int saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locationIndex, sqlite3_int64 systemId);
 
@@ -50,13 +52,13 @@ class SaveGame
 
     /// Persist craft state (shuttles and IOS)
     int saveCraft(Game *game);
-    int saveCraft(Craft *craft, int craftId);
+    int saveCraft(Craft *craft);
 
     /// Persist craft destinations (for shuttles and IOS)
-    int saveCraftDestinations(Craft *craft, int craftId);
+    int saveCraftDestinations(Craft *craft);
 
     /// Persist autopilot against a craft
-    int saveAutopilot(Craft *craft, int craftId);
+    int saveAutopilot(Craft *craft);
 
     /// Persist a factory's queue belonging to a facility.
     int saveFactoryQueue(Factory *factory, int facilityId);

@@ -13,6 +13,7 @@ class Facility
 {
 public:
     int id; // database ID for loading/saving
+    int faction_id;
     Location *location;
     SublocationType sublocation;
     Stores stores;

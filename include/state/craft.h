@@ -67,6 +67,9 @@ class Autopilot;
 class Craft
 {
 public:
+    int id;
+    int faction_id;
+
     char name[NAME_MAX_LEN];
     CraftType type;
     CraftState state;
