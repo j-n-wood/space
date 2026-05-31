@@ -38,6 +38,8 @@ public:
     std::vector<Location *> locations; // e.g. planets, moons, asteroid belt, earth city, etc. populated based on the system data
     // primary location (star)
     Location *primary;
+    // space location (interplanetary space)
+    Location *space;
 
     void update(float time);
 

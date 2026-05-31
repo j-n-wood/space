@@ -9,12 +9,25 @@ extern "C"
 
 typedef enum
 {
-    UI_CONTROLS,        // empty control frame
-    UI_POD_ICON_TOOL,   // tool pod icon in cockpit
-    UI_POD_ICON_SUPPLY, // supply pod icon in cockpit
-    UI_POD_ICON_CRYO,   // cryo pod icon in cockpit
-    UI_DRIVE_CONTROLS,  // drive controls in cockpit
-    UI_DRONE_CONTROLS,  // drone controls in cockpit
+    UI_CONTROLS,                          // empty control frame
+    UI_POD_ICON_TOOL,                     // tool pod icon in cockpit
+    UI_POD_ICON_SUPPLY,                   // supply pod icon in cockpit
+    UI_POD_ICON_CRYO,                     // cryo pod icon in cockpit
+    UI_DRIVE_CONTROLS,                    // drive controls in cockpit
+    UI_DRONE_CONTROLS,                    // drone controls in cockpit
+    UI_ORBITAL_ICON_1,                    // orbital icon, state 1 of animation
+    UI_ORBITAL_ICON_2,                    // orbital icon, state 2 of animation
+    UI_ORBITAL_ICON_3,                    // orbital icon, state 3 of animation
+    UI_BUTTON_CRAFT_DOCKED,               // button icon for craft docked state
+    UI_BUTTON_CRAFT_LAUNCHING,            // button icon for craft launching state
+    UI_BUTTON_CRAFT_DOCKING,              // button icon for craft docking state
+    UI_BUTTON_CRAFT_SCANNING,             // button icon for craft scanning state
+    UI_BUTTON_CRAFT_MINING,               // button icon for craft mining state
+    UI_BUTTON_CRAFT_TRANSIT,              // button icon for craft in transit state
+    UI_BUTTON_CRAFT_ORBIT,                // button icon for craft in orbit state
+    UI_BUTTON_CRAFT_TRANSIT_INTERSTELLAR, // button icon for craft in interstellar transit state
+    UI_BUTTON_CRAFT_FLEET,
+    UI_BUTTON_CRAFT_ALERT,
     UI_ELEMENT_COUNT
 } UIElementID;
 
@@ -26,6 +39,19 @@ const Rectangle uiElementSources[UI_ELEMENT_COUNT] = {
     {80, 696, 24, 16},
     {104, 560, 40, 37},
     {152, 560, 96, 40},
+    {1408, 32, 32, 16},
+    {1408, 56, 32, 16},
+    {1408, 80, 32, 16},
+    {182, 145, 32, 16},
+    {215, 145, 32, 16},
+    {248, 145, 32, 16},
+    {182, 162, 32, 16},
+    {215, 162, 32, 16},
+    {182, 179, 32, 16},
+    {215, 179, 32, 16},
+    {248, 179, 32, 16},
+    {182, 196, 32, 16},
+    {215, 196, 32, 16},
 };
 
 // standard buttons are from 175, 24 (TL) width 24, height 17, 2 columns, 6 rows

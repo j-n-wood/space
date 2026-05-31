@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstring>
+
 extern "C"
 {
 #include "raylib.h"
@@ -9,8 +11,8 @@ using onHover = void (*)(void *);
 
 class Overlay
 {
-    const char *currentToolTip = nullptr;
-
+    bool toolTipSet;
+    char currentToolTip[256] = {0}; // copy of input in case it is a shared buffer and changes
 public:
     Overlay();
 
@@ -25,7 +27,9 @@ public:
     {
         if (toolTip != currentToolTip)
         {
-            currentToolTip = toolTip;
+            std::strncpy(currentToolTip, toolTip, sizeof(currentToolTip) - 1);
+            currentToolTip[sizeof(currentToolTip) - 1] = '\0'; // ensure null termination
+            toolTipSet = true;
         }
     }
 

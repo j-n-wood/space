@@ -10,6 +10,7 @@
 #include "pages/shuttle_view.h"
 #include "pages/bay_view.h"
 #include "pages/research.h"
+#include "pages/master_control.h"
 
 PageManager::PageManager() : currentPage(nullptr)
 {
@@ -32,6 +33,7 @@ PageManager::PageManager() : currentPage(nullptr)
     pages[PAGE_ORBIT_SHUTTLE_BAY] = new BayView(SublocationType::SLOC_ORBIT, BT_SHUTTLE);
     pages[PAGE_ORBIT_SPACE_BAY] = new BayView(SublocationType::SLOC_ORBIT, BT_SPACE);
     pages[PAGE_EARTH_RESEARCH] = new ResearchView();
+    pages[PAGE_MASTER_CONTROL] = new MasterControlView();
 }
 
 PageManager::~PageManager()

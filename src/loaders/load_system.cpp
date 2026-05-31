@@ -148,6 +148,7 @@ bool Loader::loadBodies()
         if ((loc->type == LOCATION_TYPE_SPACE))
         {
             system->planetPrimaryIndexes[loc->index] = -1; // nowhere
+            system->space = loc.get();                     // set space location for system
         }
         else if (loc->type == LOCATION_TYPE_STAR)
         {

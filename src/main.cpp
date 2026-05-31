@@ -201,6 +201,16 @@ int main()
 			}
 			else if (IsKeyPressed(KEY_F3))
 			{
+				System *system = game->allSystems()[1].get();
+				Location *space = game->locationByID(0);
+				pageManager.viewState.setCurrentSystem(system);
+				pageManager.viewState.setCurrentLocation(space);
+				pageManager.viewState.setCurrentFacility(nullptr);
+				pageManager.viewState.setCurrentCraft(nullptr);
+				pageManager.switchToPage(PAGE_MASTER_CONTROL);
+			}
+			else if (IsKeyPressed(KEY_F5))
+			{
 				// switch to first IOS
 				auto &ioss = game->allIOS();
 				if (!ioss.empty())

@@ -135,8 +135,7 @@ void Craft::onDockWorkComplete()
 
 const char *Craft::statusText(char *status, size_t len)
 {
-    // TODO location can be missing
-    const char *location_name = location ? location->name : "Space";
+    const char *location_name = location ? location->name : "Space"; // TODO location cannot be empty now
 
     switch (state)
     {
@@ -221,7 +220,7 @@ Craft &Craft::engageDrive()
         TraceLog(LOG_INFO, "Engaging drive from %s to %s, transit time %.1f seconds", source ? source->name : "Space", destination->name, total_state_timer);
 
         state = CS_TRANSIT;
-        location = nullptr; // in transit, not at a location
+        location = location->system->space; // space location for system
     }
     return *this;
 }

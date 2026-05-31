@@ -69,6 +69,18 @@ public:
 * shuttle is a 'UI facility' at a location, if shuttle is present.
 * game state can have a 'current location'.
 
+Moved to having location ID -> handle. DB ID -> array index. Locations are not created or destroyed at runtime, so static.
+Set system 0 to instellar space.
+Each system has a 'space' location (0 for Sol system) s.t. craft _always_ have a location, and location _always_ has a system.
+Can move away from holding or passing location pointers, though as they are static data it saves a lookup by ID.
+
+To consider: asteriod belt. For presentation, what radial coordinate to use? Distance for transit? Some options:
+
+* fixed distance on any angle, from current location (if any)
+* set up some sectors and pick the closest one
+* create a sublocation property for sector (same sort of thing but continuous)
+* also add actual bodies for major asteriods (Ceres, Juno, ...)
+
 Sub-locations can be handled as a state with a transition time.
 
 Enum the lot - then every time we add a state, have to alter enum.

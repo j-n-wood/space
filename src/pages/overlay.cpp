@@ -8,17 +8,16 @@ extern "C"
 #include "raygui/raygui.h"
 }
 
-Overlay::Overlay() : currentToolTip(nullptr)
+Overlay::Overlay() : toolTipSet(false)
 {
-    // constructor can be used to initialise any state the overlay needs to track
-
     setDefaultStyle();
 }
 
 void Overlay::start()
 {
     // any setup that needs to be done when the overlay is first created can be done here
-    currentToolTip = nullptr; // reset tooltip when starting the overlay
+    currentToolTip[0] = '\0'; // reset tooltip when starting the overlay
+    toolTipSet = false;
 }
 
 bool Overlay::clickedArea(const Rectangle &area, const char *toolTip)
@@ -88,7 +87,7 @@ void Overlay::render()
     }
     DrawText((PageManager::getInstance()).getCurrentPage()->title, 200, 10, 20, WHITE);
 
-    if (currentToolTip)
+    if (toolTipSet)
     {
         auto mp = GetMousePosition();
         DrawText(currentToolTip, mp.x + 12, mp.y + 8, 20, WHITE);

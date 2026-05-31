@@ -55,7 +55,8 @@ void BasePage::render()
     }
 
     // controls
-    DrawTexturePro(*TextureManager::getInstance().getTexture(TEXTURE_UI_BUTTONS), uiElementSources[UI_CONTROLS], BasePage::sideBarDest, (Vector2){0, 0}, 0.f, WHITE);
+    static auto texture_ui_buttons = TextureManager::getInstance().getTexture(TEXTURE_UI_BUTTONS);
+    DrawTexturePro(*texture_ui_buttons, uiElementSources[UI_CONTROLS], BasePage::sideBarDest, (Vector2){0, 0}, 0.f, WHITE);
 
     UITransparentButtonState transparentButtonState; // RAII helper to set transparent button styles for the duration of this render function
 
