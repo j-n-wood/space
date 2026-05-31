@@ -6,7 +6,7 @@ const char *bayTypeName[]{
     "Shuttle",
     "Space"};
 
-// part elements
+// part elements, from source atlas
 
 // non-spine sections are 96 wide
 // cockpit spine 32
@@ -24,6 +24,14 @@ Rectangle tool_pod{1160, 128, 96, 80};
 Rectangle supply_pod{1472, 128, 96, 80};
 Rectangle cryo_pod{1368, 128, 96, 80};
 Rectangle dfcc{1472, 301, 96, 86};
+
+// tool pods with content
+Rectangle tool_pod_generic{1264, 128, 96, 80}; // no specific image
+Rectangle tool_pod_bandaid{1160, 216, 96, 80};
+Rectangle tool_pod_rframe{1264, 216, 96, 80};
+Rectangle tool_pod_ama{1368, 216, 96, 80};
+Rectangle tool_pod_grapple{1472, 216, 96, 80};
+Rectangle tool_pod_commspod{1368, 304, 96, 80};
 
 Rectangle shuttle_chassis{783, 389, 432, 80};
 Rectangle ios_chassis{786, 508, 880, 80};
@@ -390,7 +398,34 @@ void BayView::renderPod(Pod *pod)
     switch (pod->type)
     {
     case PT_TOOL:
-        DrawTexturePro(*partsTexture, tool_pod, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);
+    {
+        // set pod image based on content.
+        Rectangle pod_rect = tool_pod; // empty
+        if (pod->amount > 0)
+        {
+            switch (pod->contentType)
+            {
+            case (int)ItemType::Bandaid:
+                pod_rect = tool_pod_bandaid;
+                break;
+            case (int)ItemType::R_Frame:
+                pod_rect = tool_pod_rframe;
+                break;
+            case (int)ItemType::AMA:
+                pod_rect = tool_pod_ama;
+                break;
+            case (int)ItemType::Grapple:
+                pod_rect = tool_pod_grapple;
+                break;
+            case (int)ItemType::Commspod:
+                pod_rect = tool_pod_commspod;
+                break;
+            default:
+                pod_rect = tool_pod_generic; // generic tool pod image for other items with quantity > 0
+                break;
+            }
+        }
+        DrawTexturePro(*partsTexture, pod_rect, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);
         // text display of pod content item name and amount, centered below pod
         if (pod->amount > 0)
         {
@@ -399,7 +434,8 @@ void BayView::renderPod(Pod *pod)
             int textWidth = MeasureText(buffer, 20);
             DrawText(buffer, (int)(main_section_dest.x + main_section_dest.width / 2 - textWidth / 2), (int)(main_section_dest.y + main_section_dest.height + 10), 20, WHITE);
         }
-        break;
+    }
+    break;
     case PT_SUPPLY:
         DrawTexturePro(*partsTexture, supply_pod, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);
         if (pod->amount > 0)
