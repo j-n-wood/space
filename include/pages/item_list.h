@@ -43,6 +43,14 @@ public:
         currentCount = 0;
         for (auto &item : game->items)
         {
+            if (item.id == 0)
+            {
+                // always allow the 'empty' item // TODO special cases suck
+                activeItemsIDs[currentCount] = item.id;
+                std::snprintf(names[currentCount], 48, "%s", item.name);
+                currentCount++;
+                continue;
+            }
             if (stores->items[item.id] > 0 && item.pod_capacity > 0)
             {
                 activeItemsIDs[currentCount] = item.id;

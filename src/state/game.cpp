@@ -635,13 +635,13 @@ ItemType Game::droneTypeForCraft(const Craft *craft) const
     if (!craft)
     {
         TraceLog(LOG_ERROR, "Missing craft to droneTypeForCraft");
-        return MAX_ITEM_TYPE; // default to something non-weapon
+        return ItemType::None; // default to something non-weapon
     }
 
     if (craft->pods[0].contentType != ItemType::DFCC)
     {
         TraceLog(LOG_ERROR, "Craft has no DFCC in droneTypeForCraft");
-        return MAX_ITEM_TYPE; // default to something non-weapon
+        return ItemType::None; // default to something non-weapon
     }
 
     // for now we just return a single drone type based on craft type, but could be more complex in future with different drone types, or choice of drone type based on available items, etc.
@@ -653,7 +653,7 @@ ItemType Game::droneTypeForCraft(const Craft *craft) const
         return ItemType::Ios_Drone;
     default:
         TraceLog(LOG_ERROR, "Unknown craft type in droneTypeForCraft: %d", craft->type);
-        return MAX_ITEM_TYPE; // default to something non-weapon
+        return ItemType::None; // default to something non-weapon
     }
 }
 

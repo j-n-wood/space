@@ -88,6 +88,11 @@ void StoresView::listItems()
     int idx = 0;
     for (auto &item : Game::getCurrent()->items)
     {
+        if (item.id == 0)
+        {
+            // skip the 'empty' item // TODO special cases suck
+            continue;
+        }
         if (item.researched)
         {
             // emit the resource name

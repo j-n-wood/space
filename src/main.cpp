@@ -59,12 +59,12 @@ void buildTestData(Game *game)
 	sh->engageAutopilot();
 
 	// test pod loading
-	of->stores.items[0] = 3; // lets put derricks into orbit :)
-	of->stores.items[I_Chassis] = 1;
-	of->stores.items[I_Drive] = 2;
-	of->stores.items[Of_Frame] = 5;
-	of->stores.items[DFCC] = 1;
-	of->stores.items[Ios_Drone] = 10;
+	of->stores.items[ItemType::Derrick] = 3; // lets put derricks into orbit :)
+	of->stores.items[ItemType::I_Chassis] = 1;
+	of->stores.items[ItemType::I_Drive] = 2;
+	of->stores.items[ItemType::Of_Frame] = 5;
+	of->stores.items[ItemType::DFCC] = 1;
+	of->stores.items[ItemType::Ios_Drone] = 10;
 
 	// test IOS
 	IOS *ios = game->createIOS(of);

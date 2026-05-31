@@ -184,6 +184,14 @@ bool Loader::loadItems()
     game->items.clear();
 
     {
+        // default no-item s.t. 0 is valid for 'empty' and provides a consistent place to put 'Empty' description
+        Item emptyItem;
+        copyFixed(emptyItem.name, sizeof emptyItem.name, "Empty");
+        copyFixed(emptyItem.description, sizeof emptyItem.description, "No item");
+        emptyItem.pod_type = PT_TOOL; // allows assignment to tool pods
+        emptyItem.pod_capacity = 1;   // single item per pod
+        game->items.push_back(emptyItem);
+
         SQLiteQuery query(this, "SELECT id, name, description, pod_type, researched, tech_level, orbital, mass, production_time, doc_image_index, production_image_index, pod_capacity FROM items ORDER BY id");
 
         while (query.next())

@@ -21,7 +21,7 @@ void DroneControlView::activate(Craft *c)
 void DroneControlView::deactivate()
 {
     craft = nullptr;
-    droneType = MAX_ITEM_TYPE;
+    droneType = ItemType::None;
     visible = false;
 }
 

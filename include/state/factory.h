@@ -1,5 +1,7 @@
 #pragma once
 
+#include "state/item.h"
+
 #include <vector>
 
 class Stores;
@@ -14,7 +16,7 @@ public:
     bool repeat;
 
     explicit QueueItem(const int id, bool repeat);
-    inline bool isValid() const { return item_id > -1; }
+    inline bool isValid() const { return item_id > ItemType::None; }
 };
 
 typedef std::vector<QueueItem> FactoryQueue;

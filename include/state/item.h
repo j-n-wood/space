@@ -4,48 +4,11 @@
 
 #include "state/resources.h"
 #include "state/string_caps.h"
-/*
-enum ItemType
-{
-    Derrick,
-    S_Chassis,
-    S_Drive,
-    Of_Frame,
-    Supply_Pod,
-    Tool_Pod,
-    Cryo_Pod,
-    I_Chassis,
-    I_Drive,
-    ACC,
-    AOC,
-    Bandaid,
-    SDM,
-    Grapple,
-    DFCC,
-    AMA,
-    Hyperlight,
-    MTX,
-    MFL,
-    R_Frame,
-    Prejudice_Torpedo_Launcher,
-    Commspod,
-    Ios_Drone,
-    G_Chassis,
-    Star_Drive,
-    PTL,
-    Star_Drone,
-    Prison_Pod,
-    Sonic_Blaster,
-    Pulse_Blaster_Laser,
-    Count
-};
-
-extern const char *ItemName[ItemType::Count];
-*/
 
 // order matches database table ID
 enum ItemType
 {
+    None, // no item
     Derrick,
     S_Chassis,
     S_Drive,
@@ -104,4 +67,6 @@ public:
     int production_image_index;
     int pod_capacity; // how many units can fit in a pod
     std::vector<BuildRequirement> requirements;
+
+    Item() : id{0}, name{""}, description{""}, pod_type{0}, researched{false}, tech_level{0}, orbital{false}, mass{0}, production_time{0}, doc_image_index{-1}, production_image_index{-1}, pod_capacity{0} {}
 };
