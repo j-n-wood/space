@@ -52,9 +52,7 @@ void MasterControlView::renderOrbitals()
             {
                 // switch to orbital page for this location
                 PageManager &pm = PageManager::getInstance();
-                pm.viewState.setCurrentLocation(orbital->location);
-                pm.viewState.setCurrentFacility(orbital.get());
-                pm.viewState.setCurrentCraft(nullptr);
+                pm.viewState.setFacilityFocus(orbital.get());
                 pm.switchToPage(PAGE_PRODUCTION); // orbital page has production info and access to factory, stores, etc.
             }
             y += 80.0; // Move to the next position
@@ -127,17 +125,7 @@ void MasterControlView::renderIOS()
             {
                 // switch to orbital page for this location
                 PageManager &pm = PageManager::getInstance();
-                pm.viewState.setCurrentLocation(ios->location);
-                // see if there is a suitable facility at craft location
-                if (Orbital *o = game->orbitalAt(ios->location))
-                {
-                    pm.viewState.setCurrentFacility(o);
-                }
-                else
-                {
-                    pm.viewState.setCurrentFacility(nullptr);
-                }
-                pm.viewState.setCurrentCraft(ios.get());
+                pm.viewState.setCraftFocus(ios.get());
                 pm.switchToPage(PAGE_SHUTTLE);
             }
             y += 80.0; // Move to the next position

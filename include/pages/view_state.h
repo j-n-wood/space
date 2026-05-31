@@ -49,6 +49,12 @@ public:
         return *this;
     }
 
+    ViewState &setFacilityFocus(Facility *f);
+
+    ViewState &setCraftFocus(Craft *c);
+
+    ViewState &setLocationFocus(Location *l); // location only - part of multi-location focus
+
     inline ResearchFacility *getCurrentResearchFacility() const
     {
         return currentResearchFacility;

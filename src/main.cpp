@@ -191,45 +191,14 @@ int main()
 			}
 			else if (IsKeyPressed(KEY_F2))
 			{
-				System *system = game->allSystems()[1].get();
 				Location *earth = game->locationByID(4);
-				pageManager.viewState.setCurrentSystem(system);
-				pageManager.viewState.setCurrentLocation(earth);
-				pageManager.viewState.setCurrentFacility(game->resourceFacilityAt(earth));
-				pageManager.viewState.setCurrentCraft(nullptr);
+				pageManager.viewState.setFacilityFocus(game->resourceFacilityAt(earth)); // set focus to resource facility to show correct buttons on page
 				pageManager.switchToPage(PAGE_EARTH_CITY);
 			}
 			else if (IsKeyPressed(KEY_F3))
 			{
-				System *system = game->allSystems()[1].get();
-				Location *space = game->locationByID(0);
-				pageManager.viewState.setCurrentSystem(system);
-				pageManager.viewState.setCurrentLocation(space);
-				pageManager.viewState.setCurrentFacility(nullptr);
-				pageManager.viewState.setCurrentCraft(nullptr);
+				pageManager.viewState.setLocationFocus(game->locationByID(0)); // set focus to space location to show correct buttons on page
 				pageManager.switchToPage(PAGE_MASTER_CONTROL);
-			}
-			else if (IsKeyPressed(KEY_F5))
-			{
-				// switch to first IOS
-				auto &ioss = game->allIOS();
-				if (!ioss.empty())
-				{
-					pageManager.viewState.setCurrentCraft(ioss[0].get());
-					pageManager.switchToPage(PAGE_COCKPIT);
-					currentPage->activate(pageManager.viewState); // force update of page state to reflect new craft focus
-				}
-			}
-			else if (IsKeyPressed(KEY_F4))
-			{
-				// switch to luna IOS
-				auto &ioss = game->allIOS();
-				if (!ioss.empty())
-				{
-					pageManager.viewState.setCurrentCraft(ioss[1].get());
-					pageManager.switchToPage(PAGE_COCKPIT);
-					currentPage->activate(pageManager.viewState); // force update of page state to reflect new craft focus
-				}
 			}
 
 			// test save/load
