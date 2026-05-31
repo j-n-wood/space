@@ -102,6 +102,11 @@ void Factory::update()
 bool Factory::canBuild(const int item_id) const
 {
     auto game{Game::getCurrent()};
+    if (item_id == 0)
+    {
+        // nothing
+        return false;
+    }
     if (item_id >= game->items.size())
     {
         return false; // wtf?

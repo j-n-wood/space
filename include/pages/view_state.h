@@ -18,10 +18,14 @@ class ViewState
     Craft *currentCraft;
     ResearchFacility *currentResearchFacility;
 
-public:
-    ViewState() : currentSystem(nullptr), currentLocation(nullptr), currentFacility(nullptr), currentCraft(nullptr) {};
+    int faction_id;
 
-    System *getCurrentSystem() const { return currentSystem; }
+public:
+    ViewState() : currentSystem(nullptr), currentLocation(nullptr), currentFacility(nullptr), currentCraft(nullptr), faction_id(0) {};
+
+    inline int getFactionId() const { return faction_id; }
+
+    inline System *getCurrentSystem() const { return currentSystem; }
     inline ViewState &setCurrentSystem(System *s)
     {
         currentSystem = s;

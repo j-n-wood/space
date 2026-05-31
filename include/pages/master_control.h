@@ -4,6 +4,7 @@
 
 class MasterControlView : public BasePage
 {
+    int faction_id;
     System *currentSystem;
 
     // animation state

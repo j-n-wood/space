@@ -25,6 +25,7 @@ typedef enum
     PB_COCKPIT,
     PB_FACTORY,
     PB_TRAINING,
+    PB_ORBITAL,
     PB_COUNT
 } PageBackgroundID;
 
@@ -36,7 +37,9 @@ const Rectangle pageBackgroundSources[PB_COUNT] = {
     {864, 32, 272, 168},
     {24, 208, 272, 168},
     {304, 208, 272, 168},
-    {584, 208, 272, 168}};
+    {584, 208, 272, 168},
+    {864, 684, 272, 168},
+};
 
 typedef enum
 {

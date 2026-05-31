@@ -7,7 +7,7 @@
 #include <cstdio>
 #include <cmath>
 
-MasterControlView::MasterControlView()
+MasterControlView::MasterControlView() : faction_id(0), currentSystem(nullptr)
 {
     std::snprintf(title, sizeof title, "Master Control");
     backgroundTexture = nullptr; // no default background
@@ -16,6 +16,7 @@ MasterControlView::MasterControlView()
 void MasterControlView::activate(ViewState &viewState)
 {
     currentSystem = viewState.getCurrentSystem();
+    faction_id = viewState.getFactionId();
 
     // clear animation state
     for (int i = 0; i < 32; ++i)
@@ -62,7 +63,7 @@ void MasterControlView::renderOrbitals()
     for (auto &orbital : game->allOrbitals())
     {
         // is it in the current system?
-        if (orbital->location->system == currentSystem)
+        if ((orbital->location->system == currentSystem) && (orbital->faction_id == faction_id))
         {
             // render it
             Rectangle target{x, y, 32 * 4, 16 * 4};
@@ -79,7 +80,7 @@ void MasterControlView::renderOrbitals()
                 // switch to orbital page for this location
                 PageManager &pm = PageManager::getInstance();
                 pm.viewState.setFacilityFocus(orbital.get());
-                pm.switchToPage(PAGE_PRODUCTION); // orbital page has production info and access to factory, stores, etc.
+                pm.switchToPage(PAGE_ORBITAL); // orbital page has production info and access to factory, stores, etc.
             }
             y += 80.0; // Move to the next position
             ++count;
@@ -111,7 +112,7 @@ void MasterControlView::renderIOS()
     for (auto &ios : game->allIOS())
     {
         // is it in the current system?
-        if (ios->location->system == currentSystem)
+        if ((ios->location->system == currentSystem) && (ios->faction_id == faction_id))
         {
             // render it
             Rectangle target{x, y, 32 * 4, 16 * 4};
