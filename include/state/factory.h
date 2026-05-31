@@ -34,6 +34,7 @@ public:
     void update(); // advance time one tick
 
     bool canBuild(const int item_id) const;
+    inline bool isActive() const { return !queue.empty() && queue.front().started; }
 
     void queueItem(const int item_id);
     void dropQueueItem(const int index);

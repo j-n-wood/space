@@ -372,7 +372,7 @@ int SaveGame::saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locati
         return 0;
     }
 
-    if (location->id == 0)
+    if (location->id == -1)
     {
         TraceLog(LOG_ERROR, "SaveGame: Cannot save location with missing ID");
         return -14;

@@ -5,6 +5,7 @@
 #include "pages/pages.h"
 
 #include <cstdio>
+#include <cmath>
 
 MasterControlView::MasterControlView()
 {
@@ -15,6 +16,25 @@ MasterControlView::MasterControlView()
 void MasterControlView::activate(ViewState &viewState)
 {
     currentSystem = viewState.getCurrentSystem();
+
+    // clear animation state
+    for (int i = 0; i < 32; ++i)
+    {
+        orbitalAnimTime[i] = 0.0f;
+    }
+}
+
+void MasterControlView::update(const float delta)
+{
+    // update animation state
+    for (int i = 0; i < 32; ++i)
+    {
+        orbitalAnimTime[i] += delta;
+        if (orbitalAnimTime[i] > 1.0f)
+        {
+            orbitalAnimTime[i] -= 1.0f;
+        }
+    }
 }
 
 void MasterControlView::render()
@@ -46,7 +66,13 @@ void MasterControlView::renderOrbitals()
         {
             // render it
             Rectangle target{x, y, 32 * 4, 16 * 4};
-            DrawTexturePro(*texture_ui, uiElementSources[UI_ORBITAL_ICON_1], target, (Vector2){0, 0}, 0.f, WHITE);
+            auto frame = static_cast<int>(UI_ORBITAL_ICON_1);
+            if (orbital->factory && orbital->factory->isActive())
+            {
+                float progress = 3.0f * orbitalAnimTime[count];    // 3 frames
+                frame = UI_ORBITAL_ICON_1 + (int)floorf(progress); // active icon
+            }
+            DrawTexturePro(*texture_ui, uiElementSources[frame], target, (Vector2){0, 0}, 0.f, WHITE);
             // add hover tooltip with location name
             if (overlay.clickedArea(target, orbital->location->name))
             {
