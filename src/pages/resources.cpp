@@ -47,8 +47,18 @@ void Resources::listResources()
         }
     }
 
+    cursor.y += 24;
     // derricks
     char buf[256];
     sprintf(buf, "Derricks: %d", facility->num_derricks);
     DrawText(buf, 400, cursor.y, 20, WHITE);
+
+    // if facility is damaged, show damage level
+    if (facility->damage > 0)
+    {
+        cursor.y += 48;
+        char damageBuf[256];
+        sprintf(damageBuf, "Damage: %d%%", facility->damage);
+        DrawText(damageBuf, 400, cursor.y, 20, ORANGE);
+    }
 }
