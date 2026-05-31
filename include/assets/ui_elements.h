@@ -28,6 +28,12 @@ typedef enum
     UI_BUTTON_CRAFT_TRANSIT_INTERSTELLAR, // button icon for craft in interstellar transit state
     UI_BUTTON_CRAFT_FLEET,
     UI_BUTTON_CRAFT_ALERT,
+    UI_BAY_COCKPIT,
+    UI_BAY_POD,
+    UI_BAY_DRIVE,
+    UI_BAY_COCKPIT_HIGHLIGHT,
+    UI_BAY_POD_HIGHLIGHT,
+    UI_BAY_DRIVE_HIGHLIGHT,
     UI_ELEMENT_COUNT
 } UIElementID;
 
@@ -52,6 +58,12 @@ const Rectangle uiElementSources[UI_ELEMENT_COUNT] = {
     {248, 179, 32, 16},
     {182, 196, 32, 16},
     {215, 196, 32, 16},
+    {48, 520, 24, 16},
+    {80, 520, 24, 16},
+    {112, 520, 24, 16},
+    {48, 544, 24, 16},
+    {80, 544, 24, 16},
+    {112, 544, 24, 16},
 };
 
 // standard buttons are from 175, 24 (TL) width 24, height 17, 2 columns, 6 rows

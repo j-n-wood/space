@@ -49,6 +49,7 @@ public:
     Craft *getSpacecraft();
     Shuttle *getShuttle();
 
+    void renderSectionMarker();
     void renderCraft();
     void renderPod(Pod *pod);
     void renderDrive();

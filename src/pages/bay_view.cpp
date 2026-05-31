@@ -1,6 +1,7 @@
 #include "pages/bay_view.h"
 #include "state/game.h"
 #include "pages/overlay.h"
+#include "assets/ui_elements.h"
 
 const char *bayTypeName[]{
     "Shuttle",
@@ -321,6 +322,8 @@ void BayView::render()
     {
         renderCraft();
 
+        renderSectionMarker();
+
         if (resourceList.visible)
         {
             resourceList.render();
@@ -367,6 +370,56 @@ void BayView::update(const float delta)
     craft = getCraft();
 
     // animation
+}
+
+void BayView::renderSectionMarker()
+{
+    // render cockpit marker, highlighted if section = 0
+    // driveSection
+    float x = 280;
+    float y = 200;
+
+    for (int i = 0; i <= driveSection; i++)
+    {
+        Rectangle source{0, 0, 16, 16};
+        if (i == 0)
+        {
+            if (section == 0)
+            {
+                source = uiElementSources[UI_BAY_COCKPIT_HIGHLIGHT];
+            }
+            else
+            {
+                source = uiElementSources[UI_BAY_COCKPIT];
+            }
+        }
+        else if (i == driveSection)
+        {
+            if (section == driveSection)
+            {
+                source = uiElementSources[UI_BAY_DRIVE_HIGHLIGHT];
+            }
+            else
+            {
+                source = uiElementSources[UI_BAY_DRIVE];
+            }
+        }
+        else
+        {
+            if (section == i)
+            {
+                source = uiElementSources[UI_BAY_POD_HIGHLIGHT];
+            }
+            else
+            {
+                source = uiElementSources[UI_BAY_POD];
+            }
+        }
+
+        Rectangle dest{x + i * 24 * 4, y, 24 * 4, 16 * 4};
+
+        DrawTexturePro(*partsTexture, source, dest, Vector2{0, 0}, 0.0f, WHITE);
+    }
 }
 
 void BayView::renderCraft()
