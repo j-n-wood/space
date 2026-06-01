@@ -154,7 +154,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT, operational INT, construction_progress INT, damage INT, faction_id INT, aoc_installed INT, sdm_installed INT, mtx_installed INT );"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT, ios_number INT, scg_number INT );"
-        "CREATE TABLE IF NOT EXISTS factions ( id INT, name TEXT );"
+        "CREATE TABLE IF NOT EXISTS factions ( id INT, name TEXT, hostile INT );"
         "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, pod_type int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);"
         "CREATE TABLE IF NOT EXISTS item_build_requirements ( item_id int, resource_id int, amount int);"
         "CREATE TABLE IF NOT EXISTS research_topics ( id int, name text, description text, required_time float, progress float, available int);"
@@ -274,7 +274,7 @@ int SaveGame::saveFactions(Game *game)
 
     ScopedSqliteError errorMessage;
 
-    SQLiteQuery query(loader, "INSERT INTO factions (id, name) VALUES (?, ?);");
+    SQLiteQuery query(loader, "INSERT INTO factions (id, name, hostile) VALUES (?, ?, ?);");
     if (!query.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare factions insert");
@@ -283,7 +283,7 @@ int SaveGame::saveFactions(Game *game)
 
     for (const auto &faction : game->factions)
     {
-        if (!query.reset().bind(1, faction.id).bind(2, faction.name).step("SaveGame: Failed to insert faction record"))
+        if (!query.reset().bind(1, faction.id).bind(2, faction.name).bind(3, faction.hostile).step("SaveGame: Failed to insert faction record"))
         {
             return -7;
         }

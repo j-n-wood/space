@@ -51,13 +51,15 @@ bool Loader::loadGame()
 
 bool Loader::loadFactions()
 {
-    SQLiteQuery query(this, "SELECT id, name FROM factions ORDER BY id");
+    SQLiteQuery query(this, "SELECT id, name, hostile FROM factions ORDER BY id");
 
     while (query.next())
     {
         int id = sqlite3_column_int(query, 0);
         const char *name = (const char *)sqlite3_column_text(query, 1);
+        bool hostile = sqlite3_column_int(query, 2) > 0;
         game->factions.emplace_back(id, name);
+        game->factions.back().hostile = hostile;
     }
 
     return true;

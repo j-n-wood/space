@@ -7,8 +7,9 @@ class Faction
 public:
     int id; // database ID for loading/saving
     char name[NAME_MAX_LEN];
+    bool hostile;
 
-    Faction() : id{0}
+    Faction() : id{0}, hostile{false}
     {
         name[0] = '\0';
     }
