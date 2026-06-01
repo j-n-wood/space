@@ -184,4 +184,7 @@ public:
     void raiseProductionCompleteEvent(Factory *factory, int item_id);
 
     void onSpacecraftArrival(Craft *craft);
+
+    // console input
+    bool processConsoleCommand(const char *command, Location *l, Facility *f);
 };

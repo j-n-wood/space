@@ -107,64 +107,18 @@ void Overlay::render()
         GuiTextBox(inputRect, consoleInput, sizeof(consoleInput), true);
         if (IsKeyPressed(KEY_ENTER))
         {
-            // process console command in consoleInput
-            TraceLog(LOG_INFO, "Console command entered: %s", consoleInput);
-
-            // give {item id} {amount} command to add items to current location for testing
-            int item_id{ItemType::None};
-            int amount{0};
-            if (std::sscanf(consoleInput, "give %d %d", &item_id, &amount) == 2)
+            if (!game->processConsoleCommand(consoleInput, pm.viewState.getCurrentLocation(), pm.viewState.getCurrentFacility()))
             {
-                // TODO move to game state
-                Facility *f{pm.viewState.getCurrentFacility()};
-                f->stores.items[item_id] += amount;
-                TraceLog(LOG_INFO, "Added %d of item %d to current location %s", amount, item_id, f->location->name);
-            }
-            // 'orbital' command to create an orbital at the current location for testing, if not present
-            else if (std::strcmp(consoleInput, "orbital") == 0)
-            {
-                Location *loc{pm.viewState.getCurrentLocation()};
-                if (!game->orbitalAt(loc))
+                // some other commands - move to appropriate controller
+                // command 'faction {faction_id}' to switch faction for testing
+                int faction_id;
+                if (std::sscanf(consoleInput, "faction %d", &faction_id) == 1)
                 {
-                    Orbital *orbital{game->createOrbital(loc)};
-                    orbital->operational = true;
-                    TraceLog(LOG_INFO, "Orbital created at location: %s", loc->name);
+                    pm.viewState.setFactionId(faction_id);
+                    pm.reactivateCurrentPage(); // refresh page to update any faction-specific info
+                    TraceLog(LOG_INFO, "Switched to faction %d", faction_id);
                 }
             }
-            // 'shuttle' to spawn shuttle at current facility if any
-            else if (std::strcmp(consoleInput, "shuttle") == 0)
-            {
-                Facility *f{pm.viewState.getCurrentFacility()};
-                if (f && !game->locationHasShuttle(f->location)) // location check is probably redundant as facility should always have a location, but just in case
-                {
-                    Shuttle *shuttle{game->createShuttle(f)};
-                    TraceLog(LOG_INFO, "Shuttle created at facility: %s", f->location->name);
-                }
-            }
-            // research {topic id} command to set research progress for testing
-            else if (std::sscanf(consoleInput, "research %d", &item_id) == 1)
-            {
-                if (item_id == -1)
-                {
-                    // set all research to complete
-                    for (auto &topic : game->researchTopics)
-                    {
-                        topic.progress = topic.requiredTime;
-                    }
-                    // set all items to researched as well
-                    for (auto &item : game->items)
-                    {
-                        item.researched = true;
-                    }
-                    TraceLog(LOG_INFO, "All research topics set to complete");
-                }
-                else if (item_id >= 0 && item_id < game->researchTopics.size())
-                {
-                    game->researchTopics[item_id].progress = game->researchTopics[item_id].requiredTime;
-                    TraceLog(LOG_INFO, "Research topic %d set to complete", item_id);
-                }
-            }
-
             // clear input
             consoleInput[0] = '\0';
         }

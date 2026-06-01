@@ -24,6 +24,11 @@ public:
     ViewState() : currentSystem(nullptr), currentLocation(nullptr), currentFacility(nullptr), currentCraft(nullptr), faction_id(0) {};
 
     inline int getFactionId() const { return faction_id; }
+    inline ViewState &setFactionId(int id)
+    {
+        faction_id = id;
+        return *this;
+    }
 
     inline System *getCurrentSystem() const { return currentSystem; }
     inline ViewState &setCurrentSystem(System *s)
