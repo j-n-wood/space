@@ -103,7 +103,7 @@ Facility *Loader::findFacilityById(int facility_id)
 
 bool Loader::loadFacilities()
 {
-    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id FROM facilities ORDER BY id");
+    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed FROM facilities ORDER BY id");
 
     while (query.next())
     {
@@ -116,6 +116,9 @@ bool Loader::loadFacilities()
         int construction_progress = sqlite3_column_int(query, 6);
         int damage = sqlite3_column_int(query, 7);
         int faction_id = sqlite3_column_int(query, 8);
+        int aoc_installed = sqlite3_column_int(query, 9);
+        int sdm_installed = sqlite3_column_int(query, 10);
+        int mtx_installed = sqlite3_column_int(query, 11);
         Location *loc = findLocation(system_id, location_id);
         if (!loc)
         {
@@ -139,6 +142,9 @@ bool Loader::loadFacilities()
             orbital->operational = operational;
             orbital->construction_progress = construction_progress;
             orbital->damage = damage;
+            orbital->aoc_installed = aoc_installed > 0;
+            orbital->sdm_installed = sdm_installed > 0;
+            orbital->mtx_installed = mtx_installed > 0;
             fac = orbital;
         }
         else if (type == SLOC_EARTH_CITY)

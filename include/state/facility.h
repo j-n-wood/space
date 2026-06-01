@@ -19,10 +19,13 @@ public:
     Stores stores;
     std::unique_ptr<Factory> factory; // RF bases typically do not have factory, orbitals do
     bool operational;                 // fully constructed
-    uint8_t construction_progress;    // 0-100, for construction progress of facility, if under construction
-    float damage;                     // 0-100, for damage level of facility, if damaged
+    bool aoc_installed;
+    bool sdm_installed;
+    bool mtx_installed;
+    uint8_t construction_progress; // 0-100, for construction progress of facility, if under construction
+    float damage;                  // 0-100, for damage level of facility, if damaged
 
-    explicit Facility(Location *l) : id{0}, location{l}, sublocation{SLOC_ORBIT}, operational{false}, construction_progress{0}, damage{0}
+    explicit Facility(Location *l) : id{0}, faction_id{0}, location{l}, sublocation{SLOC_ORBIT}, operational{false}, aoc_installed{false}, sdm_installed{false}, mtx_installed{false}, construction_progress{0}, damage{0}
     {
     }
     virtual ~Facility() {}

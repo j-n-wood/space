@@ -59,8 +59,20 @@ int queryInt(Loader *loader, const char *sql, int param)
     {
         return sqlite3_column_int(q, 0);
     }
-    TraceLog(LOG_ERROR, "Failed to execute query: %s", sqlite3_errmsg(loader->db));
+    TraceLog(LOG_ERROR, "Failed to fetch int: %s (%s)", sqlite3_errmsg(loader->db), sql);
     return -1;
+}
+
+int queryOptionalInt(Loader *loader, const char *sql, int param)
+{
+    SQLiteQuery q(loader, sql);
+    q.bind(param);
+
+    if (q.next())
+    {
+        return sqlite3_column_int(q, 0);
+    }
+    return 0;
 }
 
 int countChildBodies(Loader *loader, int primary_id)
@@ -75,7 +87,7 @@ int countSystemBodies(Loader *loader, int system_id)
 
 int getPrimaryBodyId(Loader *loader, int system_id)
 {
-    return queryInt(loader, "SELECT id FROM bodies WHERE system_id = ? AND primary_id = 0 LIMIT 1", system_id);
+    return queryOptionalInt(loader, "SELECT id FROM bodies WHERE system_id = ? AND primary_id = 0 LIMIT 1", system_id);
 }
 
 bool Loader::loadBodies()
