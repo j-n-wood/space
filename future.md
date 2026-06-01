@@ -21,7 +21,7 @@ Lose crews via ship losses. Need to answer question: can ships be intercepted? H
 
 ## resource limits
 
-E.g. more special resources like iridium, uranium. Limited quantities -> shipments more important ->
+E.g. more special resources like iridium, tungsten, uranium. Limited quantities -> shipments more important ->
 fleets? Ship interceptions a problem? e.g. transfer fleets where only some get through.
 
 MTX breaks shipments as a mechanism, but supports the production economy game. Maybe not everything
@@ -32,6 +32,8 @@ can be MTX'd - especially crews.
 pummel surface facilities. Counter with orbital lasers or missle batteries.
 
 ## stealth and detection
+
+listening posts. Probes. Early detection of enemy fleets.
 
 ## biowarfare
 
