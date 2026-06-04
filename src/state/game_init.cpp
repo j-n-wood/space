@@ -21,6 +21,12 @@ bool Game::initialise(Loader *loader)
         return false;
     }
 
+    if (!loader->loadFactions())
+    {
+        TraceLog(LOG_ERROR, "Failed to load factions");
+        return false;
+    }
+
     if (!loader->loadFacilities())
     {
         TraceLog(LOG_ERROR, "Failed to load facilities");

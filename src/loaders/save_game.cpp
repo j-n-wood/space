@@ -240,6 +240,11 @@ int SaveGame::saveGame(Game *game)
         }
     }
 
+    if (saveFactions(game) != 0)
+    {
+        return -10;
+    }
+
     if (saveItems(game) != 0)
     {
         return -10;

@@ -25,6 +25,19 @@
 
 #define CHECK_STREQ(a, b) CHECK(std::strcmp((a), (b)) == 0)
 
+// Each system carries an interstellar-space body at locations[0] (id 0),
+// so the star is not locations[0]. Look it up by type instead of assuming
+// a fixed index.
+static Location *findStar(System *system)
+{
+    for (Location *loc : system->locations)
+    {
+        if (loc->type == LOCATION_TYPE_STAR)
+            return loc;
+    }
+    return nullptr;
+}
+
 static const char *DB_PATH = "./resources/initial.db";
 static const char *SAVE_PATH = "./test_save.db";
 
@@ -65,8 +78,10 @@ TEST_CASE("loadSystem populates system from database")
     SUBCASE("first location is the star Sol")
     {
         REQUIRE(system->locations.size() > 0);
-        CHECK_STREQ(system->locations[0]->name, "Sol");
-        CHECK(system->locations[0]->type == LOCATION_TYPE_STAR);
+        Location *star = findStar(system);
+        REQUIRE(star != nullptr);
+        CHECK_STREQ(star->name, "Sol");
+        CHECK(star->type == LOCATION_TYPE_STAR);
     }
 
     SUBCASE("orbital data arrays match numPlanets")
@@ -92,7 +107,9 @@ TEST_CASE("loadSystem populates system from database")
         // system, and that parent has the body in its children.
         for (Location *loc : system->locations)
         {
-            if (loc->type == LOCATION_TYPE_STAR)
+            // Stars have no parent; interstellar-space bodies point at the
+            // shared space body in system 0, which lives outside this system.
+            if (loc->type == LOCATION_TYPE_STAR || loc->type == LOCATION_TYPE_SPACE)
                 continue;
             REQUIRE(loc->primary_id != 0);
             Location *parent = nullptr;
@@ -132,9 +149,10 @@ TEST_CASE("Game::initialise loads full game state")
     SUBCASE("loads systems")
     {
         auto &systems = game->allSystems();
-        REQUIRE(systems.size() >= 1);
-        CHECK_STREQ(systems[0]->name, "Sol");
-        CHECK(systems[0]->id == 1);
+        REQUIRE(systems.size() >= 2);
+        // systems[0] is interstellar space (id 0); Sol is the first real system.
+        CHECK_STREQ(systems[1]->name, "Sol");
+        CHECK(systems[1]->id == 1);
     }
 
     SUBCASE("loads game time")
@@ -144,21 +162,24 @@ TEST_CASE("Game::initialise loads full game state")
 
     SUBCASE("loads item definitions")
     {
-        REQUIRE(game->items.size() >= 1);
+        REQUIRE(game->items.size() >= 2);
 
-        auto &derrick = game->items[0];
+        // items[0] is the "Empty" sentinel (id 0); Derrick is the first
+        // real item.
+        auto &derrick = game->items[1];
         CHECK_STREQ(derrick.name, "Derrick");
-        CHECK(derrick.id == 0);
+        CHECK(derrick.id == 1);
         CHECK(derrick.tech_level == 1);
         CHECK(derrick.production_time == 8);
     }
 
     SUBCASE("loads item build requirements")
     {
-        REQUIRE(game->items.size() >= 1);
-        auto &reqs = game->items[0].requirements;
-        // Derrick requires: Iron(1)=3, Titanium(2)=4, Carbon(4)=1
-        CHECK(reqs.size() == 3);
+        REQUIRE(game->items.size() >= 2);
+        auto &reqs = game->items[1].requirements;
+        // Derrick requires: Iron(1)=20, Titanium(2)=50, Aluminium(3)=35,
+        // Carbon(4)=10, Copper(5)=15
+        CHECK(reqs.size() == 5);
     }
 }
 
@@ -374,20 +395,23 @@ TEST_CASE("SaveGame produces a loadable database")
     SUBCASE("round-trips system")
     {
         auto &systems = loaded.allSystems();
-        REQUIRE(systems.size() >= 1);
-        CHECK_STREQ(systems[0]->name, "Sol");
-        CHECK(systems[0]->id == 1);
+        REQUIRE(systems.size() >= 2);
+        // systems[0] is interstellar space (id 0); Sol is the first real system.
+        CHECK_STREQ(systems[1]->name, "Sol");
+        CHECK(systems[1]->id == 1);
     }
 
     SUBCASE("round-trips all locations")
     {
-        auto &sys = loaded.allSystems()[0];
+        auto &sys = loaded.allSystems()[1];
         CHECK(sys->locations.size() > 0);
 
-        // spot-check the star — ordering of later bodies depends on the
-        // current initial.db schema, so just verify Sol is index 0.
-        CHECK_STREQ(sys->locations[0]->name, "Sol");
-        CHECK(sys->locations[0]->type == LOCATION_TYPE_STAR);
+        // spot-check the star — ordering of bodies depends on the current
+        // initial.db schema, so look it up by type rather than by index.
+        Location *star = findStar(sys.get());
+        REQUIRE(star != nullptr);
+        CHECK_STREQ(star->name, "Sol");
+        CHECK(star->type == LOCATION_TYPE_STAR);
 
         // Earth has a stable id (4) regardless of body ordering.
         Location *earth = loaded.locationByID(4);
@@ -448,8 +472,9 @@ TEST_CASE("SaveGame produces a loadable database")
 
     SUBCASE("round-trips item definitions")
     {
-        REQUIRE(loaded.items.size() >= 1);
-        auto &item = loaded.items[0];
+        REQUIRE(loaded.items.size() >= 2);
+        // items[0] is the "Empty" sentinel; Derrick is the first real item.
+        auto &item = loaded.items[1];
         CHECK_STREQ(item.name, "Derrick");
         CHECK(item.tech_level == 1);
         CHECK(item.production_time == 8);
@@ -457,19 +482,19 @@ TEST_CASE("SaveGame produces a loadable database")
 
     SUBCASE("round-trips item build requirements")
     {
-        REQUIRE(loaded.items.size() >= 1);
-        auto &reqs = loaded.items[0].requirements;
-        REQUIRE(reqs.size() == 3);
+        REQUIRE(loaded.items.size() >= 2);
+        auto &reqs = loaded.items[1].requirements;
+        REQUIRE(reqs.size() == 5);
 
-        // Verify specific requirements (Iron=3, Titanium=4, Carbon=1)
+        // Verify specific requirements (Iron=20, Titanium=50, Carbon=10)
         bool found_iron = false, found_titanium = false, found_carbon = false;
         for (auto &req : reqs)
         {
-            if (req.resource == ResourceType::Iron && req.amount == 3)
+            if (req.resource == ResourceType::Iron && req.amount == 20)
                 found_iron = true;
-            if (req.resource == ResourceType::Titanium && req.amount == 4)
+            if (req.resource == ResourceType::Titanium && req.amount == 50)
                 found_titanium = true;
-            if (req.resource == ResourceType::Carbon && req.amount == 1)
+            if (req.resource == ResourceType::Carbon && req.amount == 10)
                 found_carbon = true;
         }
         CHECK(found_iron);
@@ -571,7 +596,8 @@ TEST_CASE("SaveGame round-trips body resource availability")
     Game *game = createTestGame();
     REQUIRE(game != nullptr);
 
-    Location *earth = game->allSystems()[1]->locations[3];
+    Location *earth = game->locationByID(4);
+    REQUIRE(earth != nullptr);
     earth->resources.availability[ResourceType::Iron] = 7;
     earth->resources.availability[ResourceType::Carbon] = 3;
     earth->resources.availability[ResourceType::HedFuel] = 1; // index 16, boundary
@@ -584,10 +610,69 @@ TEST_CASE("SaveGame round-trips body resource availability")
     REQUIRE(loader.isValid());
     REQUIRE(loaded.initialise(&loader));
 
-    Location *loadedEarth = loaded.allSystems()[0]->locations[3];
+    Location *loadedEarth = loaded.locationByID(4);
+    REQUIRE(loadedEarth != nullptr);
     CHECK(loadedEarth->resources.availability[ResourceType::Iron] == 7);
     CHECK(loadedEarth->resources.availability[ResourceType::Carbon] == 3);
     CHECK(loadedEarth->resources.availability[ResourceType::HedFuel] == 1);
+
+    removeSaveFile();
+}
+
+TEST_CASE("Game::initialise loads factions from initial.db")
+{
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+
+    // initial.db ships with Terran (0) and Methanoid (1).
+    REQUIRE(game->factions.size() >= 2);
+    CHECK(game->factions[0].id == 0);
+    CHECK_STREQ(game->factions[0].name, "Terran");
+    CHECK(game->factions[1].id == 1);
+    CHECK_STREQ(game->factions[1].name, "Methanoid");
+}
+
+TEST_CASE("SaveGame round-trips factions and facility faction ownership")
+{
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+    REQUIRE(game->factions.size() >= 2);
+
+    // Flip a hostility flag so the boolean column is exercised too.
+    game->factions[1].hostile = true;
+
+    // Tag Earth's orbital with a non-default faction.
+    Location *earth = game->locationByID(4);
+    REQUIRE(earth != nullptr);
+    Orbital *orb = game->orbitalAt(earth);
+    REQUIRE(orb != nullptr);
+    orb->faction_id = 1;
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Game loaded;
+    Loader loader(SAVE_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(loaded.initialise(&loader));
+
+    SUBCASE("round-trips faction definitions and hostility")
+    {
+        REQUIRE(loaded.factions.size() >= 2);
+        CHECK_STREQ(loaded.factions[0].name, "Terran");
+        CHECK(loaded.factions[0].hostile == false);
+        CHECK_STREQ(loaded.factions[1].name, "Methanoid");
+        CHECK(loaded.factions[1].hostile == true);
+    }
+
+    SUBCASE("round-trips facility faction_id")
+    {
+        Location *loadedEarth = loaded.locationByID(4);
+        REQUIRE(loadedEarth != nullptr);
+        Orbital *lOrb = loaded.orbitalAt(loadedEarth);
+        REQUIRE(lOrb != nullptr);
+        CHECK(lOrb->faction_id == 1);
+    }
 
     removeSaveFile();
 }
@@ -655,17 +740,20 @@ TEST_CASE("SaveGame round-trips factory queue")
     Orbital *orb = game->orbitalAt(earth);
     REQUIRE(orb != nullptr);
     REQUIRE(orb->factory != nullptr);
-    REQUIRE(game->items.size() >= 2);
+    REQUIRE(game->items.size() >= 3);
+
+    // item id 0 is the "None"/"Empty" sentinel (not a queueable item), so
+    // use the first two real items: Derrick (1) and S Chassis (2).
 
     // First item: started, mid-progress, repeating.
-    QueueItem first(0, true);
+    QueueItem first(1, true);
     first.progress = 3;
     first.started = true;
     orb->factory->queue.push_back(first);
 
     // Second item: not yet started, non-repeating. Captures the
     // resources-not-yet-deducted state.
-    QueueItem second(1, false);
+    QueueItem second(2, false);
     second.progress = 0;
     second.started = false;
     orb->factory->queue.push_back(second);
@@ -687,8 +775,8 @@ TEST_CASE("SaveGame round-trips factory queue")
 
     SUBCASE("preserves queue order")
     {
-        CHECK(lOrb->factory->queue[0].item_id == 0);
-        CHECK(lOrb->factory->queue[1].item_id == 1);
+        CHECK(lOrb->factory->queue[0].item_id == 1);
+        CHECK(lOrb->factory->queue[1].item_id == 2);
     }
 
     SUBCASE("preserves started/progress on in-flight item")
@@ -779,7 +867,7 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     Game *game = createTestGame();
     REQUIRE(game != nullptr);
 
-    Location *earth = game->allSystems()[1]->locations[3];
+    Location *earth = game->locationByID(4);
     REQUIRE(earth != nullptr);
     Orbital *orb = game->orbitalAt(earth);
     REQUIRE(orb != nullptr);
@@ -936,7 +1024,7 @@ TEST_CASE("SaveGame round-trips autopilot state across all values")
         Game *game = createTestGame();
         REQUIRE(game != nullptr);
 
-        Location *earth = game->allSystems()[1]->locations[3];
+        Location *earth = game->locationByID(4);
         REQUIRE(earth != nullptr);
         Orbital *orb = game->orbitalAt(earth);
         REQUIRE(orb != nullptr);
