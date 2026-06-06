@@ -86,6 +86,35 @@ void BasePage::renderStandardButtons()
         surface = Game::getCurrent()->resourceFacilityAt(location);
     }
 
+    auto buttonTexture = TextureManager::getInstance().getTexture(TEXTURE_UI_BUTTONS);
+
+    bool isEarthCity = surface && surface->isEarthCity();
+
+    int orbital_faction_id = orbital ? orbital->faction_id : -1;
+
+    // render faction indicator
+    if (!isEarthCity)
+    {
+        if (orbital_faction_id == 1) // hardcoded for now
+        {
+            DrawTexturePro(*buttonTexture, uiElementSources[UI_BUTTON_METHANOID], standardButtonOrbitalDestination, (Vector2){0, 0}, 0.f, WHITE);
+        }
+        else
+        {
+            if (orbital) // render orbital indicator if orbital present, even if not a faction
+            {
+                DrawTexturePro(*buttonTexture, uiElementSources[UI_BUTTON_ORBITAL], standardButtonOrbitalDestination, (Vector2){0, 0}, 0.f, WHITE);
+            }
+        }
+    }
+    if (surface)
+    {
+        DrawTexturePro(*buttonTexture, uiElementSources[UI_BUTTON_SURFACE], standardButtonSurfaceDestination, (Vector2){0, 0}, 0.f, WHITE);
+    }
+
+    // is this YOUR faction?
+    bool player_faction = (orbital_faction_id > -1) && (vs.getFactionId() == orbital_faction_id);
+
     // iterate flags in standardButtons bitfield
     for (int i = 0; i < STANDARD_BUTTON_COUNT; i++)
     {
@@ -134,7 +163,12 @@ void BasePage::renderStandardButtons()
 
             // render button then tooltip
             int icon_index = standardButtonIcons[i];
-            DrawTexturePro(*TextureManager::getInstance().getTexture(TEXTURE_UI_BUTTONS), facilityIconSources[icon_index], standardButtonDestinations[i], (Vector2){0, 0}, 0.f, WHITE);
+            DrawTexturePro(*buttonTexture, facilityIconSources[icon_index], standardButtonDestinations[i], (Vector2){0, 0}, 0.f, WHITE);
+
+            if (!player_faction)
+            {
+                continue; // cannot use if not your faction
+            }
 
             if (overlay.renderButton(standardButtonDestinations[i], "", standardButtonTooltips[i], WHITE))
             { // empty text since we're using a texture, could add text if desired

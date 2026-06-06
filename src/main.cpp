@@ -108,6 +108,14 @@ void buildTestData(Game *game)
 	// set OF frame research complete so we can test orbital construction
 	game->researchTopics[6].progress = game->researchTopics[6].requiredTime;
 	game->items[ItemType::Of_Frame].researched = true;
+
+	// test IOS 3 at Jupiter
+	Location *jupiter = game->locationByID(10);
+	IOS *ios3 = game->createIOS(jupiter);
+	ios3->state = CS_ORBIT; // there is no orbital here
+	ios3->drive = true;
+	ios3->fuel = 250;
+	ios3->setPodType(0, PT_TOOL);
 }
 
 int main()

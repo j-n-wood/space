@@ -34,12 +34,15 @@ typedef enum
     UI_BAY_COCKPIT_HIGHLIGHT,
     UI_BAY_POD_HIGHLIGHT,
     UI_BAY_DRIVE_HIGHLIGHT,
+    UI_BUTTON_ORBITAL,   // sidebar orbital indicator
+    UI_BUTTON_SURFACE,   // sidebar surface indicator
+    UI_BUTTON_METHANOID, // sidebar methanoid indicator
     UI_ELEMENT_COUNT
 } UIElementID;
 
 // altas coordinates of UI elements
 const Rectangle uiElementSources[UI_ELEMENT_COUNT] = {
-    {174, 23, 51, 120},
+    {174, 23, 51, 103},
     {48, 696, 24, 16},
     {113, 696, 24, 16},
     {80, 696, 24, 16},
@@ -64,6 +67,9 @@ const Rectangle uiElementSources[UI_ELEMENT_COUNT] = {
     {48, 544, 24, 16},
     {80, 544, 24, 16},
     {112, 544, 24, 16},
+    {230, 75, 50, 16},
+    {230, 126, 50, 16},
+    {174, 126, 50, 16},
 };
 
 // standard buttons are from 175, 24 (TL) width 24, height 17, 2 columns, 6 rows
@@ -114,6 +120,9 @@ const Rectangle standardButtonDestinations[UI_BUTTON_COUNT] = {
     {4 * border, 4 * (top + border + 5 * row_height), button_width * 4, button_height * 4},
     {4 * (border + col2), 4 * (top + border + 5 * row_height), button_width * 4, button_height * 4},
 };
+
+const Rectangle standardButtonOrbitalDestination{0, 4 * (top + 1 + 3 * row_height), 50 * 4, 16 * 4};
+const Rectangle standardButtonSurfaceDestination{0, 4 * (top + 1 + 6 * row_height), 50 * 4, 16 * 4};
 
 // facility icons
 typedef enum

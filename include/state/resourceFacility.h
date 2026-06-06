@@ -19,6 +19,7 @@ public:
     ~ResourceFacility();
 
     virtual void update() override;
+    bool isEarthCity() const { return sublocation == SLOC_EARTH_CITY; }
 };
 
 typedef std::vector<std::unique_ptr<ResourceFacility>> Bases;
