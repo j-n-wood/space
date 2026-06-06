@@ -2,6 +2,8 @@
 #include "state/game.h"
 #include "pages/overlay.h"
 #include "assets/textures.h"
+#include "pages/pages.h"
+#include "assets/ui_elements.h"
 
 #include <cstdio>
 
@@ -12,10 +14,28 @@ extern "C"
 
 void DroneControlView::activate(Craft *c)
 {
+    auto game = Game::getCurrent();
     craft = c;
-    droneType = Game::getCurrent()->droneTypeForCraft(craft);
+    location = c->location;
+    droneType = game->droneTypeForCraft(craft);
     visible = true;
     state = DCS_MANAGE;
+
+    if (location)
+    {
+        auto current_faction_id = PageManager::getInstance().viewState.getFactionId();
+        // check for hostiles
+        if (game->hostilesAt(location, current_faction_id))
+        {
+            state = DCS_BATTLE;
+            current_orbital = game->orbitalAt(location); // TODO depends on aggressor
+            if (current_orbital)
+            {
+                orbital_drone_count = current_orbital->stores.items[droneType]; // TODO could defend with more than one
+            }
+            fleet_drone_count = game->droneCountForCraft(craft);
+        }
+    }
 }
 
 void DroneControlView::deactivate()
@@ -139,4 +159,50 @@ void DroneControlView::render_manage()
 void DroneControlView::render_battle()
 {
     DrawText("Drone Control - Battle", left, top, 20, WHITE);
+
+    // is there a defending (left) or target (right) orbital?
+    int render_orbital_x = -1;
+    Game *game = Game::getCurrent();
+    auto &pm{PageManager::getInstance()};
+    auto width = GetScreenWidth() - 2 * left;
+    if (location)
+    {
+        Orbital *o = game->orbitalAt(location);
+        if (o)
+        {
+            char buffer[256];
+            if (o->faction_id == pm.viewState.getFactionId())
+            {
+                snprintf(buffer, sizeof buffer, "Defending %s Orbital", location->name);
+                render_orbital_x = left + 20;
+            }
+            else
+            {
+                snprintf(buffer, sizeof buffer, "Target: %s Orbital", location->name);
+                render_orbital_x = left + width - 80;
+            }
+            DrawText(buffer, left + width / 2, top, 20, YELLOW);
+        }
+    }
+    if (render_orbital_x != -1)
+    {
+        // render a small orbital image next to the label
+        static auto docImageTexture = TextureManager::getInstance().getTexture(TEXTURE_UI_BUTTONS);
+        const Rectangle itemImageTarget = {(float)render_orbital_x, (float)(top + 250), 48 * 4, 16 * 4};
+        DrawTexturePro(*docImageTexture, uiElementSources[UI_BUTTON_ORBITAL], itemImageTarget, (Vector2){0, 0}, 0.f, WHITE);
+    }
+
+    // render fleet count, top left
+    char buffer[64];
+    std::snprintf(buffer, sizeof buffer, "Fleet Drones: %d", fleet_drone_count);
+    DrawText(buffer, (float)left, (float)(top + 30), 20, YELLOW);
+
+    // render orbital count if have an orbital, top right
+    if (current_orbital)
+    {
+        std::snprintf(buffer, sizeof buffer, "Orbital Drones: %d", orbital_drone_count);
+        DrawText(buffer, (float)(left + width - 200), (float)(top + 30), 20, YELLOW);
+    }
+
+    // flee button
 }

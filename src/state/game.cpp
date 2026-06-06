@@ -917,3 +917,33 @@ bool Game::processConsoleCommand(const char *command, Location *l, Facility *f)
 
     return false;
 }
+
+void Game::setFactionHostility(int faction_id, bool hostile)
+{
+    if (faction_id >= 0 && faction_id < factions.size())
+    {
+        factions[faction_id].hostile = hostile;
+        TraceLog(LOG_INFO, "Faction %d hostility set to %s", faction_id, hostile ? "true" : "false");
+    }
+    else
+    {
+        TraceLog(LOG_ERROR, "Invalid faction_id %d in setFactionHostility", faction_id);
+    }
+}
+
+bool Game::hostilesAt(Location *location, int faction_id)
+{
+    if (!location)
+    {
+        TraceLog(LOG_ERROR, "Null location provided to hostilesAt");
+        return false;
+    }
+
+    auto orbital = orbitalAt(location);
+    if (orbital && orbital->faction_id != faction_id)
+    {
+        return factions[orbital->faction_id].hostile;
+    }
+
+    return false;
+}

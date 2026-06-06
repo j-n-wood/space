@@ -115,7 +115,12 @@ void buildTestData(Game *game)
 	ios3->state = CS_ORBIT; // there is no orbital here
 	ios3->drive = true;
 	ios3->fuel = 250;
-	ios3->setPodType(0, PT_TOOL);
+	ios3->setPodType(0, PT_WEAPON);
+	ios3->pods[0].contentType = ItemType::DFCC;
+	ios3->pods[0].amount = 100;
+
+	game->setFactionHostility(1, true);
+	game->orbitalAt(jupiter)->stores.items[ItemType::Ios_Drone] = 50;
 }
 
 int main()

@@ -130,6 +130,10 @@ public:
     Orbital *orbitalAt(Location *location);
     Facility *facilityAt(const Endpoint &endpoint);
 
+    // faction related
+    void setFactionHostility(int faction_id, bool hostile);
+    bool hostilesAt(Location *location, int faction_id);
+
     // logic to support UI
     inline bool locationHasShuttle(Location *location) const
     {
