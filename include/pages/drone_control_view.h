@@ -19,14 +19,6 @@ enum DroneControlState
     DCS_MAX
 };
 
-struct DroneMarker
-{
-    float x;
-    float y;
-    float angle; // for animation
-    float cooldown;
-};
-
 enum DroneFleetState
 {
     DFS_APPROACHING,
@@ -44,7 +36,16 @@ struct DroneFleetMarkers
 {
     Color color;
     DroneFleetState state;
-    DroneMarker fleet[MAX_DRONE_FLEET_SIZE];
+    int size;
+    float fleet_speed;
+    float fleet_rotation_rate;
+    Vector2 fleet_position; // position of fleet in battle area, for calculating marker positions
+    float path_length[MAX_DRONE_FLEET_SIZE];
+    Vector2 position[MAX_DRONE_FLEET_SIZE];
+
+    void initialise(int count, Color c);
+    void update(float delta);
+    void render(int top, int left);
 };
 
 class DroneControlView
@@ -76,4 +77,5 @@ public:
 
     void input();
     void render();
+    void update(float delta);
 };

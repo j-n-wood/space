@@ -401,6 +401,7 @@ void ShuttleView::render()
 void ShuttleView::update(const float delta)
 {
     pageLog.update(delta);
+    droneControlView->update(delta);
 }
 
 void ShuttleView::onOrbitalConstruction(Orbital *orbital)

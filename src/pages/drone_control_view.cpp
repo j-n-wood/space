@@ -6,6 +6,7 @@
 #include "assets/ui_elements.h"
 
 #include <cstdio>
+#include <cmath>
 
 extern "C"
 {
@@ -34,6 +35,9 @@ void DroneControlView::activate(Craft *c)
                 orbital_drone_count = current_orbital->stores.items[droneType]; // TODO could defend with more than one
             }
             fleet_drone_count = game->droneCountForCraft(craft);
+
+            attackers.initialise(fleet_drone_count, RED);
+            defenders.initialise(orbital_drone_count, BLUE);
         }
     }
 }
@@ -205,4 +209,125 @@ void DroneControlView::render_battle()
     }
 
     // flee button
+
+    // fleets
+    attackers.render(top, left);
+    defenders.render(top, left);
+}
+
+void DroneControlView::update(float delta)
+{
+    attackers.update(delta);
+    defenders.update(delta);
+}
+
+// fleet markers
+
+void DroneFleetMarkers::initialise(int count, Color c)
+{
+    size = count;
+    color = c;
+    state = DFS_APPROACHING;
+    fleet_speed = 5.0f;
+    fleet_rotation_rate = 0.2f;
+
+    // distribute path lengths around a spherical helix
+    // say 6 rotations around the sphere, but only use the inner 4 to avoid bunching at the poles
+    float total_path_length = 4.0 * 2.0 * PI;
+    float path_length_increment = total_path_length / count;
+
+    float current_path_length = 2.0 * PI;
+    for (int i = 0; i < count; i++)
+    {
+        path_length[i] = current_path_length;
+        position[i] = {0.0f, 0.0f};
+        current_path_length += path_length_increment;
+    }
+}
+
+void DroneFleetMarkers::update(float delta)
+{
+    // update position of each marker based on state and timer
+
+    // path calculation depends on state
+
+    const float sphere_radius = 100.0f; // radius of the sphere around the battle area that the drones are moving on
+
+    // helical path - using 2D coords with x right, y down, therefore z into screen
+    /*
+    function getContinuousXHelixPoint(globalTime, pointOffset, radius = 1.0, turns = 5) {
+        // t grows continuously. Space points out using pointOffset.
+        let t = globalTime + pointOffset;
+
+        // x is now the primary axial direction of the helix
+        let x = radius * Math.sin(t);
+
+        // y and z form the revolving framework around the x-axis
+        let y = radius * Math.cos(t) * Math.cos(turns * t);
+        let z = radius * Math.cos(t) * Math.sin(turns * t);
+
+        return { x, y, z };
+    }
+    */
+
+    if (state == DFS_APPROACHING)
+    {
+        // move fleet COM
+        fleet_position.x += fleet_speed * delta;
+
+        float delta_s = delta * fleet_rotation_rate;
+
+        // move as if points on surface of a rotating sphere
+        for (int i = 0; i < size; i++)
+        {
+            path_length[i] += delta_s;
+
+            // update positions based on path_length
+            float phi = path_length[i];
+            float theta = 0.5f * PI * (1.0f - cosf(0.5f * path_length[i])); // polar angle increases from 0 to PI as path length increases, but with a cosine to bunch points towards the middle and avoid bunching at the poles
+
+            // convert spherical to cartesian coordinates, with radius 1
+            position[i].x = fleet_position.x + sphere_radius * sinf(theta) * cosf(phi);
+            position[i].y = fleet_position.y + sphere_radius * sinf(theta) * sinf(phi);
+        }
+    }
+    else if (state == DFS_ENGAGING)
+    {
+        // follow curves around midpoint of area, from whatever point they are at end of approach phase. Follow arcs around a sphere centered on battle area.
+        float delta_s = delta * fleet_rotation_rate;
+        for (int i = 0; i < size; i++)
+        {
+            path_length[i] += delta_s;
+
+            // update positions based on path_length
+            float phi = path_length[i];
+            float theta = 0.5f * PI * (1.0f - cosf(0.5f * path_length[i])); // polar angle increases from 0 to PI as path length increases, but with a cosine to bunch points towards the middle and avoid bunching at the poles
+
+            // convert spherical to cartesian coordinates, with radius 1
+            position[i].x = fleet_position.x + sphere_radius * sinf(theta) * cosf(phi);
+            position[i].y = fleet_position.y + sphere_radius * sinf(theta) * sinf(phi);
+        }
+    }
+    else if (state == DFS_RETREATING)
+    {
+        // move directly away from midpoint of area in the retreat direction (horizontal)
+        // path length not used
+        fleet_position.x -= fleet_speed * delta; // move fleet COM horizontally away from battle area
+        for (int i = 0; i < size; i++)
+        {
+            position[i].x = position[i].x - fleet_speed * delta; // move each marker horizontally with the fleet COM
+        }
+    }
+}
+
+void DroneFleetMarkers::render(int t, int l)
+{
+    // render markers based on positions, with color based on state
+    Vector2 p;
+    for (int i = 0; i < size; i++)
+    {
+        p.x = position[i].x + l;
+        p.y = position[i].y + t;
+        DrawCircleV(p, 5.0f, color);
+    }
 }
