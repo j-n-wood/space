@@ -36,8 +36,20 @@ void DroneControlView::activate(Craft *c)
             }
             fleet_drone_count = game->droneCountForCraft(craft);
 
-            attackers.initialise(fleet_drone_count, RED);
-            defenders.initialise(orbital_drone_count, BLUE);
+            // choose the motion model here (factory-selected). change to MP_HELICAL to
+            // compare; both fleets use the same pattern so they read consistently.
+            const MovementPatternType pattern = MP_FLOCKING;
+            attackers.initialise(fleet_drone_count, RED, pattern);
+            defenders.initialise(orbital_drone_count, BLUE, pattern);
+
+            // place the fleets in battle-area-local coords (render() offsets by left/top).
+            // attackers sweep in from the left, defenders from the right; both converge on centre.
+            float area_w = (float)(GetScreenWidth() - 2 * left);
+            float area_h = (float)(GetScreenHeight() - 2 * top);
+            float centre_x = area_w * 0.5f;
+            float centre_y = area_h * 0.5f;
+            attackers.setApproach({area_w * 0.08f, centre_y}, centre_x, +1.0f);
+            defenders.setApproach({area_w * 0.92f, centre_y}, centre_x, -1.0f);
         }
     }
 }
@@ -221,113 +233,43 @@ void DroneControlView::update(float delta)
     defenders.update(delta);
 }
 
-// fleet markers
+// fleet markers - thin wrapper over a pluggable MovementPattern (see fleet_movement.*)
 
-void DroneFleetMarkers::initialise(int count, Color c)
+void DroneFleetMarkers::initialise(int count, Color c, MovementPatternType type)
 {
-    size = count;
     color = c;
-    state = DFS_APPROACHING;
-    fleet_speed = 5.0f;
-    fleet_rotation_rate = 0.2f;
+    motion = makeMovementPattern(type, count);
+}
 
-    // distribute path lengths around a spherical helix
-    // say 6 rotations around the sphere, but only use the inner 4 to avoid bunching at the poles
-    float total_path_length = 4.0 * 2.0 * PI;
-    float path_length_increment = total_path_length / count;
-
-    float current_path_length = 2.0 * PI;
-    for (int i = 0; i < count; i++)
+void DroneFleetMarkers::setApproach(Vector2 start, float target_x, float dir)
+{
+    if (motion)
     {
-        path_length[i] = current_path_length;
-        position[i] = {0.0f, 0.0f};
-        current_path_length += path_length_increment;
+        motion->configure(start, target_x, dir);
     }
 }
 
 void DroneFleetMarkers::update(float delta)
 {
-    // update position of each marker based on state and timer
-
-    // path calculation depends on state
-
-    const float sphere_radius = 100.0f; // radius of the sphere around the battle area that the drones are moving on
-
-    // helical path - using 2D coords with x right, y down, therefore z into screen
-    /*
-    function getContinuousXHelixPoint(globalTime, pointOffset, radius = 1.0, turns = 5) {
-        // t grows continuously. Space points out using pointOffset.
-        let t = globalTime + pointOffset;
-
-        // x is now the primary axial direction of the helix
-        let x = radius * Math.sin(t);
-
-        // y and z form the revolving framework around the x-axis
-        let y = radius * Math.cos(t) * Math.cos(turns * t);
-        let z = radius * Math.cos(t) * Math.sin(turns * t);
-
-        return { x, y, z };
-    }
-    */
-
-    if (state == DFS_APPROACHING)
+    if (motion)
     {
-        // move fleet COM
-        fleet_position.x += fleet_speed * delta;
-
-        float delta_s = delta * fleet_rotation_rate;
-
-        // move as if points on surface of a rotating sphere
-        for (int i = 0; i < size; i++)
-        {
-            path_length[i] += delta_s;
-
-            // update positions based on path_length
-            float phi = path_length[i];
-            float theta = 0.5f * PI * (1.0f - cosf(0.5f * path_length[i])); // polar angle increases from 0 to PI as path length increases, but with a cosine to bunch points towards the middle and avoid bunching at the poles
-
-            // convert spherical to cartesian coordinates, with radius 1
-            position[i].x = fleet_position.x + sphere_radius * sinf(theta) * cosf(phi);
-            position[i].y = fleet_position.y + sphere_radius * sinf(theta) * sinf(phi);
-        }
-    }
-    else if (state == DFS_ENGAGING)
-    {
-        // follow curves around midpoint of area, from whatever point they are at end of approach phase. Follow arcs around a sphere centered on battle area.
-        float delta_s = delta * fleet_rotation_rate;
-        for (int i = 0; i < size; i++)
-        {
-            path_length[i] += delta_s;
-
-            // update positions based on path_length
-            float phi = path_length[i];
-            float theta = 0.5f * PI * (1.0f - cosf(0.5f * path_length[i])); // polar angle increases from 0 to PI as path length increases, but with a cosine to bunch points towards the middle and avoid bunching at the poles
-
-            // convert spherical to cartesian coordinates, with radius 1
-            position[i].x = fleet_position.x + sphere_radius * sinf(theta) * cosf(phi);
-            position[i].y = fleet_position.y + sphere_radius * sinf(theta) * sinf(phi);
-        }
-    }
-    else if (state == DFS_RETREATING)
-    {
-        // move directly away from midpoint of area in the retreat direction (horizontal)
-        // path length not used
-        fleet_position.x -= fleet_speed * delta; // move fleet COM horizontally away from battle area
-        for (int i = 0; i < size; i++)
-        {
-            position[i].x = position[i].x - fleet_speed * delta; // move each marker horizontally with the fleet COM
-        }
+        motion->update(delta);
     }
 }
 
 void DroneFleetMarkers::render(int t, int l)
 {
-    // render markers based on positions, with color based on state
-    Vector2 p;
-    for (int i = 0; i < size; i++)
+    if (!motion)
     {
-        p.x = position[i].x + l;
-        p.y = position[i].y + t;
-        DrawCircleV(p, 5.0f, color);
+        return;
+    }
+    int n = motion->count();
+    const Vector2 *pos = motion->positions();
+    const float *dep = motion->depths();
+    for (int i = 0; i < n; i++)
+    {
+        Vector2 p = {pos[i].x + l, pos[i].y + t};
+        float r = 3.0f + 4.0f * dep[i]; // ~3px (behind) .. ~7px (front)
+        DrawCircleV(p, r, color);
     }
 }

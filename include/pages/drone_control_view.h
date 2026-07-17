@@ -1,7 +1,10 @@
 #pragma once
 
+#include <memory>
+
 #include "state/item.h"
 #include "state/game.h"
+#include "pages/fleet_movement.h"
 
 extern "C"
 {
@@ -19,31 +22,15 @@ enum DroneControlState
     DCS_MAX
 };
 
-enum DroneFleetState
-{
-    DFS_APPROACHING,
-    DFS_ENGAGING,
-    DFS_RETREATING
-};
-
-// movement depends on state
-
-// in approach state, move as if points on surface of a rotating sphere
-// in engage state, follow curves around midpoint of area, from whatever point they are at end of approach phase. Follow arcs around a sphere centered on battle area.
-// in retreat state, move directly away from midpoint of area in the retreat direction (horizontal)
-
+// A rendered drone fleet: owns a pluggable MovementPattern that drives marker positions,
+// and draws them in the fleet's colour. The motion model is chosen at initialise().
 struct DroneFleetMarkers
 {
     Color color;
-    DroneFleetState state;
-    int size;
-    float fleet_speed;
-    float fleet_rotation_rate;
-    Vector2 fleet_position; // position of fleet in battle area, for calculating marker positions
-    float path_length[MAX_DRONE_FLEET_SIZE];
-    Vector2 position[MAX_DRONE_FLEET_SIZE];
+    std::unique_ptr<MovementPattern> motion;
 
-    void initialise(int count, Color c);
+    void initialise(int count, Color c, MovementPatternType type);
+    void setApproach(Vector2 start, float target_x, float dir);
     void update(float delta);
     void render(int top, int left);
 };
