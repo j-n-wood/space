@@ -255,6 +255,8 @@ int main()
 					}
 				}
 
+				// reserve F10 for debug tools, specific to some pages
+
 				// gui design output
 				if (IsKeyPressed(KEY_F11))
 				{

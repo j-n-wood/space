@@ -2,11 +2,6 @@
 
 #include <memory>
 
-extern "C"
-{
-#include "raylib.h"
-}
-
 // Selects which motion model drives a drone fleet's markers.
 enum MovementPatternType
 {
@@ -22,26 +17,28 @@ enum DroneFleetState
     DFS_RETREATING   // fleet translates away from the battle area
 };
 
-// Abstract fleet motion. A pattern owns its own state, evolves marker positions each
-// frame from a per-fleet geometry, and exposes read-only outputs for the renderer.
+struct DroneFleetMarkers;
+
+// Abstract fleet motion, as a pure strategy. The owning DroneFleetMarkers holds all
+// shared fleet state (kinematics, live-marker + output buffers); a pattern carries only
+// its own geometry and evolves the owner's per-slot positions/depths through these hooks.
 // Concrete patterns are created via makeMovementPattern() and swapped behind this interface.
 class MovementPattern
 {
 public:
     virtual ~MovementPattern() = default;
 
-    // Configure geometry once the battle-area layout is known (battle-area-local coords).
-    //   start    - initial fleet centroid
-    //   target_x - centroid x to reach before switching from approach to engage
-    //   dir      - travel direction: +1 = left-to-right, -1 = right-to-left
-    virtual void configure(Vector2 start, float target_x, float dir) = 0;
+    // Seat pattern geometry once the fleet's approach layout is configured.
+    virtual void onConfigure(DroneFleetMarkers &f) {}
 
-    virtual void update(float delta) = 0;
+    // Per-phase evolution. Each writes live slots' f.slot_pos / f.slot_depth.
+    virtual void stepApproach(DroneFleetMarkers &f, float delta) = 0;
+    virtual void onBeginEngage(DroneFleetMarkers &f) {}
+    virtual void stepEngage(DroneFleetMarkers &f, float delta) = 0;
+    virtual void stepRetreat(DroneFleetMarkers &f, float delta) = 0;
 
-    virtual int count() const = 0;                // number of rendered markers
-    virtual const Vector2 *positions() const = 0; // battle-area-local marker positions
-    virtual const float *depths() const = 0;      // 0..1 nearness, for the render size cue
-    virtual DroneFleetState phase() const = 0;
+    // Runs after the phase step in every phase (Flocking updates its boids here).
+    virtual void postStep(DroneFleetMarkers &f, float delta) {}
 };
 
 std::unique_ptr<MovementPattern> makeMovementPattern(MovementPatternType type, int count);

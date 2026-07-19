@@ -233,43 +233,15 @@ void DroneControlView::update(float delta)
     defenders.update(delta);
 }
 
-// fleet markers - thin wrapper over a pluggable MovementPattern (see fleet_movement.*)
-
-void DroneFleetMarkers::initialise(int count, Color c, MovementPatternType type)
-{
-    color = c;
-    motion = makeMovementPattern(type, count);
-}
-
-void DroneFleetMarkers::setApproach(Vector2 start, float target_x, float dir)
-{
-    if (motion)
-    {
-        motion->configure(start, target_x, dir);
-    }
-}
-
-void DroneFleetMarkers::update(float delta)
-{
-    if (motion)
-    {
-        motion->update(delta);
-    }
-}
+// DroneFleetMarkers rendering. State + the motion driver (initialise/setApproach/update/
+// killRandom/compact) live in fleet_movement.cpp; only the draw pass belongs here.
 
 void DroneFleetMarkers::render(int t, int l)
 {
-    if (!motion)
+    for (int i = 0; i < out_count; i++)
     {
-        return;
-    }
-    int n = motion->count();
-    const Vector2 *pos = motion->positions();
-    const float *dep = motion->depths();
-    for (int i = 0; i < n; i++)
-    {
-        Vector2 p = {pos[i].x + l, pos[i].y + t};
-        float r = 3.0f + 4.0f * dep[i]; // ~3px (behind) .. ~7px (front)
+        Vector2 p = {out_pos[i].x + l, out_pos[i].y + t};
+        float r = 3.0f + 4.0f * out_depth[i]; // ~3px (behind) .. ~7px (front)
         DrawCircleV(p, r, color);
     }
 }

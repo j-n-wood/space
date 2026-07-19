@@ -1,8 +1,10 @@
 #include "pages/fleet_movement.h"
-#include "state/game.h" // MAX_DRONE_FLEET_SIZE
+#include "pages/drone_control_view.h" // full DroneFleetMarkers (shared fleet state)
+#include "state/game.h"               // MAX_DRONE_FLEET_SIZE
 
 #include <algorithm>
 #include <cmath>
+#include <random>
 #include <vector>
 
 extern "C"
@@ -32,6 +34,14 @@ float scaledRadius(int count)
 {
     float frac = std::min(count, MAX_DRONE_FLEET_SIZE) / (float)MAX_DRONE_FLEET_SIZE;
     return APPROACH_RADIUS * frac;
+}
+
+// randomness for member removal. No RNG exists elsewhere in the codebase; this is the
+// single, file-local source, fixed-seeded so removal order is reproducible in tests.
+std::mt19937 &fleetRng()
+{
+    static std::mt19937 rng(0xD5049Eu);
+    return rng;
 }
 
 // unit point on the spherical helix (pole axis = travel dir x). phi winds with theta;
@@ -69,43 +79,26 @@ float advanceHelixParam(float theta, float radius, float delta)
 } // namespace
 
 // ---------------------------------------------------------------------------
-// HelicalMovement: every marker slides along one shared spherical-helix wire.
+// HelicalMovement: every live marker slides along one shared spherical-helix wire.
 // ---------------------------------------------------------------------------
 namespace
 {
 class HelicalMovement : public MovementPattern
 {
-    int n;
-    DroneFleetState state = DFS_APPROACHING;
-    float base_radius;
-    float sphere_radius;
-    float engage_timer = 0.0f;
-    float engage_x = 0.0f;
-    float approach_dir = 1.0f;
-    Vector2 fleet_position = {0.0f, 0.0f};
-    std::vector<float> path_length;
-    std::vector<Vector2> position;
-    std::vector<float> depth;
+    std::vector<float> path_length; // slot-indexed helix arc parameter
 
-    void spherePoint(int i, float radius);
+    void spherePoint(DroneFleetMarkers &f, int i, float radius);
 
 public:
     explicit HelicalMovement(int count);
-    void configure(Vector2 start, float target_x, float dir) override;
-    void update(float delta) override;
-    int count() const override { return n; }
-    const Vector2 *positions() const override { return position.data(); }
-    const float *depths() const override { return depth.data(); }
-    DroneFleetState phase() const override { return state; }
+    void stepApproach(DroneFleetMarkers &f, float delta) override;
+    void stepEngage(DroneFleetMarkers &f, float delta) override;
+    void stepRetreat(DroneFleetMarkers &f, float delta) override;
 };
 
-HelicalMovement::HelicalMovement(int count) : n(count)
+HelicalMovement::HelicalMovement(int count)
 {
-    base_radius = scaledRadius(count);
-    sphere_radius = base_radius;
     path_length.resize(count);
-    position.assign(count, {0.0f, 0.0f});
-    depth.assign(count, 1.0f);
 
     // spread the per-marker arc parameter over one full up-and-down cycle (0..2*PI of theta)
     float inc = (count > 0) ? (TWO_PI / count) : 0.0f;
@@ -115,60 +108,52 @@ HelicalMovement::HelicalMovement(int count) : n(count)
     }
 }
 
-void HelicalMovement::configure(Vector2 start, float target_x, float dir)
-{
-    fleet_position = start;
-    engage_x = target_x;
-    approach_dir = dir;
-}
-
-void HelicalMovement::spherePoint(int i, float radius)
+void HelicalMovement::spherePoint(DroneFleetMarkers &f, int i, float radius)
 {
     float theta = fmodf(path_length[i], TWO_PI);
     if (theta < 0.0f)
     {
         theta += TWO_PI;
     }
-    Vector3 p = helixUnitPoint(theta, approach_dir);
-    position[i].x = fleet_position.x + radius * p.x; // axial position along travel dir
-    position[i].y = fleet_position.y + radius * p.y; // vertical winding (visible)
-    depth[i] = 0.5f - 0.5f * p.z;                    // p.z into screen: 1 near, 0 far
+    Vector3 p = helixUnitPoint(theta, f.approach_dir);
+    f.slot_pos[i].x = f.fleet_position.x + radius * p.x; // axial position along travel dir
+    f.slot_pos[i].y = f.fleet_position.y + radius * p.y; // vertical winding (visible)
+    f.slot_depth[i] = 0.5f - 0.5f * p.z;                 // p.z into screen: 1 near, 0 far
 }
 
-void HelicalMovement::update(float delta)
+void HelicalMovement::stepApproach(DroneFleetMarkers &f, float delta)
 {
-    if (state == DFS_APPROACHING)
+    for (int i = 0; i < f.capacity; i++)
     {
-        fleet_position.x += FLEET_SPEED * delta * approach_dir;
-        for (int i = 0; i < n; i++)
+        if (!f.live[i])
         {
-            path_length[i] = advanceHelixParam(path_length[i], base_radius, delta);
-            spherePoint(i, base_radius);
+            continue;
         }
-        if (approach_dir * (fleet_position.x - engage_x) >= 0.0f)
-        {
-            state = DFS_ENGAGING;
-            engage_timer = 0.0f;
-        }
+        path_length[i] = advanceHelixParam(path_length[i], f.base_radius, delta);
+        spherePoint(f, i, f.base_radius);
     }
-    else if (state == DFS_ENGAGING)
+}
+
+void HelicalMovement::stepEngage(DroneFleetMarkers &f, float delta)
+{
+    for (int i = 0; i < f.capacity; i++)
     {
-        engage_timer += delta;
-        float u = std::min(engage_timer / ENGAGE_EXPAND_TIME, 1.0f);
-        float ease = u * u * (3.0f - 2.0f * u); // smoothstep
-        sphere_radius = base_radius * (1.0f + (ENGAGE_RADIUS_MULT - 1.0f) * ease);
-        for (int i = 0; i < n; i++)
+        if (!f.live[i])
         {
-            path_length[i] = advanceHelixParam(path_length[i], sphere_radius, delta);
-            spherePoint(i, sphere_radius);
+            continue;
         }
+        path_length[i] = advanceHelixParam(path_length[i], f.sphere_radius, delta);
+        spherePoint(f, i, f.sphere_radius);
     }
-    else // DFS_RETREATING
+}
+
+void HelicalMovement::stepRetreat(DroneFleetMarkers &f, float delta)
+{
+    for (int i = 0; i < f.capacity; i++)
     {
-        fleet_position.x -= FLEET_SPEED * delta * approach_dir;
-        for (int i = 0; i < n; i++)
+        if (f.live[i])
         {
-            position[i].x -= FLEET_SPEED * delta * approach_dir;
+            f.slot_pos[i].x -= FLEET_SPEED * delta * f.approach_dir;
         }
     }
 }
@@ -207,58 +192,40 @@ struct Member
 
 class FlockingMovement : public MovementPattern
 {
-    int n;
-    DroneFleetState state = DFS_APPROACHING;
-    float base_radius;
-    float sphere_radius;
-    float engage_timer = 0.0f;
-    float engage_x = 0.0f;
-    float approach_dir = 1.0f;
-    Vector2 fleet_position = {0.0f, 0.0f};
     std::vector<Leader> leaders;
-    std::vector<Member> members;
-    std::vector<Vector2> position; // outputs (member positions)
-    std::vector<float> depth;
+    std::vector<Member> members; // slot-indexed
 
-    void projectLeader(Leader &L, float radius);
-    void updateLeadersApproach(float delta);
-    void beginEngage();
-    void updateLeadersEngage(float delta);
-    void updateMembers(float delta);
-    void writeOutputs();
+    void projectLeader(DroneFleetMarkers &f, Leader &L, float radius);
+    void updateMembers(DroneFleetMarkers &f, float delta);
+    void writeSlots(DroneFleetMarkers &f);
 
 public:
     explicit FlockingMovement(int count);
-    void configure(Vector2 start, float target_x, float dir) override;
-    void update(float delta) override;
-    int count() const override { return n; }
-    const Vector2 *positions() const override { return position.data(); }
-    const float *depths() const override { return depth.data(); }
-    DroneFleetState phase() const override { return state; }
+    void onConfigure(DroneFleetMarkers &f) override;
+    void stepApproach(DroneFleetMarkers &f, float delta) override;
+    void onBeginEngage(DroneFleetMarkers &f) override;
+    void stepEngage(DroneFleetMarkers &f, float delta) override;
+    void stepRetreat(DroneFleetMarkers &f, float delta) override;
+    void postStep(DroneFleetMarkers &f, float delta) override;
 };
 
-FlockingMovement::FlockingMovement(int count) : n(count)
+FlockingMovement::FlockingMovement(int count)
 {
-    base_radius = scaledRadius(count);
-    sphere_radius = base_radius;
-
     // split into flocks: round total / FLOCK_SIZE (at least one flock while any members).
     int numFlocks = (count > 0) ? std::max(1, (count + FLOCK_SIZE / 2) / FLOCK_SIZE) : 0;
     leaders.resize(numFlocks);
     float linc = (numFlocks > 0) ? (TWO_PI / numFlocks) : 0.0f;
-    for (int f = 0; f < numFlocks; f++)
+    for (int fdx = 0; fdx < numFlocks; fdx++)
     {
-        leaders[f].path_length = f * linc; // spread leaders around the helix
-        leaders[f].p = {1.0f, 0.0f, 0.0f};
-        leaders[f].h = {0.0f, 1.0f, 0.0f};
-        leaders[f].screen = {0.0f, 0.0f};
-        leaders[f].depth = 1.0f;
+        leaders[fdx].path_length = fdx * linc; // spread leaders around the helix
+        leaders[fdx].p = {1.0f, 0.0f, 0.0f};
+        leaders[fdx].h = {0.0f, 1.0f, 0.0f};
+        leaders[fdx].screen = {0.0f, 0.0f};
+        leaders[fdx].depth = 1.0f;
     }
 
     // assign members to flocks in roughly-equal contiguous groups.
     members.resize(count);
-    position.assign(count, {0.0f, 0.0f});
-    depth.assign(count, 1.0f);
     for (int i = 0; i < count; i++)
     {
         members[i].flock = (numFlocks > 0) ? (i * numFlocks / count) : 0;
@@ -268,28 +235,24 @@ FlockingMovement::FlockingMovement(int count) : n(count)
     }
 }
 
-void FlockingMovement::projectLeader(Leader &L, float radius)
+void FlockingMovement::projectLeader(DroneFleetMarkers &f, Leader &L, float radius)
 {
-    L.screen = {fleet_position.x + radius * L.p.x, fleet_position.y + radius * L.p.y};
+    L.screen = {f.fleet_position.x + radius * L.p.x, f.fleet_position.y + radius * L.p.y};
     L.depth = 0.5f - 0.5f * L.p.z;
 }
 
-void FlockingMovement::configure(Vector2 start, float target_x, float dir)
+void FlockingMovement::onConfigure(DroneFleetMarkers &f)
 {
-    fleet_position = start;
-    engage_x = target_x;
-    approach_dir = dir;
-
     // seat leaders on the approach helix, then scatter members around their leader so the
     // separation force has something to work with (rather than all starting coincident).
     for (auto &L : leaders)
     {
-        L.p = helixUnitPoint(L.path_length, dir);
-        projectLeader(L, base_radius);
+        L.p = helixUnitPoint(L.path_length, f.approach_dir);
+        projectLeader(f, L, f.base_radius);
     }
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < f.capacity; i++)
     {
-        Vector2 c = leaders.empty() ? start : leaders[members[i].flock].screen;
+        Vector2 c = leaders.empty() ? f.fleet_position : leaders[members[i].flock].screen;
         float ang = i * 2.39996323f; // golden angle -> even angular scatter
         float rad = 10.0f + (float)(i % 7);
         members[i].pos = {c.x + cosf(ang) * rad, c.y + sinf(ang) * rad};
@@ -298,23 +261,23 @@ void FlockingMovement::configure(Vector2 start, float target_x, float dir)
     }
 }
 
-void FlockingMovement::updateLeadersApproach(float delta)
+void FlockingMovement::stepApproach(DroneFleetMarkers &f, float delta)
 {
     for (auto &L : leaders)
     {
-        L.path_length = advanceHelixParam(L.path_length, base_radius, delta);
-        L.p = helixUnitPoint(L.path_length, approach_dir);
-        projectLeader(L, base_radius);
+        L.path_length = advanceHelixParam(L.path_length, f.base_radius, delta);
+        L.p = helixUnitPoint(L.path_length, f.approach_dir);
+        projectLeader(f, L, f.base_radius);
     }
 }
 
-void FlockingMovement::beginEngage()
+void FlockingMovement::onBeginEngage(DroneFleetMarkers &f)
 {
     // continue smoothly: seed each orbit heading from the helix tangent, made perpendicular
     // to the leader's position and unit length.
     for (auto &L : leaders)
     {
-        Vector3 t = helixUnitTangent(L.path_length, approach_dir);
+        Vector3 t = helixUnitTangent(L.path_length, f.approach_dir);
         Vector3 h = Vector3Subtract(t, Vector3Scale(L.p, Vector3DotProduct(t, L.p)));
         float len = Vector3Length(h);
         L.h = (len > 1e-5f) ? Vector3Scale(h, 1.0f / len)
@@ -322,14 +285,14 @@ void FlockingMovement::beginEngage()
     }
 }
 
-void FlockingMovement::updateLeadersEngage(float delta)
+void FlockingMovement::stepEngage(DroneFleetMarkers &f, float delta)
 {
     // constant linear speed along the sphere: arc = radius * dAlpha => dAlpha = v*dt/radius.
-    float dAlpha = (LINEAR_SPEED * delta) / std::max(sphere_radius, 1e-3f);
+    float dAlpha = (LINEAR_SPEED * delta) / std::max(f.sphere_radius, 1e-3f);
 
-    for (size_t f = 0; f < leaders.size(); ++f)
+    for (size_t fdx = 0; fdx < leaders.size(); ++fdx)
     {
-        Leader &L = leaders[f];
+        Leader &L = leaders[fdx];
 
         // move along the current great circle (rotate position + heading about the orbit normal).
         Vector3 axis = Vector3CrossProduct(L.p, L.h);
@@ -346,30 +309,42 @@ void FlockingMovement::updateLeadersEngage(float delta)
 
         // small per-leader precession of the heading -> the orbit plane drifts, tracing
         // rosette-like patterns over the sphere instead of a fixed great circle.
-        float precess = ORBIT_PRECESS * (0.4f + 0.2f * (float)f) * delta;
+        float precess = ORBIT_PRECESS * (0.4f + 0.2f * (float)fdx) * delta;
         L.h = Vector3Normalize(Vector3RotateByAxisAngle(L.h, L.p, precess));
 
         // re-orthonormalize the heading against position to keep numerical drift in check.
         L.h = Vector3Normalize(Vector3Subtract(L.h, Vector3Scale(L.p, Vector3DotProduct(L.p, L.h))));
 
-        projectLeader(L, sphere_radius);
+        projectLeader(f, L, f.sphere_radius);
     }
 }
 
-void FlockingMovement::updateMembers(float delta)
+void FlockingMovement::stepRetreat(DroneFleetMarkers &f, float delta)
+{
+    for (auto &L : leaders)
+    {
+        L.screen.x -= FLEET_SPEED * delta * f.approach_dir;
+    }
+}
+
+void FlockingMovement::updateMembers(DroneFleetMarkers &f, float delta)
 {
     // separation is within-flock only (members keep distance from their own flockmates).
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < f.capacity; i++)
     {
+        if (!f.live[i])
+        {
+            continue;
+        }
         Member &m = members[i];
-        Vector2 leaderPos = leaders.empty() ? fleet_position : leaders[m.flock].screen;
+        Vector2 leaderPos = leaders.empty() ? f.fleet_position : leaders[m.flock].screen;
 
         Vector2 acc = Vector2Scale(Vector2Subtract(leaderPos, m.pos), SEEK_GAIN);
 
         Vector2 sep = {0.0f, 0.0f};
-        for (int j = 0; j < n; j++)
+        for (int j = 0; j < f.capacity; j++)
         {
-            if (j == i || members[j].flock != m.flock)
+            if (j == i || !f.live[j] || members[j].flock != m.flock)
             {
                 continue;
             }
@@ -394,49 +369,144 @@ void FlockingMovement::updateMembers(float delta)
     }
 }
 
-void FlockingMovement::writeOutputs()
+void FlockingMovement::writeSlots(DroneFleetMarkers &f)
 {
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < f.capacity; i++)
     {
-        position[i] = members[i].pos;
-        depth[i] = members[i].depth;
+        if (f.live[i])
+        {
+            f.slot_pos[i] = members[i].pos;
+            f.slot_depth[i] = members[i].depth;
+        }
     }
 }
 
-void FlockingMovement::update(float delta)
+void FlockingMovement::postStep(DroneFleetMarkers &f, float delta)
 {
-    if (state == DFS_APPROACHING)
+    updateMembers(f, delta);
+    writeSlots(f);
+}
+} // namespace
+
+// ---------------------------------------------------------------------------
+// DroneFleetMarkers: shared fleet state + state-machine driver (defined here so it can
+// use the file-local tuning constants, scaledRadius, and the RNG). render() lives in
+// drone_control_view.cpp.
+// ---------------------------------------------------------------------------
+void DroneFleetMarkers::initialise(int count, Color c, MovementPatternType type)
+{
+    color = c;
+    state = DFS_APPROACHING;
+    capacity = count;
+    live_count = count;
+    out_count = 0;
+    base_radius = scaledRadius(count);
+    sphere_radius = base_radius;
+    engage_timer = 0.0f;
+    engage_x = 0.0f;
+    approach_dir = 1.0f;
+    fleet_position = {0.0f, 0.0f};
+
+    live.assign(count, 1);
+    slot_pos.assign(count, {0.0f, 0.0f});
+    slot_depth.assign(count, 1.0f);
+    out_pos.assign(count, {0.0f, 0.0f});
+    out_depth.assign(count, 1.0f);
+    scratch_idx.clear();
+    scratch_idx.reserve(count);
+
+    motion = makeMovementPattern(type, count);
+}
+
+void DroneFleetMarkers::setApproach(Vector2 start, float target_x, float dir)
+{
+    fleet_position = start;
+    engage_x = target_x;
+    approach_dir = dir;
+    if (motion)
     {
+        motion->onConfigure(*this);
+    }
+}
+
+void DroneFleetMarkers::update(float delta)
+{
+    if (!motion)
+    {
+        return;
+    }
+
+    switch (state)
+    {
+    case DFS_APPROACHING:
         fleet_position.x += FLEET_SPEED * delta * approach_dir;
-        updateLeadersApproach(delta);
+        motion->stepApproach(*this, delta);
         if (approach_dir * (fleet_position.x - engage_x) >= 0.0f)
         {
             state = DFS_ENGAGING;
             engage_timer = 0.0f;
-            beginEngage();
+            motion->onBeginEngage(*this);
         }
-    }
-    else if (state == DFS_ENGAGING)
+        break;
+    case DFS_ENGAGING:
     {
         engage_timer += delta;
         float u = std::min(engage_timer / ENGAGE_EXPAND_TIME, 1.0f);
         float ease = u * u * (3.0f - 2.0f * u); // smoothstep
         sphere_radius = base_radius * (1.0f + (ENGAGE_RADIUS_MULT - 1.0f) * ease);
-        updateLeadersEngage(delta);
+        motion->stepEngage(*this, delta);
+        break;
     }
-    else // DFS_RETREATING
-    {
+    default: // DFS_RETREATING
         fleet_position.x -= FLEET_SPEED * delta * approach_dir;
-        for (auto &L : leaders)
-        {
-            L.screen.x -= FLEET_SPEED * delta * approach_dir;
-        }
+        motion->stepRetreat(*this, delta);
+        break;
     }
 
-    updateMembers(delta);
-    writeOutputs();
+    motion->postStep(*this, delta);
+    compact();
 }
-} // namespace
+
+void DroneFleetMarkers::compact()
+{
+    int o = 0;
+    for (int i = 0; i < capacity; i++)
+    {
+        if (live[i])
+        {
+            out_pos[o] = slot_pos[i];
+            out_depth[o] = slot_depth[i];
+            ++o;
+        }
+    }
+    out_count = o;
+}
+
+void DroneFleetMarkers::killRandom(int k)
+{
+    if (k <= 0 || live_count <= 0)
+    {
+        return;
+    }
+    k = std::min(k, live_count);
+
+    // gather live slot indices, then partial Fisher-Yates: pick k distinct live slots to kill.
+    scratch_idx.clear();
+    for (int i = 0; i < capacity; i++)
+    {
+        if (live[i])
+        {
+            scratch_idx.push_back(i);
+        }
+    }
+    for (int j = 0; j < k; j++)
+    {
+        std::uniform_int_distribution<int> d(j, (int)scratch_idx.size() - 1);
+        std::swap(scratch_idx[j], scratch_idx[d(fleetRng())]);
+        live[scratch_idx[j]] = 0;
+    }
+    live_count -= k;
+}
 
 // ---------------------------------------------------------------------------
 // factory
