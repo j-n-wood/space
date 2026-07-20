@@ -18,6 +18,7 @@ class Overlay
 
 public:
     bool console = false;
+    bool debug = false; // debug-tools flag; gates BasePage::renderDebug (toggled by F10)
 
     Overlay();
 

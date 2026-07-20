@@ -194,6 +194,12 @@ int main()
 			// toggle keystroke is swallowed before the console text box could capture it
 			overlay.input();
 
+			// debug-tool overlays (e.g. flocking-param tuning) draw after the page, under the overlay
+			if (overlay.debug)
+			{
+				currentPage->renderDebug();
+			}
+
 			// end the frame and get ready for the next one  (display frame, poll input, etc...)
 			overlay.render(); // render the overlay (incl. console text box) after all pages
 

@@ -78,6 +78,14 @@ float advanceHelixParam(float theta, float radius, float delta)
 }
 } // namespace
 
+// process-wide flocking coefficients (external linkage; see fleet_movement.h). Mutable so
+// the debug UI can tune the boids live; defaults reproduce the original constant values.
+FlockingParams &flockingParams()
+{
+    static FlockingParams params;
+    return params;
+}
+
 // ---------------------------------------------------------------------------
 // HelicalMovement: every live marker slides along one shared spherical-helix wire.
 // ---------------------------------------------------------------------------
@@ -165,13 +173,9 @@ void HelicalMovement::stepRetreat(DroneFleetMarkers &f, float delta)
 // ---------------------------------------------------------------------------
 namespace
 {
-constexpr int FLOCK_SIZE = 35;         // target members per flock (splits at init only)
-constexpr float ORBIT_PRECESS = 0.6f;  // radians/sec heading precession (varies per leader)
-constexpr float SEEK_GAIN = 4.0f;      // pull of a member toward its leader
-constexpr float SEP_GAIN = 90.0f;      // push away from nearby flockmates
-constexpr float SEP_RADIUS = 16.0f;    // separation neighbourhood (px)
-constexpr float MEMBER_MAXSPEED = 260.0f;
-constexpr float MEMBER_DAMPING = 1.2f; // velocity damping coefficient (per second)
+constexpr int FLOCK_SIZE = 35; // target members per flock (splits at init only)
+// The per-member coefficients (seek/separation/speed/damping/precession) are now runtime-
+// tunable via flockingParams() (see fleet_movement.h) so the debug UI can adjust them live.
 
 struct Leader
 {
@@ -309,7 +313,7 @@ void FlockingMovement::stepEngage(DroneFleetMarkers &f, float delta)
 
         // small per-leader precession of the heading -> the orbit plane drifts, tracing
         // rosette-like patterns over the sphere instead of a fixed great circle.
-        float precess = ORBIT_PRECESS * (0.4f + 0.2f * (float)fdx) * delta;
+        float precess = flockingParams().orbit_precess * (0.4f + 0.2f * (float)fdx) * delta;
         L.h = Vector3Normalize(Vector3RotateByAxisAngle(L.h, L.p, precess));
 
         // re-orthonormalize the heading against position to keep numerical drift in check.
@@ -329,6 +333,10 @@ void FlockingMovement::stepRetreat(DroneFleetMarkers &f, float delta)
 
 void FlockingMovement::updateMembers(DroneFleetMarkers &f, float delta)
 {
+    // snapshot the runtime-tunable coefficients once (not inside the O(n^2) loop).
+    const FlockingParams &fp = flockingParams();
+    const float sep_radius_sq = fp.sep_radius * fp.sep_radius;
+
     // separation is within-flock only (members keep distance from their own flockmates).
     for (int i = 0; i < f.capacity; i++)
     {
@@ -339,7 +347,7 @@ void FlockingMovement::updateMembers(DroneFleetMarkers &f, float delta)
         Member &m = members[i];
         Vector2 leaderPos = leaders.empty() ? f.fleet_position : leaders[m.flock].screen;
 
-        Vector2 acc = Vector2Scale(Vector2Subtract(leaderPos, m.pos), SEEK_GAIN);
+        Vector2 acc = Vector2Scale(Vector2Subtract(leaderPos, m.pos), fp.seek_gain);
 
         Vector2 sep = {0.0f, 0.0f};
         for (int j = 0; j < f.capacity; j++)
@@ -350,19 +358,19 @@ void FlockingMovement::updateMembers(DroneFleetMarkers &f, float delta)
             }
             Vector2 d = Vector2Subtract(m.pos, members[j].pos);
             float dist2 = d.x * d.x + d.y * d.y;
-            if (dist2 < SEP_RADIUS * SEP_RADIUS && dist2 > 1e-4f)
+            if (dist2 < sep_radius_sq && dist2 > 1e-4f)
             {
                 sep = Vector2Add(sep, Vector2Scale(d, 1.0f / sqrtf(dist2))); // unit push away
             }
         }
-        acc = Vector2Add(acc, Vector2Scale(sep, SEP_GAIN));
+        acc = Vector2Add(acc, Vector2Scale(sep, fp.sep_gain));
 
         m.vel = Vector2Add(m.vel, Vector2Scale(acc, delta));
-        m.vel = Vector2Scale(m.vel, 1.0f - std::min(1.0f, MEMBER_DAMPING * delta));
+        m.vel = Vector2Scale(m.vel, 1.0f - std::min(1.0f, fp.member_damping * delta));
         float sp = Vector2Length(m.vel);
-        if (sp > MEMBER_MAXSPEED)
+        if (sp > fp.member_maxspeed)
         {
-            m.vel = Vector2Scale(m.vel, MEMBER_MAXSPEED / sp);
+            m.vel = Vector2Scale(m.vel, fp.member_maxspeed / sp);
         }
         m.pos = Vector2Add(m.pos, Vector2Scale(m.vel, delta));
         m.depth = leaders.empty() ? 1.0f : leaders[m.flock].depth;

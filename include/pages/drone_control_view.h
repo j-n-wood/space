@@ -86,5 +86,6 @@ public:
 
     void input();
     void render();
+    void renderDebug(); // debug overlay: fleet HUD + live flocking-param sliders (F10)
     void update(float delta);
 };

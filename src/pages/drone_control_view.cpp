@@ -11,6 +11,7 @@
 extern "C"
 {
 #include "raylib.h"
+#include "raygui/raygui.h" // GuiSlider for the debug tuning panel (impl lives in main.cpp)
 }
 
 void DroneControlView::activate(Craft *c)
@@ -231,6 +232,49 @@ void DroneControlView::update(float delta)
 {
     attackers.update(delta);
     defenders.update(delta);
+}
+
+void DroneControlView::renderDebug()
+{
+    // only meaningful during a battle animation (the flocking params drive the boids)
+    if (!visible || state != DCS_BATTLE)
+    {
+        return;
+    }
+
+    static const char *phaseName[] = {"APPROACH", "ENGAGE", "RETREAT"};
+    auto phaseLabel = [](const DroneFleetMarkers &fleet)
+    { return phaseName[fleet.state]; };
+
+    float x = (float)left + 20.0f;
+    float y = (float)top + 320.0f;
+
+    DrawText("[F10] Flocking Debug", (int)x, (int)y, 18, GREEN);
+    y += 24.0f;
+
+    char buf[128];
+    std::snprintf(buf, sizeof buf, "attackers: %s  live %d/%d",
+                  phaseLabel(attackers), attackers.live_count, attackers.capacity);
+    DrawText(buf, (int)x, (int)y, 16, RAYWHITE);
+    y += 20.0f;
+    std::snprintf(buf, sizeof buf, "defenders: %s  live %d/%d",
+                  phaseLabel(defenders), defenders.live_count, defenders.capacity);
+    DrawText(buf, (int)x, (int)y, 16, RAYWHITE);
+    y += 28.0f;
+
+    // live sliders bound directly to the shared flocking params
+    FlockingParams &p = flockingParams();
+    auto slider = [&](const char *name, float *v, float lo, float hi)
+    {
+        GuiSlider({x + 70.0f, y, 150.0f, 18.0f}, name, TextFormat("%.2f", *v), v, lo, hi);
+        y += 24.0f;
+    };
+    slider("seek", &p.seek_gain, 0.0f, 20.0f);
+    slider("sep", &p.sep_gain, 0.0f, 300.0f);
+    slider("sepRad", &p.sep_radius, 0.0f, 60.0f);
+    slider("maxSpd", &p.member_maxspeed, 0.0f, 600.0f);
+    slider("damping", &p.member_damping, 0.0f, 5.0f);
+    slider("precess", &p.orbit_precess, 0.0f, 3.0f);
 }
 
 // DroneFleetMarkers rendering. State + the motion driver (initialise/setApproach/update/

@@ -19,6 +19,21 @@ enum DroneFleetState
 
 struct DroneFleetMarkers;
 
+// Runtime-tunable flocking coefficients (FlockingMovement reads these every frame).
+// Defaults match the original constants; exposed for live tuning via the debug UI.
+struct FlockingParams
+{
+    float seek_gain = 4.0f;         // pull of a member toward its leader
+    float sep_gain = 90.0f;         // push away from nearby flockmates
+    float sep_radius = 16.0f;       // separation neighbourhood (px)
+    float member_maxspeed = 260.0f; // per-member speed clamp
+    float member_damping = 1.2f;    // velocity damping (per second)
+    float orbit_precess = 0.6f;     // engage-phase heading precession (rad/sec base)
+};
+
+// Shared, process-wide flocking params (single instance). Mutable for debug tuning.
+FlockingParams &flockingParams();
+
 // Abstract fleet motion, as a pure strategy. The owning DroneFleetMarkers holds all
 // shared fleet state (kinematics, live-marker + output buffers); a pattern carries only
 // its own geometry and evolves the owner's per-slot positions/depths through these hooks.

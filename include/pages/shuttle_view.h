@@ -40,6 +40,7 @@ public:
     void input() override;
     void render() override;
     void update(const float delta) override;
+    void renderDebug() override;
 
     // events
     void onOrbitalConstruction(Orbital *orbital) override;

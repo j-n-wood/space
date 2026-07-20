@@ -404,6 +404,14 @@ void ShuttleView::update(const float delta)
     droneControlView->update(delta);
 }
 
+void ShuttleView::renderDebug()
+{
+    if (droneControlView)
+    {
+        droneControlView->renderDebug();
+    }
+}
+
 void ShuttleView::onOrbitalConstruction(Orbital *orbital)
 {
     char buffer[256];

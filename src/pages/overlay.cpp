@@ -234,4 +234,10 @@ void Overlay::input()
         {
         }
     }
+
+    // Toggle debug tools (renderDebug overlays) on F10.
+    if (IsKeyPressed(KEY_F10))
+    {
+        debug = !debug;
+    }
 }
