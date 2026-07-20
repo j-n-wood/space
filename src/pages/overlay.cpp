@@ -224,9 +224,14 @@ void Overlay::setDefaultStyle()
 
 void Overlay::input()
 {
-    // handle input for the overlay, e.g. for a console or debug menu
-    if (IsKeyPressed(KEY_F9))
+    // Toggle the console on the backtick/tilde key (standard in-game console key).
+    if (IsKeyPressed(KEY_GRAVE))
     {
         console = !console; // toggle console on/off
+        // The grave key also enqueues its character (` / ~); drain the char queue so the
+        // console text box (drawn later this frame) doesn't capture the toggle keystroke.
+        while (GetCharPressed() != 0)
+        {
+        }
     }
 }

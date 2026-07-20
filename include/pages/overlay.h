@@ -17,7 +17,7 @@ class Overlay
     char consoleInput[256] = {0};
 
 public:
-    bool console;
+    bool console = false;
 
     Overlay();
 

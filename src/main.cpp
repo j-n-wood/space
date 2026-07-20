@@ -190,10 +190,12 @@ int main()
 				currentPage->input();
 			}
 
-			// end the frame and get ready for the next one  (display frame, poll input, etc...)
-			overlay.render(); // render the overlay after all pages
+			// handle overlay input (console toggle) BEFORE rendering the console, so the
+			// toggle keystroke is swallowed before the console text box could capture it
+			overlay.input();
 
-			overlay.input(); // handle input for the overlay, e.g. for a console or debug menu
+			// end the frame and get ready for the next one  (display frame, poll input, etc...)
+			overlay.render(); // render the overlay (incl. console text box) after all pages
 
 			EndDrawing();
 
@@ -255,6 +257,7 @@ int main()
 					}
 				}
 
+				// backtick/tilde (`/~) toggles the console (see Overlay::input)
 				// reserve F10 for debug tools, specific to some pages
 
 				// gui design output
