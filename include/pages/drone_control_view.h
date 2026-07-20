@@ -58,6 +58,24 @@ struct DroneFleetMarkers
     void render(int top, int left);
 };
 
+struct DroneCombatState
+{
+    DroneFleetMarkers *attackers;
+    DroneFleetMarkers *defenders;
+
+    float attacker_strength; // per unit strength
+    float defender_strength;
+
+    float attacker_accumulated_strength;
+    float defender_accumulated_strength;
+};
+
+typedef struct CombatResult
+{
+    int attackers_lost;
+    int defenders_lost;
+} CombatResult;
+
 class DroneControlView
 {
     Orbital *current_orbital;
@@ -67,6 +85,8 @@ class DroneControlView
 
     DroneFleetMarkers attackers;
     DroneFleetMarkers defenders;
+
+    DroneCombatState combat_state;
 
     void render_manage();
     void render_battle();

@@ -42,6 +42,12 @@ void DroneControlView::activate(Craft *c)
             const MovementPatternType pattern = MP_FLOCKING;
             attackers.initialise(fleet_drone_count, RED, pattern);
             defenders.initialise(orbital_drone_count, BLUE, pattern);
+            combat_state.attackers = &attackers;
+            combat_state.defenders = &defenders;
+            combat_state.attacker_strength = 1.0f; // TODO per-unit strength based on drone type
+            combat_state.defender_strength = 1.0f; // TODO per-unit strength based on drone type
+            combat_state.attacker_accumulated_strength = 0.0f;
+            combat_state.defender_accumulated_strength = 0.0f;
 
             // place the fleets in battle-area-local coords (render() offsets by left/top).
             // start on the far edges (sphere half-off-field, clipped by render) and sweep
@@ -234,10 +240,77 @@ void DroneControlView::render_battle()
     defenders.render(top, left);
 }
 
+// placeholder combat implementation
+// input force size, unit strength, and time delta; returns number of units lost by each side
+
+CombatResult fleetCombat(DroneCombatState &state, float delta)
+{
+    if (!state.attackers || !state.defenders)
+    {
+        TraceLog(LOG_ERROR, "fleetCombat: null fleet markers");
+        return {0, 0};
+    }
+
+    CombatResult result = {0, 0};
+
+    // determine attach strength for each side from n attackers * attacker_strength
+    // accumulate this much attach strength per delta over time
+    // as this passes threshold values, apply a casualty to the other side, and remove excess strength
+
+    if (state.attackers->state == DFS_ENGAGING)
+    {
+        state.attacker_accumulated_strength += state.attackers->live_count * state.attacker_strength * delta;
+    }
+
+    if (state.defenders->state == DFS_ENGAGING)
+    {
+        state.defender_accumulated_strength += state.defenders->live_count * state.defender_strength * delta;
+    }
+
+    // threshold value to cause a casualty - fixed value, make a debug parameter
+    const float casualty_threshold = 20.0f;
+
+    // while strength exceeds threshold, apply a casualty to the other side and remove excess strength
+    while (state.attacker_accumulated_strength >= casualty_threshold && state.defenders->live_count > 0)
+    {
+        state.defenders->killRandom(1);
+        state.attacker_accumulated_strength -= casualty_threshold;
+        result.defenders_lost++;
+    }
+    while (state.defender_accumulated_strength >= casualty_threshold && state.attackers->live_count > 0)
+    {
+        state.attackers->killRandom(1);
+        state.defender_accumulated_strength -= casualty_threshold;
+        result.attackers_lost++;
+    }
+
+    return result;
+}
+
 void DroneControlView::update(float delta)
 {
-    attackers.update(delta);
-    defenders.update(delta);
+    // update combat state
+    switch (state)
+    {
+    case DCS_MANAGE:
+        break;
+    case DCS_BATTLE:
+
+        // if any fleet is reduced to zero, end battle and close the view
+        if (attackers.live_count == 0 || defenders.live_count == 0)
+        {
+            // wait 3s then close the view
+            // deactivate();
+        }
+        // update view
+        fleetCombat(combat_state, delta);
+        attackers.update(delta);
+        defenders.update(delta);
+        break;
+    default:
+        TraceLog(LOG_ERROR, "Invalid drone control state");
+        break;
+    }
 }
 
 void DroneControlView::renderDebug()
