@@ -181,9 +181,10 @@ struct Leader
 {
     float path_length; // approach-phase helix parameter
     Vector3 p;         // unit position on the sphere
-    Vector3 h;         // unit tangent heading (engage-phase orbit)
-    Vector2 screen;    // projected battle-area-local position
-    float depth;       // 0..1 nearness
+    Vector3 h;          // unit tangent heading (engage-phase orbit)
+    Vector2 screen;     // projected battle-area-local position
+    Vector2 screen_prev; // previous frame's projection, for screen-space heading
+    float depth;        // 0..1 nearness
 };
 
 struct Member
@@ -225,6 +226,7 @@ FlockingMovement::FlockingMovement(int count)
         leaders[fdx].p = {1.0f, 0.0f, 0.0f};
         leaders[fdx].h = {0.0f, 1.0f, 0.0f};
         leaders[fdx].screen = {0.0f, 0.0f};
+        leaders[fdx].screen_prev = {0.0f, 0.0f};
         leaders[fdx].depth = 1.0f;
     }
 
@@ -253,6 +255,7 @@ void FlockingMovement::onConfigure(DroneFleetMarkers &f)
     {
         L.p = helixUnitPoint(L.path_length, f.approach_dir);
         projectLeader(f, L, f.base_radius);
+        L.screen_prev = L.screen; // seed heading history so the first frame isn't a jump
     }
     for (int i = 0; i < f.capacity; i++)
     {
@@ -336,6 +339,50 @@ void FlockingMovement::updateMembers(DroneFleetMarkers &f, float delta)
     // snapshot the runtime-tunable coefficients once (not inside the O(n^2) loop).
     const FlockingParams &fp = flockingParams();
     const float sep_radius_sq = fp.sep_radius * fp.sep_radius;
+    const int numFlocks = (int)leaders.size();
+
+    // --- pre-pass 1: per-flock heading (screen-space travel dir), centroid, and apex slot.
+    // apexSlot = lowest live slot in the flock; since a flock's members occupy a contiguous
+    // increasing slot range, the first live slot we meet in slot order is its apex. If that
+    // member dies, the next one inherits the apex next frame (automatic promotion).
+    std::vector<Vector2> heading(numFlocks, {f.approach_dir, 0.0f});
+    std::vector<Vector2> centroid(numFlocks, {0.0f, 0.0f});
+    std::vector<int> flockLive(numFlocks, 0);
+    std::vector<int> apexSlot(numFlocks, -1);
+    for (int fl = 0; fl < numFlocks; fl++)
+    {
+        Leader &L = leaders[fl];
+        Vector2 d = Vector2Subtract(L.screen, L.screen_prev);
+        if ((d.x * d.x + d.y * d.y) > 1e-6f)
+        {
+            heading[fl] = Vector2Normalize(d);
+        }
+        L.screen_prev = L.screen;
+    }
+    for (int i = 0; i < f.capacity; i++)
+    {
+        if (!f.live[i] || numFlocks == 0)
+        {
+            continue;
+        }
+        int fl = members[i].flock;
+        if (apexSlot[fl] < 0)
+        {
+            apexSlot[fl] = i;
+        }
+        centroid[fl] = Vector2Add(centroid[fl], members[i].pos);
+        flockLive[fl]++;
+    }
+    for (int fl = 0; fl < numFlocks; fl++)
+    {
+        if (flockLive[fl] > 0)
+        {
+            centroid[fl] = Vector2Scale(centroid[fl], 1.0f / (float)flockLive[fl]);
+        }
+    }
+
+    // --- pre-pass 2 (implicit): rank within flock, incremented in slot order (apex = 0).
+    std::vector<int> rank(numFlocks, 0);
 
     // separation is within-flock only (members keep distance from their own flockmates).
     for (int i = 0; i < f.capacity; i++)
@@ -345,9 +392,32 @@ void FlockingMovement::updateMembers(DroneFleetMarkers &f, float delta)
             continue;
         }
         Member &m = members[i];
-        Vector2 leaderPos = leaders.empty() ? f.fleet_position : leaders[m.flock].screen;
 
-        Vector2 acc = Vector2Scale(Vector2Subtract(leaderPos, m.pos), fp.seek_gain);
+        Vector2 acc;
+        if (numFlocks == 0)
+        {
+            acc = Vector2Scale(Vector2Subtract(f.fleet_position, m.pos), fp.seek_gain);
+        }
+        else
+        {
+            int fl = m.flock;
+            Vector2 leaderPos = leaders[fl].screen;
+            int r = rank[fl]++;
+            if (i == apexSlot[fl])
+            {
+                // apex: hug the leader guide so a marker leads the flock.
+                acc = Vector2Scale(Vector2Subtract(leaderPos, m.pos), fp.seek_gain);
+            }
+            else
+            {
+                // trailing anchor: a point behind the leader, pushed further back by rank so
+                // the flock strings out into a tapering plume; plus cohesion to flockmates.
+                Vector2 back = {-heading[fl].x, -heading[fl].y};
+                Vector2 anchor = Vector2Add(leaderPos, Vector2Scale(back, fp.trail_distance * (float)r));
+                acc = Vector2Scale(Vector2Subtract(anchor, m.pos), fp.trail_gain);
+                acc = Vector2Add(acc, Vector2Scale(Vector2Subtract(centroid[fl], m.pos), fp.cohesion_gain));
+            }
+        }
 
         Vector2 sep = {0.0f, 0.0f};
         for (int j = 0; j < f.capacity; j++)
@@ -435,6 +505,23 @@ void DroneFleetMarkers::setApproach(Vector2 start, float target_x, float dir)
     {
         motion->onConfigure(*this);
     }
+}
+
+void DroneFleetMarkers::prewarm(int iterations, float dt)
+{
+    // Run the per-member dynamics in place (no phase step, no fleet translation) so the
+    // formation settles before the first render — avoids the "explosion" from members
+    // starting bunched inside the separation radius. Deterministic patterns (helical) have
+    // an empty postStep, so this is a cheap no-op for them.
+    if (!motion)
+    {
+        return;
+    }
+    for (int i = 0; i < iterations; i++)
+    {
+        motion->postStep(*this, dt);
+    }
+    compact();
 }
 
 void DroneFleetMarkers::update(float delta)

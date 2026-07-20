@@ -44,13 +44,19 @@ void DroneControlView::activate(Craft *c)
             defenders.initialise(orbital_drone_count, BLUE, pattern);
 
             // place the fleets in battle-area-local coords (render() offsets by left/top).
-            // attackers sweep in from the left, defenders from the right; both converge on centre.
+            // start on the far edges (sphere half-off-field, clipped by render) and sweep
+            // toward centre so the approach reads as fleets entering from the sides.
             float area_w = (float)(GetScreenWidth() - 2 * left);
             float area_h = (float)(GetScreenHeight() - 2 * top);
             float centre_x = area_w * 0.5f;
             float centre_y = area_h * 0.5f;
-            attackers.setApproach({area_w * 0.08f, centre_y}, centre_x, +1.0f);
-            defenders.setApproach({area_w * 0.92f, centre_y}, centre_x, -1.0f);
+            attackers.setApproach({0.0f, centre_y}, centre_x, +1.0f);
+            defenders.setApproach({area_w, centre_y}, centre_x, -1.0f);
+
+            // settle each formation in place (~1.5s of virtual dynamics) so the first frame
+            // shows a stable flock rather than the initial scatter exploding apart.
+            attackers.prewarm(90, 1.0f / 60.0f);
+            defenders.prewarm(90, 1.0f / 60.0f);
         }
     }
 }
@@ -275,6 +281,9 @@ void DroneControlView::renderDebug()
     slider("maxSpd", &p.member_maxspeed, 0.0f, 600.0f);
     slider("damping", &p.member_damping, 0.0f, 5.0f);
     slider("precess", &p.orbit_precess, 0.0f, 3.0f);
+    slider("trail", &p.trail_gain, 0.0f, 20.0f);
+    slider("trailDst", &p.trail_distance, 0.0f, 20.0f);
+    slider("cohesion", &p.cohesion_gain, 0.0f, 10.0f);
 }
 
 // DroneFleetMarkers rendering. State + the motion driver (initialise/setApproach/update/
@@ -282,10 +291,16 @@ void DroneControlView::renderDebug()
 
 void DroneFleetMarkers::render(int t, int l)
 {
+    // clip to the battle-area rectangle so markers outside it aren't drawn — fleets visually
+    // enter/leave the playfield at its edges (matches the local coords used in setApproach).
+    int area_w = GetScreenWidth() - 2 * l;
+    int area_h = GetScreenHeight() - 2 * t;
+    BeginScissorMode(l, t, area_w, area_h);
     for (int i = 0; i < out_count; i++)
     {
         Vector2 p = {out_pos[i].x + l, out_pos[i].y + t};
         float r = 3.0f + 4.0f * out_depth[i]; // ~3px (behind) .. ~7px (front)
         DrawCircleV(p, r, color);
     }
+    EndScissorMode();
 }

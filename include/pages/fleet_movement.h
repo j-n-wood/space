@@ -5,8 +5,8 @@
 // Selects which motion model drives a drone fleet's markers.
 enum MovementPatternType
 {
-    MP_HELICAL,  // every marker slides along a shared spherical-helix wire
-    MP_FLOCKING  // boids members follow virtual leader points moving on the sphere
+    MP_HELICAL, // every marker slides along a shared spherical-helix wire
+    MP_FLOCKING // boids members follow virtual leader points moving on the sphere
 };
 
 // Phase of an engagement, shared by all movement patterns.
@@ -23,12 +23,15 @@ struct DroneFleetMarkers;
 // Defaults match the original constants; exposed for live tuning via the debug UI.
 struct FlockingParams
 {
-    float seek_gain = 4.0f;         // pull of a member toward its leader
+    float seek_gain = 4.0f;         // pull of the apex member toward the leader guide
     float sep_gain = 90.0f;         // push away from nearby flockmates
     float sep_radius = 16.0f;       // separation neighbourhood (px)
     float member_maxspeed = 260.0f; // per-member speed clamp
     float member_damping = 1.2f;    // velocity damping (per second)
     float orbit_precess = 0.6f;     // engage-phase heading precession (rad/sec base)
+    float trail_gain = 2.0f;        // non-apex pull toward the trailing anchor
+    float trail_distance = 3.0f;    // per-rank spacing of the anchor behind the leader (px)
+    float cohesion_gain = 1.0f;     // non-apex pull toward the flock centroid
 };
 
 // Shared, process-wide flocking params (single instance). Mutable for debug tuning.

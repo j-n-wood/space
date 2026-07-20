@@ -50,6 +50,7 @@ struct DroneFleetMarkers
 
     void initialise(int count, Color c, MovementPatternType type);
     void setApproach(Vector2 start, float target_x, float dir);
+    void prewarm(int iterations, float dt); // settle the formation in place before first render
     void update(float delta);
     void killRandom(int k);
     void setLiveCount(int n) { killRandom(live_count - n); }
