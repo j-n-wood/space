@@ -108,7 +108,7 @@ Orbital *Game::createOrbital(Location *location)
     return o;
 }
 
-Orbital *Game::orbitalAt(Location *location)
+Orbital *Game::orbitalAt(Location *location) const
 {
     if (location)
     {
@@ -791,10 +791,70 @@ void Game::advanceTick()
     }
 }
 
+bool Game::craftCanDock(Craft *craft) const
+{
+    // can dock if: in orbit, there is an orbital, it is complete
+    // if of a different faction: can dock if not hostile. If hostile, can dock if no defenders (drones at orbital)
+    bool can_dock = false;
+    if (craft->state == CS_ORBIT)
+    {
+        if (Orbital *o = orbitalAt(craft->location))
+        {
+            can_dock = o->operational;
+
+            // if orbital is of different faction, check for hostiles
+            if (o->faction_id != craft->faction_id)
+            {
+                if (factions[o->faction_id].hostile)
+                {
+                    // check stores of drone types
+                    int drone_count = o->stores.items[ItemType::Star_Drone] + o->stores.items[ItemType::Ios_Drone];
+                    can_dock = drone_count == 0; // can dock if no drones present
+                }
+            }
+        }
+    }
+
+    return can_dock;
+}
+
 void Game::onSpacecraftArrival(Craft *craft)
 {
     // craft->arrive() already called
     // this can trigger game events
+}
+
+void Game::onSpacecraftDocked(Craft *craft)
+{
+    // craft->onDocked() already called
+    // this can trigger game events
+
+    // if docking location is hostile, trigger capture event
+    if (hostilesAt(craft->location, craft->faction_id))
+    {
+        // TODO: orbital self destruct
+        // switch ownership of orbital to craft's faction
+        Orbital *orbital = orbitalAt(craft->location);
+        if (orbital)
+        {
+            onCaptureOrbital(orbital, craft->faction_id);
+        }
+    }
+}
+
+void Game::onCaptureOrbital(Orbital *orbital, int new_faction_id)
+{
+    if (!orbital)
+    {
+        TraceLog(LOG_ERROR, "Null orbital provided to onCaptureOrbital");
+        return;
+    }
+    orbital->faction_id = new_faction_id;
+    TraceLog(LOG_INFO, "Orbital at location %s captured by faction %d", orbital->location->name, new_faction_id);
+
+    // TODO
+    // methanoids tend to trash orbitals before they are captured
+    // transferring out most resources and surface derricks
 }
 
 void Game::addEventSink(EventSink *sink)

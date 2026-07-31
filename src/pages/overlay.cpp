@@ -98,6 +98,24 @@ void Overlay::render()
     sprintf(buf, "%.2f", game->game_time);
     DrawText(buf, BasePage::timeDest.x, BasePage::timeDest.y, 20, WHITE);
 
+    // help text
+    if (help)
+    {
+        const char *helpText = "Help:\n"
+                               "F3: Master Control page\n"
+                               "F5: Save game\n"
+                               "F8: Load game\n"
+                               "F10: Toggle debug tools\n"
+                               "H: Toggle help text\n"
+                               "Mouse: Interact with UI\n"
+                               "Keyboard: Interact with UI\n"
+                               "Console: Toggle with ~\n"
+                               "Space: advance time\n"
+                               "Tab: auto advance time\n"
+                               "Time rate: +/-\n";
+        DrawText(helpText, 10, 50, 20, WHITE);
+    }
+
     // console
     if (console)
     {
@@ -239,5 +257,11 @@ void Overlay::input()
     if (IsKeyPressed(KEY_F10))
     {
         debug = !debug;
+    }
+
+    // Toggle help text from 'H'
+    if (IsKeyPressed(KEY_H))
+    {
+        help = !help;
     }
 }

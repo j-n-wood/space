@@ -127,7 +127,7 @@ public:
 
     // locate game state
     ResourceFacility *resourceFacilityAt(Location *location);
-    Orbital *orbitalAt(Location *location);
+    Orbital *orbitalAt(Location *location) const;
     Facility *facilityAt(const Endpoint &endpoint);
 
     // faction related
@@ -189,6 +189,11 @@ public:
     void raiseProductionCompleteEvent(Factory *factory, int item_id);
 
     void onSpacecraftArrival(Craft *craft);
+    void onSpacecraftDocked(Craft *craft);
+    void onCaptureOrbital(Orbital *orbital, int faction_id);
+
+    // craft behaviour. On class so can access collections
+    bool craftCanDock(Craft *craft) const;
 
     // console input
     bool processConsoleCommand(const char *command, Location *l, Facility *f);

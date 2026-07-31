@@ -112,15 +112,15 @@ void buildTestData(Game *game)
 	// test IOS 3 at Jupiter
 	Location *jupiter = game->locationByID(10);
 	IOS *ios3 = game->createIOS(jupiter);
-	ios3->state = CS_ORBIT; // there is no orbital here
+	ios3->state = CS_ORBIT;
 	ios3->drive = true;
 	ios3->fuel = 250;
 	ios3->setPodType(0, PT_WEAPON);
 	ios3->pods[0].contentType = ItemType::DFCC;
 	ios3->pods[0].amount = 100;
 
-	game->setFactionHostility(1, true);
-	game->orbitalAt(jupiter)->stores.items[ItemType::Ios_Drone] = 50;
+	game->setFactionHostility(1, true);								  // methanoids hostile to player
+	game->orbitalAt(jupiter)->stores.items[ItemType::Ios_Drone] = 50; // orbital created from starting data
 }
 
 int main()
@@ -295,7 +295,7 @@ int main()
 					game->update(deltaTime);
 				}
 
-				currentPage->update(deltaTime); // not game state, view state
+				currentPage->update(deltaTime); // not game state, view state. Happens after render.
 			}
 		}
 

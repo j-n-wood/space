@@ -19,6 +19,7 @@ class Overlay
 public:
     bool console = false;
     bool debug = false; // debug-tools flag; gates BasePage::renderDebug (toggled by F10)
+    bool help = false;  // help text flag; gates BasePage::showHelp (toggled by H)
 
     Overlay();
 

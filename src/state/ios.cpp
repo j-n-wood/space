@@ -24,6 +24,7 @@ void IOS::update(float delta)
             case CS_ORBIT_DOCKING:
                 state = CS_ORBIT_DOCKED;
                 onDocked();
+                Game::getCurrent()->onSpacecraftDocked(this);
                 break;
             case CS_ORBIT_DOCK_WORK:
                 state = CS_ORBIT_DOCKED;

@@ -131,7 +131,7 @@ void ShuttleView::input()
             craft->state = CS_ORBIT_LAUNCH;
             craft->state_timer = CSTD_LAUNCH;
         }
-        else if (craft->state == CS_ORBIT)
+        else if (craft_can_dock)
         {
             craft->state = CS_ORBIT_DOCKING;
             craft->state_timer = CSTD_DOCK;
@@ -237,6 +237,9 @@ void ShuttleView::input()
 void ShuttleView::render()
 {
     BasePage::render();
+
+    // set common state
+    craft_can_dock = Game::getCurrent()->craftCanDock(craft);
 
     // render viewport
     if (bodyTexture && (craft->state == CS_ORBIT))
@@ -348,17 +351,10 @@ void ShuttleView::render()
         const Rectangle ascendButton{722, 832, 76, 49};
 
         // can dock if: in orbit, there is an orbital, it is complete
+        // if of a different faction: can dock if not hostile. If hostile, can dock if no defenders (drones at orbital)
         Game *game = Game::getCurrent();
-        bool can_dock = false;
-        if (craft->state == CS_ORBIT)
-        {
-            if (Orbital *o = game->orbitalAt(craft->location))
-            {
-                can_dock = o->operational;
-            }
-        }
 
-        if (can_dock && (overlay.renderButton(dockButton, "", "Dock", WHITE)))
+        if (craft_can_dock && (overlay.renderButton(dockButton, "", "Dock", WHITE)))
         {
             craft->state = CS_ORBIT_DOCKING;
             craft->state_timer = CSTD_DOCK;

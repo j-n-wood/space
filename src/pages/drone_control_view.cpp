@@ -69,8 +69,21 @@ void DroneControlView::activate(Craft *c)
 
 void DroneControlView::deactivate()
 {
-    craft = nullptr;
-    droneType = ItemType::None;
+    if (craft)
+    {
+        Game *game = Game::getCurrent();
+        // update drone counts
+        if (location && current_orbital)
+        {
+            // set orbital stores to orbital_drone_count
+            // set fleet count to fleet_drone_count
+            current_orbital->stores.items[droneType] = orbital_drone_count;
+            craft->pods[0].amount = fleet_drone_count; // by construction
+        }
+
+        craft = nullptr;
+        droneType = ItemType::MAX_ITEM_TYPE;
+    }
     visible = false;
 }
 

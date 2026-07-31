@@ -2,21 +2,31 @@
 
 ## EC training button
 
-* main pages have same buttons, with EC having two extras
+* all main pages have same buttons, with EC having two extras instead of orbital/faction indicator
+
+## staff model
+
+* on craft
+* at factories
+* cryo pod
+* transfer at docks
 
 ## Craft persistence
 
-* scg
+* scg - need graphics
 
 ## factions
 
 * control of orbitals, craft
 * visibility in views
 
-## locations -> array
+## locations
 
-* ditch <algorithm>
 * asteriod locations? Generic belt, major asteriods?
+
+### AMA
+
+### Grapple
 
 ## bay view animation
 
@@ -28,16 +38,12 @@
 
 * need restrictions, tech level speed
 
-## resource scan
-
-* hierarchical selection
-
 ## seam model
 
 * resource abundance, survey delay.
 
-## drone fleets
+## self destruct
 
-* battle
+## Capture of orbitals
 
-## master control / orrery craft view
+## MTX
