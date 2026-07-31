@@ -46,6 +46,9 @@ struct DroneFleetMarkers
     std::vector<float> slot_depth, out_depth;
     std::vector<int> scratch_idx; // reused scratch for killRandom
 
+    // explosion markers
+    std::vector<Vector3> explosion_pos;
+
     std::unique_ptr<MovementPattern> motion;
 
     void initialise(int count, Color c, MovementPatternType type);

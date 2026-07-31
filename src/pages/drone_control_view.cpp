@@ -235,6 +235,15 @@ void DroneControlView::render_battle()
     }
 
     // flee button
+    auto &overlay{Overlay::getInstance()};
+    auto height = GetScreenHeight() - 2 * top;
+    if (overlay.renderButton({(float)left, (float)top + height, 120, 30}, "FLEE", "Flee Battle", WHITE))
+    {
+        // set state to flee
+        attackers.state = DFS_RETREATING;
+        // start close timer so view closes after 3s
+        close_timer = 0.0f;
+    }
 
     // fleets
     attackers.render(top, left);
@@ -298,7 +307,8 @@ void DroneControlView::update(float delta)
     case DCS_BATTLE:
 
         // if any fleet is reduced to zero, end battle and close the view
-        if (attackers.live_count == 0 || defenders.live_count == 0)
+        // do same if the player has chosen to flee (attackers in retreat)
+        if (attackers.state == DFS_RETREATING || defenders.state == DFS_RETREATING || attackers.live_count == 0 || defenders.live_count == 0)
         {
             // wait 3s then close the view
             close_timer += delta;
@@ -389,6 +399,15 @@ void DroneFleetMarkers::render(int t, int l)
         Vector2 p = {out_pos[i].x + l, out_pos[i].y + t};
         float r = 3.0f + 4.0f * out_depth[i]; // ~3px (behind) .. ~7px (front)
         DrawCircleV(p, r, color);
+    }
+
+    // render explosion markers
+    for (const auto &ep : explosion_pos)
+    {
+        Vector2 p = {ep.x + l, ep.y + t};
+        float r = 2.0f + 6.0f * ep.z;
+        float alpha = 1.0f - ep.z * 0.5f; // fade out over lifetime
+        DrawCircleV(p, r, (Color){255, (unsigned char)(alpha * 255.0f), 0, (unsigned char)(alpha * 255.0f)});
     }
     EndScissorMode();
 }
