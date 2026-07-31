@@ -8,6 +8,9 @@
 #include "pages/drone_control_view.h"
 #include "pages/page_log.h"
 
+const int DroneControlViewLeft = 150;
+const int DroneControlViewTop = 180;
+
 class ShuttleView : public BasePage, EventSink
 {
     Location *location;
@@ -32,7 +35,7 @@ public:
         std::snprintf(title, sizeof title, "Shuttle");
         pageLog.top = 750;
         pageLog.left = 350;
-        droneControlView = std::make_unique<DroneControlView>(300, 300);
+        droneControlView = std::make_unique<DroneControlView>(DroneControlViewLeft, DroneControlViewTop);
     }
 
     void activate(ViewState &viewState) override;

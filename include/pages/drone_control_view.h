@@ -81,7 +81,8 @@ class DroneControlView
     Orbital *current_orbital;
     int fleet_drone_count;
     int orbital_drone_count;
-    float timer; // animation timer
+    float timer;       // animation timer
+    float close_timer; // countdown to close view after battle ends
 
     DroneFleetMarkers attackers;
     DroneFleetMarkers defenders;

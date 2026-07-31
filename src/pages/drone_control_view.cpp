@@ -96,7 +96,8 @@ void DroneControlView::render()
     }
 
     // add a dimmed background to make it clear this is an overlay
-    DrawRectangle(left, top, GetScreenWidth() - left, GetScreenHeight() - top, (Color){0, 0, 0, 128});
+    DrawRectangle(left, top, GetScreenWidth() - 2 * left, GetScreenHeight() - 2 * top, (Color){0, 0, 0, 128});
+    DrawRectangleLines(left, top, GetScreenWidth() - 2 * left, GetScreenHeight() - 2 * top, (Color){200, 180, 170, 255});
 
     switch (state)
     {
@@ -208,7 +209,7 @@ void DroneControlView::render_battle()
             else
             {
                 snprintf(buffer, sizeof buffer, "Target: %s Orbital", location->name);
-                render_orbital_x = left + width - 80;
+                render_orbital_x = left + width - 220;
             }
             DrawText(buffer, left + width / 2, top, 20, YELLOW);
         }
@@ -300,10 +301,24 @@ void DroneControlView::update(float delta)
         if (attackers.live_count == 0 || defenders.live_count == 0)
         {
             // wait 3s then close the view
-            // deactivate();
+            close_timer += delta;
+            if (close_timer >= 3.0f)
+            {
+                deactivate();
+            }
         }
         // update view
-        fleetCombat(combat_state, delta);
+        {
+            auto cr{fleetCombat(combat_state, delta)};
+            if (cr.attackers_lost > 0)
+            {
+                fleet_drone_count -= cr.attackers_lost;
+            }
+            if (cr.defenders_lost > 0)
+            {
+                orbital_drone_count -= cr.defenders_lost;
+            }
+        }
         attackers.update(delta);
         defenders.update(delta);
         break;
