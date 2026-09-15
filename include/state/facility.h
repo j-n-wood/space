@@ -52,6 +52,15 @@ public:
     Factory *createFactory();
 };
 
+// Facility* from a Location*, or nullptr. The LocationType enum is the discriminator,
+// so this is a checked static_cast and not RTTI. Keep this the only downcast site: it
+// is checked by convention, and adding a facility kind means updating
+// locationIsFacility() or this silently returns nullptr.
+inline Facility *asFacility(Location *l)
+{
+    return (l && l->isFacility()) ? static_cast<Facility *>(l) : nullptr;
+}
+
 // No owning typedef here on purpose: Game::locations owns every facility, as it
 // owns every other location. Anything holding a unique_ptr<Facility> would be a
 // second owner.

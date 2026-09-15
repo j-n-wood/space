@@ -37,6 +37,10 @@ enum LocationType
     // facilities
     LOCATION_TYPE_ORBITAL,           // orbital station
     LOCATION_TYPE_RESOURCE_FACILITY, // surface resource station
+    // regions of a body -- orbit is the parent of that body's orbitals, surface of its
+    // surface facilities, so "in orbit" is an ancestor test rather than a set of types
+    LOCATION_TYPE_ORBIT,   // the space around a body: in orbit, no station
+    LOCATION_TYPE_SURFACE, // the ground: landed, no station
     LOCATION_TYPE_MAX
 };
 
@@ -45,6 +49,14 @@ enum LocationType
 inline bool locationIsFacility(LocationType t)
 {
     return t == LOCATION_TYPE_ORBITAL || t == LOCATION_TYPE_RESOURCE_FACILITY || t == LOCATION_TYPE_EARTH_CITY;
+}
+
+// True for the celestial bodies -- the things a facility, orbit or surface hangs off.
+// `space` counts: it is where a craft in transit genuinely is, and it terminates the walk.
+inline bool locationIsBody(LocationType t)
+{
+    return t == LOCATION_TYPE_STAR || t == LOCATION_TYPE_PLANET || t == LOCATION_TYPE_MOON ||
+           t == LOCATION_TYPE_ASTEROID_BELT || t == LOCATION_TYPE_SPACE;
 }
 
 class System; // forward declaration to avoid circular dependency
@@ -88,8 +100,10 @@ public:
 
     LocationResources resources;
 
-    // location can have a shuttle, owns the instance
-    ShuttlePtr shuttle;
+    // The shuttle based at this body. Non-owning -- Game owns it, as it owns IOS.
+    // Set on the body, never on a facility, so "one shuttle per body" stays the rule
+    // even once a craft's location is the facility it is docked at.
+    Shuttle *shuttle{nullptr};
 
     Location(System *s, const int id, const char *n, LocationType t);
 
@@ -102,4 +116,20 @@ public:
     Vector2 resolvedPosition() const;
 
     inline bool isFacility() const { return locationIsFacility(type); }
+    inline bool isBody() const { return locationIsBody(type); }
+
+    // The celestial body this location belongs to: itself if it is one, otherwise the
+    // nearest ancestor that is. Walks up past facility, orbit and surface. Depth-capped,
+    // like resolvedPosition().
+    Location *body();
+    const Location *body() const;
+
+    // A body's orbit / surface child, or nullptr. Small scan of `children` -- a body has
+    // a handful, not a list.
+    Location *orbit() const;
+    Location *surface() const;
+
+    // This location, or an ancestor of it, is an orbit. True for a craft in orbit and for
+    // one docked at a station in that orbit, which is the question most callers mean.
+    bool inOrbit() const;
 };

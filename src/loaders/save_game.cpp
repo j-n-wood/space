@@ -722,7 +722,7 @@ int SaveGame::saveCraft(Game *game)
 
     for (auto &craft : game->allShuttles())
     {
-        if (craft && saveCraft(craft) != 0)
+        if (craft && saveCraft(craft.get()) != 0)
         {
             return -20;
         }

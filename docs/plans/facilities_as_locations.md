@@ -334,11 +334,12 @@ The throwaway Endpoints built purely as lookup keys in
 
 ## Remaining
 
-**Make `craft->location` precise.** The last step of the original idea: a docked craft's
-location becomes the facility-location rather than the body. That deletes `facilityAt`,
-makes `asFacility(endpoint.location)` the way to reach a facility, and finishes the collapse.
-It is a semantic change across ~51 sites and deserves its own plan, its own characterisation
-tests, and a play-test — it is not a tidy-up.
+**Superseded by [orbit_as_location.md](orbit_as_location.md).** The last step of the original
+idea was to make `craft->location` precise — a docked craft's location becoming the facility
+rather than the body. Planning it surfaced that the awkwardness was one level deeper: *orbit
+is not a place*, which is why `sublocation` and `EndpointState` exist at all. Making orbit and
+surface into locations makes the precise-location change fall out, collapses `Endpoint` to a
+single field, and deletes both enums along with `facilityAt`.
 
 `craft_destinations` drops `sublocation`/`docked` for `desired_state`;
 `MAX_DESTINATIONS = 2` is untouched, and the missing bounds check on `destIndex`

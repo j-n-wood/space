@@ -880,7 +880,9 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     REQUIRE(orb != nullptr);
 
     // --- Shuttle: docked, drive fitted, pods loaded, autopilot AS_ON, varied flow + cursors
-    Shuttle *shuttle = game->createShuttle(orb);
+    // Based at the body. createShuttle places a craft AT the location given, so passing
+    // the orbital would put it there -- which is step 6 of the plan, not yet.
+    Shuttle *shuttle = game->createShuttle(orb->primary);
     REQUIRE(shuttle != nullptr);
 
     std::snprintf(shuttle->name, sizeof shuttle->name, "Discovery");
@@ -934,7 +936,7 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
 
     const auto &lShuttles = loaded.allShuttles();
     REQUIRE(lShuttles.size() == 1);
-    Shuttle *ls = lShuttles[0];
+    Shuttle *ls = lShuttles[0].get();
 
     const auto &lIOS = loaded.allIOS();
     REQUIRE(lIOS.size() == 1);
@@ -1034,7 +1036,7 @@ TEST_CASE("SaveGame round-trips autopilot state across all values")
         Orbital *orb = game->orbitalAt(earth);
         REQUIRE(orb != nullptr);
 
-        Shuttle *shuttle = game->createShuttle(orb);
+        Shuttle *shuttle = game->createShuttle(orb->primary);
         REQUIRE(shuttle != nullptr);
         shuttle->autopilot->state = s;
 
@@ -1169,7 +1171,7 @@ TEST_CASE("atEndpoint matches the state the endpoint asks for")
     Location *earth = game->locationByID(4);
     REQUIRE(earth != nullptr);
 
-    Shuttle *shuttle = earth->shuttle ? earth->shuttle.get() : game->createShuttle(earth);
+    Shuttle *shuttle = earth->shuttle ? earth->shuttle : game->createShuttle(earth);
     REQUIRE(shuttle != nullptr);
     shuttle->location = earth;
     shuttle->destination_index = 0;

@@ -208,8 +208,28 @@ Facility *Game::facilityAt(const Endpoint &endpoint)
 
 Location *Game::createLocation(System *system, const int id, const char *name, LocationType type)
 {
-    locations.emplace_back(std::make_unique<Location>(system, id, name, type));
-    Location *locPtr = locations.back().get();
+    if (id < 0)
+    {
+        TraceLog(LOG_ERROR, "Negative location id %d for %s", id, name ? name : "?");
+        return nullptr;
+    }
+
+    // Placed BY id rather than appended, so ids stay dense regardless of the order
+    // things load in, and locationByID can index straight in. A gap is a null slot,
+    // not a wrong answer -- which is what the old locations[id] gave when density
+    // was merely assumed.
+    if (static_cast<size_t>(id) >= locations.size())
+    {
+        locations.resize(static_cast<size_t>(id) + 1);
+    }
+    if (locations[id])
+    {
+        TraceLog(LOG_ERROR, "Duplicate location id %d (%s)", id, name ? name : "?");
+        return nullptr;
+    }
+
+    locations[id] = std::make_unique<Location>(system, id, name, type);
+    Location *locPtr = locations[id].get();
 
     // Track the high-water mark here rather than in the loader, so it holds for
     // every creation path -- loaded bodies and anything created during play.
@@ -227,22 +247,15 @@ Location *Game::createLocation(System *system, const int id, const char *name, L
 
 Location *Game::locationByID(int id)
 {
-    // Was locations[id], which silently required ids to be dense and 0-based and
-    // returned the wrong location rather than nullptr when they were not. A scan
-    // over ~180 entries, called from the loader and scaffolding only, costs
-    // nothing and lets locations be created at runtime with any unique id.
-    if (id < 0)
+    // O(1), and correct by construction: createLocation places by id, so the slot
+    // either holds that location or is empty. This is not the old locations[id],
+    // which required density it never enforced and returned the wrong location when
+    // the assumption broke.
+    if (id < 0 || static_cast<size_t>(id) >= locations.size())
     {
         return nullptr;
     }
-    for (auto &loc : locations)
-    {
-        if (loc->id == id)
-        {
-            return loc.get();
-        }
-    }
-    return nullptr; // not found
+    return locations[id].get();
 }
 
 Factory *Game::createFactory(Facility *facility)
@@ -301,7 +314,12 @@ Shuttle *Game::commissionShuttle(Facility *facility)
     }
     // remove required item from stores
     facility->stores.items[ItemType::S_Chassis] -= 1;
-    auto shuttle = createShuttle(facility);
+    auto shuttle = createShuttle(facility->primary);
+    if (!shuttle)
+    {
+        return nullptr;
+    }
+    setDefaultRoute(shuttle, facility);
     // assign drive if available
     if (facility->stores.items[ItemType::S_Drive] > 0)
     {
@@ -331,54 +349,57 @@ IOS *Game::commissionIOS(Facility *facility)
     return i;
 }
 
-Shuttle *Game::createShuttle(Location *location)
+// `position` is where the shuttle is; its OWNER is derived from position->body(), so the
+// two cannot be confused. They coincide today, but once a docked craft's location is the
+// facility, passing a facility here must still register the shuttle against its body --
+// otherwise a save/load reparents it somewhere nothing looks.
+Shuttle *Game::createShuttle(Location *position)
 {
-    // create a shuttle at a location, starting at the given location (used for loading saved game where we already have location info)
-    if (!location)
+    if (!position)
     {
         TraceLog(LOG_ERROR, "Null location provided to createShuttle");
         return nullptr;
     }
-    if (location->shuttle)
+    Location *home = position->body();
+    if (!home)
     {
-        TraceLog(LOG_ERROR, "Blocked createShuttle: location already has one", location->name);
+        TraceLog(LOG_ERROR, "No body for shuttle position %s", position->name);
+        return nullptr;
+    }
+    if (home->shuttle)
+    {
+        TraceLog(LOG_ERROR, "Blocked createShuttle: %s already has one", home->name);
         return nullptr;
     }
 
-    location->shuttle = std::move(std::make_unique<Shuttle>(CS_ORBIT_DOCKED, 1, location));
-    shuttles.push_back(location->shuttle.get());
-    location->shuttle->id = ++craft_max_id;
-    return location->shuttle.get();
+    shuttles.emplace_back(std::make_unique<Shuttle>(CS_ORBIT_DOCKED, 1, position));
+    Shuttle *s = shuttles.back().get();
+    s->id = ++craft_max_id;
+    home->shuttle = s; // non-owning reference on the body
+    return s;
 }
 
-Shuttle *Game::createShuttle(Facility *facility)
+void Game::setDefaultRoute(Shuttle *shuttle, Facility *facility)
 {
-    // create a shuttle at a location, starting at the given facility
-    Location *location{facility->primary};
-    if (!location)
+    if (!shuttle || !facility || !facility->primary)
     {
-        TraceLog(LOG_ERROR, "Facility missing location");
-        return nullptr;
+        TraceLog(LOG_ERROR, "setDefaultRoute needs a shuttle and a sited facility");
+        return;
     }
-    if (location->shuttle)
-    {
-        TraceLog(LOG_ERROR, "Blocked createShuttle: location already has one", location->name);
-        return nullptr;
-    }
-    // initial state depends on facility sublocation
-    CraftState cs{facility->sublocation == SLOC_ORBIT ? CS_ORBIT_DOCKED : CS_SURFACE_DOCKED};
 
-    location->shuttle = std::move(std::make_unique<Shuttle>(cs, 1, location));
-    shuttles.push_back(location->shuttle.get());
-    location->shuttle->id = ++craft_max_id;
-    // A shuttle runs between the two sublocations at one body, so its route is this
-    // facility and the other kind. SublocationType has exactly two values, so the
+    // Start docked at the facility we were commissioned from.
+    shuttle->state = (facility->sublocation == SLOC_ORBIT) ? CS_ORBIT_DOCKED : CS_SURFACE_DOCKED;
+
+    // A shuttle runs between the two sublocations at one body, so the obvious route is
+    // this facility and the other kind. SublocationType has exactly two values, so the
     // toggle is well defined -- it used to yield -1 for an Earth City.
+    //
+    // This is only a sensible default, not a rule: the far end may not exist yet, and
+    // once facilities become locations the route should name them rather than the body.
     const SublocationType here = facility->sublocation;
     const SublocationType there = (here == SLOC_ORBIT) ? SLOC_SURFACE : SLOC_ORBIT;
-    location->shuttle->destinations[0] = Endpoint(location, endpointStateFor(there, true));
-    location->shuttle->destinations[1] = Endpoint(location, endpointStateFor(here, true));
-    return location->shuttle.get();
+    shuttle->destinations[0] = Endpoint(facility->primary, endpointStateFor(there, true));
+    shuttle->destinations[1] = Endpoint(facility->primary, endpointStateFor(here, true));
 }
 
 IOS *Game::createIOS(Location *location)
@@ -843,7 +864,7 @@ void Game::update(float delta)
     }
 
     // update shuttles - use realtime as start of state changes is not tick aligned
-    for (auto shuttle : shuttles)
+    for (auto &shuttle : shuttles)
     {
         shuttle->update(dt);
     }
@@ -1035,7 +1056,11 @@ bool Game::processConsoleCommand(const char *command, Location *l, Facility *f)
     {
         if (f && !locationHasShuttle(f->primary)) // parent check is probably redundant as a facility should always have one, but just in case
         {
-            Shuttle *shuttle{createShuttle(f)};
+            Shuttle *shuttle{createShuttle(f->primary)};
+            if (shuttle)
+            {
+                setDefaultRoute(shuttle, f); // debug spawn, so no chassis cost
+            }
             TraceLog(LOG_INFO, "Shuttle created at facility: %s", f->primary->name);
             return true;
         }

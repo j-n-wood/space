@@ -57,8 +57,8 @@ class Game
     // non-owning collection of factories
     std::vector<Factory *> factories;
 
-    // non-owning collection of shuttles
-    std::vector<Shuttle *> shuttles;
+    // owning collection of shuttles, as for IOS. Location::shuttle references into it.
+    Shuttles shuttles;
 
     // non-owning collection of research facilities
     std::vector<ResearchFacility *> researchFacilities;
@@ -136,7 +136,7 @@ public:
     const Bases &allBases() const;
     const Orbitals &allOrbitals() const;
     const IOSs &allIOS() const;
-    const std::vector<Shuttle *> &allShuttles() const { return shuttles; }
+    const Shuttles &allShuttles() const { return shuttles; }
 
     // Sublocation is defaulted so runtime callers are unchanged; the loader passes
     // the persisted value.
@@ -163,8 +163,17 @@ public:
     // create objects
     Location *createLocation(System *system, const int id, const char *name, LocationType type);
     Factory *createFactory(Facility *facility);
-    Shuttle *createShuttle(Location *location); // create at location - may not have a facility. Used by save/load
-    Shuttle *createShuttle(Facility *facility);
+    // Create a shuttle AT a location. The owner is derived from location->body(), so
+    // position and ownership cannot be confused. Sets no route: save/load restores the
+    // recorded endpoints, and a manually built shuttle gets its route from
+    // commissionShuttle. There is deliberately no Facility overload -- facility-specific
+    // behaviour belongs to commissioning, not to creation.
+    Shuttle *createShuttle(Location *location);
+
+    // Give a shuttle the obvious route for a facility: this facility, and the other
+    // sublocation at the same body. Only meaningful if both ends exist, which is why it
+    // is a separate call rather than part of creation.
+    void setDefaultRoute(Shuttle *shuttle, Facility *facility);
     IOS *createIOS(Location *location); // create at location - may not have a facility. Used by save/load
     IOS *createIOS(Facility *facility);
     ResearchFacility *createResearchFacility(Facility *facility);

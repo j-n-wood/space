@@ -223,6 +223,44 @@ TEST_CASE("location ids continue the loaded sequence")
     CHECK(game->locationByID(second) == nullptr);
 }
 
+TEST_CASE("location ids are dense, so locationByID can index directly")
+{
+    Game *game = Game::createCurrent();
+    Loader loader(POS_DB_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(game->initialise(&loader));
+
+    // createLocation places BY id. This is the invariant that earns the O(1) lookup --
+    // without it, indexing returns the wrong location rather than nothing.
+    auto &locations = game->allLocations();
+    REQUIRE(locations.size() > 100);
+
+    int occupied = 0;
+    for (size_t i = 0; i < locations.size(); ++i)
+    {
+        if (!locations[i])
+        {
+            continue; // a gap is allowed: a null slot, never a wrong answer
+        }
+        ++occupied;
+        CHECK_MESSAGE(locations[i]->id == static_cast<int>(i),
+                      "slot does not match its id: " << i);
+    }
+    CHECK(occupied > 100);
+
+    // and the indexed lookup agrees with an exhaustive search over every location
+    for (auto &loc : locations)
+    {
+        if (loc)
+        {
+            CHECK(game->locationByID(loc->id) == loc.get());
+        }
+    }
+
+    CHECK(game->locationByID(-1) == nullptr);
+    CHECK(game->locationByID(static_cast<int>(locations.size())) == nullptr);
+}
+
 TEST_CASE("location id watermark is rebuilt on load, not persisted")
 {
     // Derived rather than stored, so it cannot drift from the data. A fresh game

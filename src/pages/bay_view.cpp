@@ -286,7 +286,7 @@ Shuttle *BayView::getShuttle()
 {
     if (type == BT_SHUTTLE)
     {
-        auto shuttle = facility->primary->shuttle.get();
+        auto shuttle = facility->primary->shuttle;
         if (shuttle)
         {
             // has a shuttle. Is it docked here?

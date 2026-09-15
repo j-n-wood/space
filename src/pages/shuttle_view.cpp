@@ -68,7 +68,7 @@ void ShuttleView::activate(ViewState &viewState)
     else if (auto l = viewState.getCurrentLocation())
     {
         location = l;
-        craft = location->shuttle.get();
+        craft = location->shuttle;
     }
 
     if (craft)

@@ -231,3 +231,44 @@ TEST_CASE("facilities round-trip as locations")
 
     std::remove(FL_SAVE_PATH);
 }
+
+TEST_CASE("a shuttle's owner and its position are separate")
+{
+    Game *game = loadGame();
+    REQUIRE(game != nullptr);
+
+    Location *earth = game->locationByID(EARTH_ID);
+    REQUIRE(earth != nullptr);
+    Orbital *orbital = game->orbitalAt(earth);
+    REQUIRE(orbital != nullptr);
+
+    // Create it AT the orbital -- the case that matters once a docked craft's
+    // location is the facility. Ownership must still land on the body, or a save
+    // and reload reparents the shuttle somewhere no reader looks.
+    //
+    // The cast selects createShuttle(Location*) deliberately. An Orbital* binds to
+    // the Facility* overload instead (fewer base conversions), which means "a
+    // shuttle belonging to this facility's body" and sets up its route -- a
+    // different operation that happens to share a name.
+    Shuttle *s = game->createShuttle(static_cast<Location *>(orbital));
+    REQUIRE(s != nullptr);
+
+    CHECK(s->location == orbital);       // position: where it is
+    CHECK(earth->shuttle == s);          // reference: on the body
+    CHECK(orbital->shuttle == nullptr);  // never on the facility
+
+    // Game holds the lifetime, as it does for IOS
+    bool owned = false;
+    for (auto &owned_shuttle : game->allShuttles())
+    {
+        if (owned_shuttle.get() == s)
+        {
+            owned = true;
+        }
+    }
+    CHECK(owned);
+
+    // one shuttle per body still holds, whichever location it is asked for
+    CHECK(game->createShuttle(earth) == nullptr);
+    CHECK(game->createShuttle(static_cast<Location *>(orbital)) == nullptr);
+}
