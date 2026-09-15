@@ -1077,3 +1077,59 @@ TEST_CASE("Autopilot::nextFlagged with predicate skips rejected resources")
     { return false; };
     CHECK(ap.nextFlagged(RF_LOAD_AT_SOURCE, &ap.cursors[0], none) == -1);
 }
+
+TEST_CASE("facility type is stored, not inferred from its contents")
+{
+    // Regression for the save-time inference that used to live in saveBase:
+    //   if (rf->training_facility || rf->research_facility) sublocation = SLOC_EARTH_CITY;
+    // Game::createResearchFacility accepts ANY ResourceFacility, so attaching one to
+    // a plain surface facility made it save as an Earth City and load back as an
+    // EarthCity object -- a round trip that changed the object's class.
+    Game *game = Game::createCurrent();
+    Loader loader(DB_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(game->initialise(&loader));
+
+    // Luna (id 5) has a plain resource facility, distinct from Earth's Earth City.
+    Location *luna = game->locationByID(5);
+    REQUIRE(luna != nullptr);
+    ResourceFacility *rf = game->resourceFacilityAt(luna);
+    REQUIRE(rf != nullptr);
+    REQUIRE(rf->type == LOCATION_TYPE_RESOURCE_FACILITY);
+    REQUIRE_FALSE(rf->isEarthCity());
+
+    // The trigger: a research facility on an ordinary resource facility.
+    REQUIRE(game->createResearchFacility(rf) != nullptr);
+    REQUIRE(rf->research_facility != nullptr);
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Game &loaded = *Game::createCurrent();
+    Loader reloader(SAVE_PATH);
+    REQUIRE(reloader.isValid());
+    REQUIRE(loaded.initialise(&reloader));
+
+    Location *loadedLuna = loaded.locationByID(5);
+    REQUIRE(loadedLuna != nullptr);
+    ResourceFacility *loadedRf = loaded.resourceFacilityAt(loadedLuna);
+    REQUIRE(loadedRf != nullptr);
+
+    // Still a resource facility, and still not an Earth City.
+    CHECK(loadedRf->type == LOCATION_TYPE_RESOURCE_FACILITY);
+    CHECK_FALSE(loadedRf->isEarthCity());
+    CHECK(loadedRf->training_facility == nullptr);
+    CHECK(loadedRf->sublocation == SLOC_SURFACE);
+
+    // and the Earth City is still itself
+    Location *earth = loaded.locationByID(4);
+    REQUIRE(earth != nullptr);
+    ResourceFacility *ec = loaded.resourceFacilityAt(earth);
+    REQUIRE(ec != nullptr);
+    CHECK(ec->type == LOCATION_TYPE_EARTH_CITY);
+    CHECK(ec->isEarthCity());
+    CHECK(ec->training_facility != nullptr);
+    CHECK(ec->sublocation == SLOC_SURFACE);
+
+    removeSaveFile();
+}

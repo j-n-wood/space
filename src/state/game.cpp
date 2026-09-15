@@ -66,9 +66,9 @@ const IOSs &Game::allIOS() const
     return ios;
 }
 
-EarthCity *Game::createEarthCity(Location *location)
+EarthCity *Game::createEarthCity(Location *location, SublocationType sublocation)
 {
-    bases.emplace_back(std::make_unique<EarthCity>(location));
+    bases.emplace_back(std::make_unique<EarthCity>(location, sublocation));
     auto ec = static_cast<EarthCity *>(bases.back().get());
     auto factory = createFactory(ec); // EC production
     factory->is_orbital = false;      // EC is surface facility, so set factory accordingly
@@ -77,9 +77,9 @@ EarthCity *Game::createEarthCity(Location *location)
     return ec;
 }
 
-ResourceFacility *Game::createResourceFacility(Location *location)
+ResourceFacility *Game::createResourceFacility(Location *location, SublocationType sublocation)
 {
-    bases.emplace_back(std::make_unique<ResourceFacility>(location));
+    bases.emplace_back(std::make_unique<ResourceFacility>(location, sublocation));
     return bases.back().get();
 }
 
@@ -100,9 +100,9 @@ ResourceFacility *Game::resourceFacilityAt(Location *location)
     return nullptr;
 }
 
-Orbital *Game::createOrbital(Location *location)
+Orbital *Game::createOrbital(Location *location, SublocationType sublocation)
 {
-    orbitals.emplace_back(std::make_unique<Orbital>(location));
+    orbitals.emplace_back(std::make_unique<Orbital>(location, sublocation));
     auto o = orbitals.back().get();
     createFactory(o);
     return o;
@@ -142,6 +142,14 @@ Location *Game::createLocation(System *system, const int id, const char *name, L
 {
     auto location = std::make_unique<Location>(system, id, name, type);
     Location *locPtr = location.get();
+
+    // Track the high-water mark here rather than in the loader, so it holds for
+    // every creation path -- loaded bodies and anything created during play.
+    if (location_max_id < id)
+    {
+        location_max_id = id;
+    }
+
     locations.push_back(std::move(location));
     if (system)
     {

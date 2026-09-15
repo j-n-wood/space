@@ -7,7 +7,7 @@ class Orbital : public Facility
 {
 
 public:
-    explicit Orbital(Location *l);
+    explicit Orbital(Location *l, SublocationType s = SLOC_ORBIT);
 
     virtual void update() override;
 };

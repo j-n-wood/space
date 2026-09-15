@@ -1,9 +1,8 @@
 #include "state/orbital.h"
 #include "state/game.h"
 
-Orbital::Orbital(Location *l) : Facility{l}
+Orbital::Orbital(Location *l, SublocationType s) : Facility{l, LOCATION_TYPE_ORBITAL, s}
 {
-    sublocation = SLOC_ORBIT; // default, but make sure
 }
 
 void Orbital::update()

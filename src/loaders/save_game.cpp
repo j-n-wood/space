@@ -151,7 +151,7 @@ int SaveGame::initialiseSaveFile()
         "BEGIN TRANSACTION;"
         "CREATE TABLE IF NOT EXISTS bodies ( id INTEGER, system_id INT, primary_id INT, type INT, name TEXT, orbital_radius FLOAT, orbital_velocity FLOAT, initial_angle FLOAT, radius FLOAT, color TEXT );"
         "CREATE TABLE IF NOT EXISTS systems ( id INTEGER, name TEXT );"
-        "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT, operational INT, construction_progress INT, damage INT, faction_id INT, aoc_installed INT, sdm_installed INT, mtx_installed INT );"
+        "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, sublocation INT, num_derricks INT, operational INT, construction_progress INT, damage INT, faction_id INT, aoc_installed INT, sdm_installed INT, mtx_installed INT );"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT, ios_number INT, scg_number INT );"
         "CREATE TABLE IF NOT EXISTS factions ( id INT, name TEXT, hostile INT );"
@@ -453,28 +453,26 @@ int SaveGame::saveBase(ResourceFacility *rf, int facilityId)
         return -8;
     }
 
-    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
+    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, sublocation, num_derricks, operational, construction_progress, damage, faction_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!facilityQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare facility insert for base");
         return -9;
     }
 
-    SublocationType sublocation = SLOC_SURFACE;
-    if (rf->training_facility || rf->research_facility) // somewhat hacky //TODO
-    {
-        sublocation = SLOC_EARTH_CITY;
-    }
-
+    // Both stored, neither inferred. Deriving the tag from training_facility ||
+    // research_facility meant giving a plain resource facility a research facility
+    // made it save as an Earth City and load back as one.
     if (!facilityQuery.bind(1, facilityId)
              .bind(2, rf->location->system->id)
              .bind(3, rf->location->id)
-             .bind(4, sublocation)
-             .bind(5, (int)rf->num_derricks)
-             .bind(6, rf->operational)
-             .bind(7, rf->construction_progress)
-             .bind(8, rf->damage)
-             .bind(9, rf->faction_id)
+             .bind(4, static_cast<int>(rf->type))
+             .bind(5, static_cast<int>(rf->sublocation))
+             .bind(6, (int)rf->num_derricks)
+             .bind(7, rf->operational)
+             .bind(8, rf->construction_progress)
+             .bind(9, rf->damage)
+             .bind(10, rf->faction_id)
              .step("SaveGame: Failed to execute facility insert for base"))
     {
         return -14;
@@ -515,7 +513,7 @@ int SaveGame::saveOrbital(Orbital *orbital, int facilityId)
         return -8;
     }
 
-    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, sublocation, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!facilityQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare facility insert for orbital");
@@ -525,15 +523,16 @@ int SaveGame::saveOrbital(Orbital *orbital, int facilityId)
     if (!facilityQuery.bind(1, facilityId)
              .bind(2, orbital->location->system->id)
              .bind(3, orbital->location->id)
-             .bind(4, SLOC_ORBIT)
-             .bind(5, 0) // num derricks, not applicable to orbitals
-             .bind(6, orbital->operational)
-             .bind(7, orbital->construction_progress)
-             .bind(8, orbital->damage)
-             .bind(9, orbital->faction_id)
-             .bind(10, orbital->aoc_installed)
-             .bind(11, orbital->sdm_installed)
-             .bind(12, orbital->mtx_installed)
+             .bind(4, static_cast<int>(orbital->type))
+             .bind(5, static_cast<int>(orbital->sublocation))
+             .bind(6, 0) // num derricks, not applicable to orbitals
+             .bind(7, orbital->operational)
+             .bind(8, orbital->construction_progress)
+             .bind(9, orbital->damage)
+             .bind(10, orbital->faction_id)
+             .bind(11, orbital->aoc_installed)
+             .bind(12, orbital->sdm_installed)
+             .bind(13, orbital->mtx_installed)
              .step("SaveGame: Failed to execute facility insert for orbital"))
     {
         return -14;

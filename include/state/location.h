@@ -22,16 +22,30 @@ extern "C"
 
 // open question: should they be hierarchical? Maybe not needed, but does make navigation tree tools easier.
 
+// What a location IS. Also the facility-kind discriminator: a facility is a kind of
+// place, so it does not need a parallel enum of its own. Values 0-5 are persisted in
+// bodies.type and 4/6/7 in facilities.type, so only ever APPEND here.
 enum LocationType
 {
+    // celestial bodies
     LOCATION_TYPE_STAR = 0,
     LOCATION_TYPE_PLANET,
     LOCATION_TYPE_MOON,
     LOCATION_TYPE_ASTEROID_BELT,
-    LOCATION_TYPE_EARTH_CITY,
+    LOCATION_TYPE_EARTH_CITY, // a facility kind -- declared here since 2019, finally used
     LOCATION_TYPE_SPACE,
+    // facilities
+    LOCATION_TYPE_ORBITAL,           // orbital station
+    LOCATION_TYPE_RESOURCE_FACILITY, // surface resource station
     LOCATION_TYPE_MAX
 };
+
+// True for the location kinds that are facilities rather than celestial bodies.
+// Keep this in step when adding a facility kind.
+inline bool locationIsFacility(LocationType t)
+{
+    return t == LOCATION_TYPE_ORBITAL || t == LOCATION_TYPE_RESOURCE_FACILITY || t == LOCATION_TYPE_EARTH_CITY;
+}
 
 class System; // forward declaration to avoid circular dependency
 class Location;

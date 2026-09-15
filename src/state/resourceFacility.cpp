@@ -3,9 +3,9 @@
 #include "state/research_facility.h"
 #include "state/training_facility.h"
 
-ResourceFacility::ResourceFacility(Location *l) : Facility{l}, num_derricks{0}
+ResourceFacility::ResourceFacility(Location *l, LocationType t, SublocationType s)
+    : Facility{l, t, s}, num_derricks{0}
 {
-    sublocation = SLOC_SURFACE;
 }
 
 ResourceFacility::~ResourceFacility() {};

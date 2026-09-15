@@ -187,3 +187,64 @@ TEST_CASE("body count is stable across repeated save and load")
 
     std::remove(CYCLE_PATH);
 }
+
+TEST_CASE("location ids continue the loaded sequence")
+{
+    Game *game = Game::createCurrent();
+    Loader loader(POS_DB_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(game->initialise(&loader));
+
+    // The watermark must match the highest id actually loaded, not the count.
+    int highest = -1;
+    for (auto &loc : game->allLocations())
+    {
+        if (loc->id > highest)
+        {
+            highest = loc->id;
+        }
+    }
+    REQUIRE(highest >= 0);
+    CHECK(game->location_max_id == highest);
+
+    // Ids allocated now extend that sequence rather than colliding with it.
+    const int first = game->nextLocationID();
+    CHECK(first == highest + 1);
+    CHECK(game->locationByID(first) == nullptr); // free before use
+
+    System *sys = game->allSystems()[1].get();
+    Location *added = game->createLocation(sys, first, "Test Site", LOCATION_TYPE_ORBITAL);
+    REQUIRE(added != nullptr);
+    CHECK(game->locationByID(first) == added);
+    CHECK(game->location_max_id == first);
+
+    const int second = game->nextLocationID();
+    CHECK(second == first + 1);
+    CHECK(game->locationByID(second) == nullptr);
+}
+
+TEST_CASE("location id watermark is rebuilt on load, not persisted")
+{
+    // Derived rather than stored, so it cannot drift from the data. A fresh game
+    // loaded from a save must reach the same watermark as the one that saved it.
+    const char *WATERMARK_PATH = "./test_positions_watermark.db";
+
+    Game *game = Game::createCurrent();
+    Loader loader(POS_DB_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(game->initialise(&loader));
+    const int before = game->location_max_id;
+    REQUIRE(before > 0);
+
+    SaveGame saver;
+    REQUIRE(saver.save(WATERMARK_PATH) == 0);
+
+    Game *reloaded = Game::createCurrent();
+    Loader reloader(WATERMARK_PATH);
+    REQUIRE(reloader.isValid());
+    REQUIRE(reloaded->initialise(&reloader));
+
+    CHECK(reloaded->location_max_id == before);
+
+    std::remove(WATERMARK_PATH);
+}

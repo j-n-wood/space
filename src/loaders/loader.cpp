@@ -105,7 +105,7 @@ Facility *Loader::findFacilityById(int facility_id)
 
 bool Loader::loadFacilities()
 {
-    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed FROM facilities ORDER BY id");
+    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed, sublocation FROM facilities ORDER BY id");
 
     while (query.next())
     {
@@ -121,6 +121,7 @@ bool Loader::loadFacilities()
         int aoc_installed = sqlite3_column_int(query, 9);
         int sdm_installed = sqlite3_column_int(query, 10);
         int mtx_installed = sqlite3_column_int(query, 11);
+        SublocationType sublocation = static_cast<SublocationType>(sqlite3_column_int(query, 12));
         Location *loc = findLocation(system_id, location_id);
         if (!loc)
         {
@@ -128,19 +129,24 @@ bool Loader::loadFacilities()
             return false;
         }
 
+        // `type` is a LocationType: what the facility IS. `sublocation` is read
+        // separately and passed through, rather than inferred from the type.
         Facility *fac = nullptr;
-        if (type == SLOC_SURFACE)
+        switch (static_cast<LocationType>(type))
         {
-            auto rf = game->createResourceFacility(loc);
+        case LOCATION_TYPE_RESOURCE_FACILITY:
+        {
+            auto rf = game->createResourceFacility(loc, sublocation);
             rf->num_derricks = num_derricks;
             rf->operational = operational;
             rf->construction_progress = construction_progress;
             rf->damage = damage;
             fac = rf;
+            break;
         }
-        else if (type == SLOC_ORBIT)
+        case LOCATION_TYPE_ORBITAL:
         {
-            auto orbital = game->createOrbital(loc);
+            auto orbital = game->createOrbital(loc, sublocation);
             orbital->operational = operational;
             orbital->construction_progress = construction_progress;
             orbital->damage = damage;
@@ -148,16 +154,17 @@ bool Loader::loadFacilities()
             orbital->sdm_installed = sdm_installed > 0;
             orbital->mtx_installed = mtx_installed > 0;
             fac = orbital;
+            break;
         }
-        else if (type == SLOC_EARTH_CITY)
+        case LOCATION_TYPE_EARTH_CITY:
         {
-            auto ec = game->createEarthCity(loc);
+            auto ec = game->createEarthCity(loc, sublocation);
             ec->num_derricks = num_derricks;
             ec->damage = damage;
             fac = ec;
+            break;
         }
-        else
-        {
+        default:
             TraceLog(LOG_ERROR, "Unknown facility type %d for facility %d", type, id);
             return false;
         }

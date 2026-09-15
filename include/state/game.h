@@ -76,6 +76,17 @@ public:
     int scg_number{1};
     int craft_max_id{0};
 
+    // Highest location id seen, so ids allocated at runtime continue the sequence
+    // loaded from the database rather than colliding with it. Derived rather than
+    // persisted -- a stored counter can drift from the data it describes, this
+    // cannot. Maintained by createLocation, so every caller updates it. Starts at
+    // -1 because body ids are 0-based.
+    int location_max_id{-1};
+
+    // Allocate the next free location id. Facilities become locations in due
+    // course and draw their ids from here, extending the body sequence.
+    inline int nextLocationID() { return ++location_max_id; }
+
     // item definitions - array of instances as not passed around
     std::vector<Item> items;
 
@@ -120,9 +131,11 @@ public:
     const IOSs &allIOS() const;
     const std::vector<Shuttle *> &allShuttles() const { return shuttles; }
 
-    EarthCity *createEarthCity(Location *location);
-    ResourceFacility *createResourceFacility(Location *location);
-    Orbital *createOrbital(Location *location);
+    // Sublocation is defaulted so runtime callers are unchanged; the loader passes
+    // the persisted value.
+    EarthCity *createEarthCity(Location *location, SublocationType sublocation = SLOC_SURFACE);
+    ResourceFacility *createResourceFacility(Location *location, SublocationType sublocation = SLOC_SURFACE);
+    Orbital *createOrbital(Location *location, SublocationType sublocation = SLOC_ORBIT);
     ResearchFacility *createResearchFacility(ResourceFacility *facility);
 
     // locate game state

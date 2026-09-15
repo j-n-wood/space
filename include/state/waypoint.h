@@ -3,11 +3,13 @@
 #include <cstdint>
 #include <cstddef>
 
+// Where a facility sits, and so what a craft must do to reach it. Purely
+// positional: what a facility *is* lives in LocationType. SLOC_EARTH_CITY used to
+// sit here as a class discriminator in disguise.
 enum SublocationType
 {
     SLOC_SURFACE,
     SLOC_ORBIT,
-    SLOC_EARTH_CITY, // used in persistence
     SLOC_COUNT
 };
 

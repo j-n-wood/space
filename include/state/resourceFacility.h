@@ -15,11 +15,16 @@ public:
     std::unique_ptr<ResearchFacility> research_facility;
     std::unique_ptr<TrainingFacility> training_facility;
 
-    explicit ResourceFacility(Location *l);
+    explicit ResourceFacility(Location *l, SublocationType s = SLOC_SURFACE)
+        : ResourceFacility(l, LOCATION_TYPE_RESOURCE_FACILITY, s) {}
     ~ResourceFacility();
 
     virtual void update() override;
-    bool isEarthCity() const { return sublocation == SLOC_EARTH_CITY; }
+    bool isEarthCity() const { return type == LOCATION_TYPE_EARTH_CITY; }
+
+protected:
+    // for EarthCity, which is a resource facility of a different kind
+    ResourceFacility(Location *l, LocationType t, SublocationType s);
 };
 
 typedef std::vector<std::unique_ptr<ResourceFacility>> Bases;
