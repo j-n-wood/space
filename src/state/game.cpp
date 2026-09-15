@@ -11,6 +11,12 @@ std::unique_ptr<Game> Game::current;
 
 const float MAX_TIMESTEP = 1.0f;
 
+// initial.db ships 173 bodies and 13 facilities; the orbit and surface locations take
+// that to roughly 490. Reserving past it means createLocation's resize never has to
+// reallocate while a game loads one location at a time. Growth beyond this is still
+// correct, just not free.
+const size_t INITIAL_LOCATION_CAPACITY = 512;
+
 EventSink nullEventSink;
 
 float LinearTransitTimeCalculator::calculateTransitTime(Location *from, Location *to)
@@ -31,6 +37,7 @@ float LinearTransitTimeCalculator::calculateTransitTime(Location *from, Location
 
 Game::Game() : game_time(0.0f), time_rate(1.0f), transitTimeCalculator(std::make_unique<LinearTransitTimeCalculator>())
 {
+    locations.reserve(INITIAL_LOCATION_CAPACITY);
 }
 
 Game::~Game()
@@ -218,6 +225,12 @@ Location *Game::createLocation(System *system, const int id, const char *name, L
     // things load in, and locationByID can index straight in. A gap is a null slot,
     // not a wrong answer -- which is what the old locations[id] gave when density
     // was merely assumed.
+    //
+    // resize grows capacity geometrically, so loading one location at a time is
+    // amortised rather than quadratic -- but the constructor reserves past the
+    // expected count so it does not reallocate at all. Reallocation would be safe
+    // if it happened: callers hold Location*, which points at the heap object, not
+    // into this vector.
     if (static_cast<size_t>(id) >= locations.size())
     {
         locations.resize(static_cast<size_t>(id) + 1);
