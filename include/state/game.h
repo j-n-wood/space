@@ -66,6 +66,13 @@ class Game
     // current game instance
     static std::unique_ptr<Game> current;
 
+    // Shared setup for a facility created as a child location of `parent`: assigns
+    // an id from the location sequence, names it, gives it a position relative to
+    // the parent, and links it into the system and the parent's children.
+    // `id` of -1 allocates the next free location id; the loader passes the
+    // persisted one so identity survives a round trip.
+    void attachFacilityLocation(Facility *facility, Location *parent, const char *label, int id);
+
 public:
     // game state
     float game_time;
@@ -133,9 +140,9 @@ public:
 
     // Sublocation is defaulted so runtime callers are unchanged; the loader passes
     // the persisted value.
-    EarthCity *createEarthCity(Location *location, SublocationType sublocation = SLOC_SURFACE);
-    ResourceFacility *createResourceFacility(Location *location, SublocationType sublocation = SLOC_SURFACE);
-    Orbital *createOrbital(Location *location, SublocationType sublocation = SLOC_ORBIT);
+    EarthCity *createEarthCity(Location *location, SublocationType sublocation = SLOC_SURFACE, int id = -1);
+    ResourceFacility *createResourceFacility(Location *location, SublocationType sublocation = SLOC_SURFACE, int id = -1);
+    Orbital *createOrbital(Location *location, SublocationType sublocation = SLOC_ORBIT, int id = -1);
     ResearchFacility *createResearchFacility(ResourceFacility *facility);
 
     // locate game state

@@ -215,7 +215,6 @@ int SaveGame::saveGame(Game *game)
         return -6;
     }
 
-    int nextFacilityId = 1;
     for (auto &system : game->allSystems())
     {
         if (system && saveSystem(system.get()) != 0)
@@ -224,17 +223,19 @@ int SaveGame::saveGame(Game *game)
         }
     }
 
-    for (auto &base : game->allBases())
+    // Facility ids are location ids now, so they are written as they are rather
+    // than renumbered from 1 on every save.
+    for (ResourceFacility *base : game->allBases())
     {
-        if (base && saveBase(base.get(), nextFacilityId++) != 0)
+        if (base && saveBase(base) != 0)
         {
             return -8;
         }
     }
 
-    for (auto &orbital : game->allOrbitals())
+    for (Orbital *orbital : game->allOrbitals())
     {
-        if (orbital && saveOrbital(orbital.get(), nextFacilityId++) != 0)
+        if (orbital && saveOrbital(orbital) != 0)
         {
             return -9;
         }
@@ -412,6 +413,14 @@ int SaveGame::saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locati
         return 0;
     }
 
+    // Facilities are locations, but they belong in `facilities`, not `bodies`.
+    // Writing them here would load them twice -- once as a body and once as a
+    // facility -- inflating the location count on every save/load cycle.
+    if (location->isFacility())
+    {
+        return 0;
+    }
+
     if (location->id == -1)
     {
         TraceLog(LOG_ERROR, "SaveGame: Cannot save location with missing ID");
@@ -433,21 +442,22 @@ int SaveGame::saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locati
     return 0;
 }
 
-int SaveGame::saveBase(ResourceFacility *rf, int facilityId)
+int SaveGame::saveBase(ResourceFacility *rf)
 {
+    const int facilityId = rf ? rf->id : -1;
     if (!loader || !loader->db)
     {
         TraceLog(LOG_ERROR, "SaveGame: Null loader pointer");
         return -6;
     }
 
-    if (!rf || !rf->location)
+    if (!rf || !rf->primary)
     {
         TraceLog(LOG_ERROR, "SaveGame: Null resource facility or location pointer");
         return -7;
     }
 
-    if (!rf->location->system)
+    if (!rf->primary->system)
     {
         TraceLog(LOG_ERROR, "SaveGame: Resource facility location has no system");
         return -8;
@@ -464,8 +474,8 @@ int SaveGame::saveBase(ResourceFacility *rf, int facilityId)
     // research_facility meant giving a plain resource facility a research facility
     // made it save as an Earth City and load back as one.
     if (!facilityQuery.bind(1, facilityId)
-             .bind(2, rf->location->system->id)
-             .bind(3, rf->location->id)
+             .bind(2, rf->primary->system->id)
+             .bind(3, rf->primary->id)
              .bind(4, static_cast<int>(rf->type))
              .bind(5, static_cast<int>(rf->sublocation))
              .bind(6, (int)rf->num_derricks)
@@ -493,21 +503,22 @@ int SaveGame::saveBase(ResourceFacility *rf, int facilityId)
     return saveResearchState(rf, facilityId);
 }
 
-int SaveGame::saveOrbital(Orbital *orbital, int facilityId)
+int SaveGame::saveOrbital(Orbital *orbital)
 {
+    const int facilityId = orbital ? orbital->id : -1;
     if (!loader || !loader->db)
     {
         TraceLog(LOG_ERROR, "SaveGame: Null loader pointer");
         return -6;
     }
 
-    if (!orbital || !orbital->location)
+    if (!orbital || !orbital->primary)
     {
         TraceLog(LOG_ERROR, "SaveGame: Null orbital or location pointer");
         return -7;
     }
 
-    if (!orbital->location->system)
+    if (!orbital->primary->system)
     {
         TraceLog(LOG_ERROR, "SaveGame: Orbital location has no system");
         return -8;
@@ -521,8 +532,8 @@ int SaveGame::saveOrbital(Orbital *orbital, int facilityId)
     }
 
     if (!facilityQuery.bind(1, facilityId)
-             .bind(2, orbital->location->system->id)
-             .bind(3, orbital->location->id)
+             .bind(2, orbital->primary->system->id)
+             .bind(3, orbital->primary->id)
              .bind(4, static_cast<int>(orbital->type))
              .bind(5, static_cast<int>(orbital->sublocation))
              .bind(6, 0) // num derricks, not applicable to orbitals

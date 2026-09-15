@@ -66,10 +66,63 @@ const IOSs &Game::allIOS() const
     return ios;
 }
 
-EarthCity *Game::createEarthCity(Location *location, SublocationType sublocation)
+namespace
 {
-    bases.emplace_back(std::make_unique<EarthCity>(location, sublocation));
-    auto ec = static_cast<EarthCity *>(bases.back().get());
+    // Low orbit: far enough that a station is a distinct position for transit maths,
+    // close enough that reaching it and reaching the body cost about the same.
+    const float ORBITAL_STATION_RADIUS = 2.0f;
+
+    // Spread siblings around the parent so several facilities at one body get
+    // distinct positions. The golden angle avoids clustering as the count grows.
+    float nextSiblingAngle(const Location *parent)
+    {
+        const float GOLDEN_ANGLE = 2.399963f; // ~137.5 degrees
+        return static_cast<float>(parent->children.size()) * GOLDEN_ANGLE;
+    }
+}
+
+void Game::attachFacilityLocation(Facility *facility, Location *parent, const char *label, int id)
+{
+    // A persisted id keeps identity across a round trip; -1 allocates a new one.
+    facility->id = (id >= 0) ? id : nextLocationID();
+    if (location_max_id < facility->id)
+    {
+        location_max_id = facility->id;
+    }
+    facility->system = parent->system;
+    facility->primary = parent;
+    facility->primary_id = parent->id;
+    std::snprintf(facility->name, sizeof facility->name, "%s %s", parent->name, label);
+
+    // Surface facilities sit at the body; orbitals stand off it. Either way the
+    // angle separates siblings at the same parent.
+    facility->orbital_radius = (facility->sublocation == SLOC_ORBIT) ? ORBITAL_STATION_RADIUS : 0.0f;
+    facility->orbital_velocity = 0.0f; // holds station relative to the parent
+    facility->initial_angle = nextSiblingAngle(parent);
+    facility->position = (Vector2){
+        facility->orbital_radius * cosf(facility->initial_angle),
+        facility->orbital_radius * sinf(facility->initial_angle)};
+
+    parent->children.push_back(facility);
+    if (parent->system)
+    {
+        parent->system->locations.push_back(facility);
+    }
+}
+
+EarthCity *Game::createEarthCity(Location *location, SublocationType sublocation, int id)
+{
+    if (!location)
+    {
+        TraceLog(LOG_ERROR, "Null location provided to createEarthCity");
+        return nullptr;
+    }
+    // Game::locations owns it; bases below is a non-owning view.
+    locations.emplace_back(std::make_unique<EarthCity>(location, sublocation));
+    EarthCity *ec = static_cast<EarthCity *>(locations.back().get());
+    attachFacilityLocation(ec, location, "City", id);
+    bases.push_back(ec);
+
     auto factory = createFactory(ec); // EC production
     factory->is_orbital = false;      // EC is surface facility, so set factory accordingly
     factory->tech_level = 1;          // EC starts with tech level 1, can build basic items
@@ -77,33 +130,48 @@ EarthCity *Game::createEarthCity(Location *location, SublocationType sublocation
     return ec;
 }
 
-ResourceFacility *Game::createResourceFacility(Location *location, SublocationType sublocation)
+ResourceFacility *Game::createResourceFacility(Location *location, SublocationType sublocation, int id)
 {
-    bases.emplace_back(std::make_unique<ResourceFacility>(location, sublocation));
-    return bases.back().get();
+    if (!location)
+    {
+        TraceLog(LOG_ERROR, "Null location provided to createResourceFacility");
+        return nullptr;
+    }
+    locations.emplace_back(std::make_unique<ResourceFacility>(location, sublocation));
+    ResourceFacility *rf = static_cast<ResourceFacility *>(locations.back().get());
+    attachFacilityLocation(rf, location, "Station", id);
+    bases.push_back(rf);
+    return rf;
 }
 
 ResourceFacility *Game::resourceFacilityAt(Location *location)
 {
     if (location)
     {
-        // look for resource facility at given location. Initial impl is scan (yuck)
-        // avoid by e.g. lookup based on location to init UI controls, keep as UI state.
-        for (auto &base : bases)
+        // Facilities are children of the body, so this could become a walk of
+        // location->children. Left as a scan until the Endpoint collapse lands.
+        for (ResourceFacility *base : bases)
         {
-            if (base->location == location)
+            if (base->primary == location)
             {
-                return base.get();
+                return base;
             }
         }
     }
     return nullptr;
 }
 
-Orbital *Game::createOrbital(Location *location, SublocationType sublocation)
+Orbital *Game::createOrbital(Location *location, SublocationType sublocation, int id)
 {
-    orbitals.emplace_back(std::make_unique<Orbital>(location, sublocation));
-    auto o = orbitals.back().get();
+    if (!location)
+    {
+        TraceLog(LOG_ERROR, "Null location provided to createOrbital");
+        return nullptr;
+    }
+    locations.emplace_back(std::make_unique<Orbital>(location, sublocation));
+    Orbital *o = static_cast<Orbital *>(locations.back().get());
+    attachFacilityLocation(o, location, "Orbital", id);
+    orbitals.push_back(o);
     createFactory(o);
     return o;
 }
@@ -112,13 +180,13 @@ Orbital *Game::orbitalAt(Location *location) const
 {
     if (location)
     {
-        // look for resource facility at given location. Initial impl is scan (yuck)
-        // avoid by e.g. lookup based on location to init UI controls, keep as UI state.
-        for (auto &orbital : orbitals)
+        // Facilities are children of the body, so this could become a walk of
+        // location->children. Left as a scan until the Endpoint collapse lands.
+        for (Orbital *orbital : orbitals)
         {
-            if (orbital->location == location)
+            if (orbital->primary == location)
             {
-                return orbital.get();
+                return orbital;
             }
         }
     }
@@ -140,8 +208,8 @@ Facility *Game::facilityAt(const Endpoint &endpoint)
 
 Location *Game::createLocation(System *system, const int id, const char *name, LocationType type)
 {
-    auto location = std::make_unique<Location>(system, id, name, type);
-    Location *locPtr = location.get();
+    locations.emplace_back(std::make_unique<Location>(system, id, name, type));
+    Location *locPtr = locations.back().get();
 
     // Track the high-water mark here rather than in the loader, so it holds for
     // every creation path -- loaded bodies and anything created during play.
@@ -150,7 +218,6 @@ Location *Game::createLocation(System *system, const int id, const char *name, L
         location_max_id = id;
     }
 
-    locations.push_back(std::move(location));
     if (system)
     {
         system->locations.push_back(locPtr);
@@ -206,11 +273,11 @@ ResearchFacility *Game::createResearchFacility(ResourceFacility *facility)
 bool Game::canCommissionShuttle(Facility *facility) const
 {
     // require ios_chassis item, and no existing shuttle at location
-    if (!facility || !facility->location)
+    if (!facility || !facility->primary)
     {
         return false;
     }
-    if (facility->location->shuttle)
+    if (facility->primary->shuttle)
     {
         return false;
     }
@@ -219,7 +286,7 @@ bool Game::canCommissionShuttle(Facility *facility) const
 
 bool Game::canCommissionIOS(Facility *facility) const
 {
-    if (!facility || !facility->location)
+    if (!facility || !facility->primary)
     {
         return false;
     }
@@ -287,7 +354,7 @@ Shuttle *Game::createShuttle(Location *location)
 Shuttle *Game::createShuttle(Facility *facility)
 {
     // create a shuttle at a location, starting at the given facility
-    Location *location{facility->location};
+    Location *location{facility->primary};
     if (!location)
     {
         TraceLog(LOG_ERROR, "Facility missing location");
@@ -327,7 +394,7 @@ IOS *Game::createIOS(Location *location)
 IOS *Game::createIOS(Facility *facility)
 {
     // create an IOS at a location, starting at the given facility
-    Location *location{facility->location};
+    Location *location{facility->primary};
     if (!location)
     {
         TraceLog(LOG_ERROR, "Facility missing location");
@@ -869,7 +936,7 @@ void Game::onCaptureOrbital(Orbital *orbital, int new_faction_id)
         return;
     }
     orbital->faction_id = new_faction_id;
-    TraceLog(LOG_INFO, "Orbital at location %s captured by faction %d", orbital->location->name, new_faction_id);
+    TraceLog(LOG_INFO, "Orbital at location %s captured by faction %d", orbital->primary->name, new_faction_id);
 
     // TODO
     // methanoids tend to trash orbitals before they are captured
@@ -944,7 +1011,7 @@ bool Game::processConsoleCommand(const char *command, Location *l, Facility *f)
         if (f)
         {
             f->stores.items[item_id] += amount;
-            TraceLog(LOG_INFO, "Added %d of item %d to current location %s", amount, item_id, f->location->name);
+            TraceLog(LOG_INFO, "Added %d of item %d to current location %s", amount, item_id, f->primary->name);
             return true;
         }
     }
@@ -962,10 +1029,10 @@ bool Game::processConsoleCommand(const char *command, Location *l, Facility *f)
     // 'shuttle' to spawn shuttle at current facility if any
     else if (std::strcmp(command, "shuttle") == 0)
     {
-        if (f && !locationHasShuttle(f->location)) // location check is probably redundant as facility should always have a location, but just in case
+        if (f && !locationHasShuttle(f->primary)) // parent check is probably redundant as a facility should always have one, but just in case
         {
             Shuttle *shuttle{createShuttle(f)};
-            TraceLog(LOG_INFO, "Shuttle created at facility: %s", f->location->name);
+            TraceLog(LOG_INFO, "Shuttle created at facility: %s", f->primary->name);
             return true;
         }
     }

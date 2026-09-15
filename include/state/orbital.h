@@ -12,5 +12,5 @@ public:
     virtual void update() override;
 };
 
-typedef std::unique_ptr<Orbital> OrbitalPtr;
-typedef std::vector<OrbitalPtr> Orbitals;
+// Non-owning: Game::locations owns every location, facilities included.
+typedef std::vector<Orbital *> Orbitals;

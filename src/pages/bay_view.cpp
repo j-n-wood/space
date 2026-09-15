@@ -271,7 +271,7 @@ Craft *BayView::getSpacecraft()
         // for now we only have one type of spacecraft, the IOS, so return that if it exists here
         for (auto &ios : Game::getCurrent()->allIOS())
         {
-            if ((ios->location == facility->location) && (ios->state == CS_ORBIT_DOCKED))
+            if ((ios->location == facility->primary) && (ios->state == CS_ORBIT_DOCKED))
             {
                 return ios.get();
             }
@@ -286,7 +286,7 @@ Shuttle *BayView::getShuttle()
 {
     if (type == BT_SHUTTLE)
     {
-        auto shuttle = facility->location->shuttle.get();
+        auto shuttle = facility->primary->shuttle.get();
         if (shuttle)
         {
             // has a shuttle. Is it docked here?

@@ -36,10 +36,10 @@ class SaveGame
     int saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locationIndex, sqlite3_int64 systemId);
 
     /// Persist one base facility.
-    int saveBase(ResourceFacility *rf, int facilityId);
+    int saveBase(ResourceFacility *rf);
 
     /// Persist one orbital facility.
-    int saveOrbital(Orbital *orbital, int facilityId);
+    int saveOrbital(Orbital *orbital);
 
     /// Persist store state belonging to a facility.
     int saveStores(Stores *stores, int facilityId);

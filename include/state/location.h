@@ -93,8 +93,13 @@ public:
 
     Location(System *s, const int id, const char *n, LocationType t);
 
+    // Facility derives from Location and is owned through a Location pointer.
+    virtual ~Location() = default;
+
     // Absolute position in system coordinates: this body's offset plus every
     // ancestor's. Iterative and depth-capped, so a malformed parent chain cannot
     // blow the stack the way the old recursion could.
     Vector2 resolvedPosition() const;
+
+    inline bool isFacility() const { return locationIsFacility(type); }
 };

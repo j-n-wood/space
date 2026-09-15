@@ -411,7 +411,7 @@ void ShuttleView::renderDebug()
 void ShuttleView::onOrbitalConstruction(Orbital *orbital)
 {
     char buffer[256];
-    if (craft->location == orbital->location)
+    if (craft->location == orbital->primary)
     {
         if (orbital->operational)
         {

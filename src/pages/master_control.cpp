@@ -63,7 +63,7 @@ void MasterControlView::renderOrbitals()
     for (auto &orbital : game->allOrbitals())
     {
         // is it in the current system?
-        if ((orbital->location->system == currentSystem) && (orbital->faction_id == faction_id))
+        if ((orbital->primary->system == currentSystem) && (orbital->faction_id == faction_id))
         {
             // render it
             Rectangle target{x, y, 32 * 4, 16 * 4};
@@ -75,11 +75,11 @@ void MasterControlView::renderOrbitals()
             }
             DrawTexturePro(*texture_ui, uiElementSources[frame], target, (Vector2){0, 0}, 0.f, WHITE);
             // add hover tooltip with location name
-            if (overlay.clickedArea(target, orbital->location->name))
+            if (overlay.clickedArea(target, orbital->primary->name))
             {
                 // switch to orbital page for this location
                 PageManager &pm = PageManager::getInstance();
-                pm.viewState.setFacilityFocus(orbital.get());
+                pm.viewState.setFacilityFocus(orbital);
                 pm.switchToPage(PAGE_ORBITAL); // orbital page has production info and access to factory, stores, etc.
             }
             y += 80.0; // Move to the next position

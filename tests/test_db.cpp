@@ -215,13 +215,14 @@ TEST_CASE("Game::initialise works on a stack-allocated Game (no singleton)")
     REQUIRE(orb != nullptr);
     CHECK(orb->factory != nullptr); // wired by Game::createOrbital
 
-    // Find the EarthCity in bases.
+    // Find the EarthCity in bases. LocationType is the discriminator now, so this
+    // no longer needs RTTI.
     EarthCity *ec = nullptr;
-    for (auto &b : game.allBases())
+    for (ResourceFacility *b : game.allBases())
     {
-        if (auto *cand = dynamic_cast<EarthCity *>(b.get()))
+        if (b->type == LOCATION_TYPE_EARTH_CITY)
         {
-            ec = cand;
+            ec = static_cast<EarthCity *>(b);
             break;
         }
     }
@@ -255,7 +256,7 @@ TEST_CASE("Game::createOrbital works on a stack-allocated Game (no singleton)")
 
     Orbital *orb = game.createOrbital(body);
     REQUIRE(orb != nullptr);
-    CHECK(orb->location == body);
+    CHECK(orb->primary == body);
     CHECK(orb->sublocation == SLOC_ORBIT);
     // The factory is what used to be wired via Game::getCurrent(); now wired
     // by Game::createOrbital itself.
@@ -459,7 +460,7 @@ TEST_CASE("SaveGame produces a loadable database")
         REQUIRE(earth != nullptr);
         Orbital *orb = loaded.orbitalAt(earth);
         REQUIRE(orb != nullptr);
-        CHECK_STREQ(orb->location->name, "Earth");
+        CHECK_STREQ(orb->primary->name, "Earth");
     }
 
     SUBCASE("round-trips facility stores")
@@ -812,11 +813,11 @@ TEST_CASE("SaveGame round-trips research facility current_project")
     REQUIRE(game->researchTopics.size() >= 1);
 
     EarthCity *ec = nullptr;
-    for (auto &b : game->allBases())
+    for (ResourceFacility *b : game->allBases())
     {
-        if (auto *cand = dynamic_cast<EarthCity *>(b.get()))
+        if (b->type == LOCATION_TYPE_EARTH_CITY)
         {
-            ec = cand;
+            ec = static_cast<EarthCity *>(b);
             break;
         }
     }
@@ -833,11 +834,11 @@ TEST_CASE("SaveGame round-trips research facility current_project")
     REQUIRE(loaded.initialise(&loader));
 
     EarthCity *loadedEc = nullptr;
-    for (auto &b : loaded.allBases())
+    for (ResourceFacility *b : loaded.allBases())
     {
-        if (auto *cand = dynamic_cast<EarthCity *>(b.get()))
+        if (b->type == LOCATION_TYPE_EARTH_CITY)
         {
-            loadedEc = cand;
+            loadedEc = static_cast<EarthCity *>(b);
             break;
         }
     }

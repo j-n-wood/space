@@ -7,8 +7,8 @@ ViewState &ViewState::setFacilityFocus(Facility *f)
     if (f)
     {
         setCurrentFacility(f);
-        setCurrentLocation(f->location);
-        setCurrentSystem(f->location->system);
+        setCurrentLocation(f->primary);
+        setCurrentSystem(f->primary->system);
         setCurrentCraft(nullptr); // clear craft focus when setting facility focus
     }
     else

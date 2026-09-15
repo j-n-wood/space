@@ -86,18 +86,18 @@ Location *Loader::findLocation(int system_id, int location_id)
 
 Facility *Loader::findFacilityById(int facility_id)
 {
-    for (auto &base : game->allBases())
+    for (ResourceFacility *base : game->allBases())
     {
         if (base->id == facility_id)
         {
-            return base.get();
+            return base;
         }
     }
-    for (auto &orb : game->allOrbitals())
+    for (Orbital *orb : game->allOrbitals())
     {
         if (orb->id == facility_id)
         {
-            return orb.get();
+            return orb;
         }
     }
     return nullptr;
@@ -136,7 +136,7 @@ bool Loader::loadFacilities()
         {
         case LOCATION_TYPE_RESOURCE_FACILITY:
         {
-            auto rf = game->createResourceFacility(loc, sublocation);
+            auto rf = game->createResourceFacility(loc, sublocation, id);
             rf->num_derricks = num_derricks;
             rf->operational = operational;
             rf->construction_progress = construction_progress;
@@ -146,7 +146,7 @@ bool Loader::loadFacilities()
         }
         case LOCATION_TYPE_ORBITAL:
         {
-            auto orbital = game->createOrbital(loc, sublocation);
+            auto orbital = game->createOrbital(loc, sublocation, id);
             orbital->operational = operational;
             orbital->construction_progress = construction_progress;
             orbital->damage = damage;
@@ -158,7 +158,7 @@ bool Loader::loadFacilities()
         }
         case LOCATION_TYPE_EARTH_CITY:
         {
-            auto ec = game->createEarthCity(loc, sublocation);
+            auto ec = game->createEarthCity(loc, sublocation, id);
             ec->num_derricks = num_derricks;
             ec->damage = damage;
             fac = ec;
@@ -171,7 +171,8 @@ bool Loader::loadFacilities()
 
         if (fac)
         {
-            fac->id = id;
+            // id was supplied to the factory: a facility's id is its location id and
+            // must survive the round trip, so it is not reassigned here.
             fac->faction_id = faction_id;
         }
     }

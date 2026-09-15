@@ -10,9 +10,9 @@ void Orbital::update()
     // factory updated independently
 
     // if have MTX, can beam resources from ground facility
-    if (mtx_installed && location)
+    if (mtx_installed && primary)
     {
-        auto rf = Game::getCurrent()->resourceFacilityAt(location);
+        auto rf = Game::getCurrent()->resourceFacilityAt(primary);
         if (rf)
         {
             // transfer some resources up to orbital, up to available amount and orbital storage capacity

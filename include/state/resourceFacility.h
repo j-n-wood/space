@@ -27,4 +27,5 @@ protected:
     ResourceFacility(Location *l, LocationType t, SublocationType s);
 };
 
-typedef std::vector<std::unique_ptr<ResourceFacility>> Bases;
+// Non-owning: Game::locations owns every location, facilities included.
+typedef std::vector<ResourceFacility *> Bases;

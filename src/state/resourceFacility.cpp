@@ -14,14 +14,14 @@ void ResourceFacility::update()
 {
     Facility::update();
 
-    // collect resources from location
-    if (location && num_derricks && (damage < 1))
+    // collect resources from the body this facility sits on
+    if (primary && num_derricks && (damage < 1))
     {
         // iterate available resources
         // TODO seam limits, survey time, collection rate
         for (int idx = 0; idx < ResourceType::Count; ++idx)
         {
-            if (location->resources.availability[idx])
+            if (primary->resources.availability[idx])
             {
                 stores.resources[idx] += num_derricks;
             }
