@@ -418,21 +418,14 @@ int SaveGame::saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locati
         return -14;
     }
 
-    const float orbitalRadius = locationIndex < system->planetDistances.size() ? system->planetDistances[locationIndex] : 0.0f;
-    const float orbitalVelocity = locationIndex < system->planetVelocities.size() ? system->planetVelocities[locationIndex] : 0.0f;
-    const float initialAngle = locationIndex < system->planetPositions.size() ? system->planetInitialAngles[locationIndex] : 0.0f;
-    const float radius = locationIndex < system->planetSizes.size() ? system->planetSizes[locationIndex] : 0.0f;
+    // Read the orbital elements off the location itself. These used to come from
+    // System's parallel arrays indexed by the location's *vector position*, which
+    // only coincided with its `index` by luck -- and the guarded fallbacks below
+    // silently wrote zeroes whenever they diverged.
     char colorText[9];
-    if (locationIndex < system->planetColors.size())
-    {
-        ColorToHexString(system->planetColors[locationIndex], colorText);
-    }
-    else
-    {
-        std::snprintf(colorText, sizeof colorText, "FFFFFFFF");
-    }
+    ColorToHexString(location->color, colorText);
 
-    if (!bodyQuery.reset().bind(1, location->id).bind(2, systemId).bind(3, location->primary_id).bind(4, static_cast<int>(location->type)).bind(5, location->name).bind(6, orbitalRadius).bind(7, orbitalVelocity).bind(8, initialAngle).bind(9, radius).bind(10, colorText).step("SaveGame: Failed to insert body record"))
+    if (!bodyQuery.reset().bind(1, location->id).bind(2, systemId).bind(3, location->primary_id).bind(4, static_cast<int>(location->type)).bind(5, location->name).bind(6, location->orbital_radius).bind(7, location->orbital_velocity).bind(8, location->initial_angle).bind(9, location->radius).bind(10, colorText).step("SaveGame: Failed to insert body record"))
     {
         return -15;
     }

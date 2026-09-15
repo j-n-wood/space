@@ -21,8 +21,8 @@ float LinearTransitTimeCalculator::calculateTransitTime(Location *from, Location
         TraceLog(LOG_ERROR, "Null location provided to calculateTransitTime");
         return 0.0f;
     }
-    auto sv2 = from->system->getResolvedPosition(from);
-    auto dv2 = to->system->getResolvedPosition(to);
+    auto sv2 = from->resolvedPosition();
+    auto dv2 = to->resolvedPosition();
     float distance = sqrtf(powf(sv2.x - dv2.x, 2) + powf(sv2.y - dv2.y, 2));
     const float speed = 20.0f; // arbitrary speed factor to get reasonable transit times based on system scale
 
@@ -152,9 +152,20 @@ Location *Game::createLocation(System *system, const int id, const char *name, L
 
 Location *Game::locationByID(int id)
 {
-    if (id >= 0 && id < locations.size())
+    // Was locations[id], which silently required ids to be dense and 0-based and
+    // returned the wrong location rather than nullptr when they were not. A scan
+    // over ~180 entries, called from the loader and scaffolding only, costs
+    // nothing and lets locations be created at runtime with any unique id.
+    if (id < 0)
     {
-        return locations[id].get();
+        return nullptr;
+    }
+    for (auto &loc : locations)
+    {
+        if (loc->id == id)
+        {
+            return loc.get();
+        }
     }
     return nullptr; // not found
 }

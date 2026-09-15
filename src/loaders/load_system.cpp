@@ -93,18 +93,12 @@ int getPrimaryBodyId(Loader *loader, int system_id)
 bool Loader::loadBodies()
 {
     SQLiteQuery query(this, "SELECT id, primary_id, name, type, orbital_radius, orbital_velocity, initial_angle, radius, color, system_id FROM bodies ORDER BY id");
-    // presize system arrays
-    // counters for index
-    int systemIndex[10] = {0}; // track current index for each system
 
     for (auto sys : systems)
     {
         int primary_id = getPrimaryBodyId(this, sys->id);
-        sys->setNumBodies(countSystemBodies(this, sys->id));
-        TraceLog(LOG_INFO, "Loading system %d with primary body ID %d and %d bodies", sys->id, primary_id, sys->numPlanets);
+        TraceLog(LOG_INFO, "Loading system %d with primary body ID %d and %d bodies", sys->id, primary_id, countSystemBodies(this, sys->id));
     }
-
-    // planet primary _index_ is mapped version of planet ID in array of data for that system
 
     while (query.next())
     {
@@ -131,41 +125,33 @@ bool Loader::loadBodies()
             color = WHITE;
         }
 
-        // populate system arrays
-        int index = systemIndex[system_id]++;
-        system->planetDistances[index] = orbital_radius;
-        system->planetSizes[index] = radius;
-        system->planetColors[index] = color;
-        system->planetVelocities[index] = orbital_velocity;
-        system->planetInitialAngles[index] = initial_angle;
-        system->planetPositions[index] = (Vector2){orbital_radius * cosf(initial_angle), orbital_radius * sinf(initial_angle)};
-        system->planetPrimaryIndexes[index] = local_primary_id;
-
         auto location = game->createLocation(system, id, name, LocationType(type));
         location->primary_id = local_primary_id;
-        location->index = index; // set array index for this location
-        location->system_id = system_id;
+        location->orbital_radius = orbital_radius;
+        location->orbital_velocity = orbital_velocity;
+        location->initial_angle = initial_angle;
+        location->radius = radius;
+        location->color = color;
+        location->position = (Vector2){orbital_radius * cosf(initial_angle), orbital_radius * sinf(initial_angle)};
     }
 
-    // Now convert primary_id in planetPrimaryIndexes to array index
-    // simply index constructed for system, from location array entry
+    // Resolve primary_id into the `primary` pointer and build the child lists.
     for (auto &loc : game->allLocations())
     {
-        System *system = systems[loc->system_id];
-        if (loc->system_id == 0)
+        System *system = loc->system;
+        if (!system)
         {
-            // interstellar space
-            break;
+            continue;
         }
-        if ((loc->type == LOCATION_TYPE_SPACE))
+        if (loc->type == LOCATION_TYPE_SPACE)
         {
-            system->planetPrimaryIndexes[loc->index] = -1; // nowhere
-            system->space = loc.get();                     // set space location for system
+            loc->primary = nullptr;    // nowhere
+            system->space = loc.get(); // set space location for system
         }
         else if (loc->type == LOCATION_TYPE_STAR)
         {
-            // star, also set to -1 but don't set primary as we want to support planets orbiting stars
-            system->planetPrimaryIndexes[loc->index] = -1;
+            // star, also no primary but don't set primary as we want to support planets orbiting stars
+            loc->primary = nullptr;
             system->primary = loc.get(); // set primary location for system
         }
         else
@@ -173,7 +159,7 @@ bool Loader::loadBodies()
             auto primary_loc = game->locationByID(loc->primary_id);
             if (primary_loc)
             {
-                system->planetPrimaryIndexes[loc->index] = primary_loc->index;
+                loc->primary = primary_loc;
                 primary_loc->children.push_back(loc.get()); // build location hierarchy based on primary_id relationships
             }
             else
@@ -182,8 +168,6 @@ bool Loader::loadBodies()
             }
         }
     }
-
-    // now system->planetPrimaryIndexes contains the array index of the primary body for each planet, or -1 if it's a primary body itself
 
     // iterate locations and read resource availability for each from body_resources table
 

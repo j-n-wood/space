@@ -1,5 +1,10 @@
 #pragma once
 
+extern "C"
+{
+#include "raylib.h"
+}
+
 #include <cstdint>
 #include <vector>
 #include <memory>
@@ -51,12 +56,21 @@ public:
     System *system; // the system this location is in, e.g. Sol
 
     // persistence IDs. Decide if this is mixing concerns, having it here makes save of state have consistent IDs.
-    int id;         // unique ID for this location, used for persistence
-    int primary_id; // ID of primary body this location orbits
-    int index;      // array index of this location in the system's location collection, set when added to system
-    int system_id;
+    int id;          // unique ID for this location, used for persistence
+    int primary_id;  // ID of primary body this location orbits. Persistence only; resolved to `primary` on load.
 
-    std::vector<Location *> children; // e.g. moons orbiting a planet, or cities on a planet. This is not persisted, but built in memory based on the primary_id relationships
+    Location *primary;                // body this one orbits, nullptr for a star or for space
+    std::vector<Location *> children; // e.g. moons orbiting a planet. Not persisted; built from primary_id on load.
+
+    // Orbital elements. These were System's parallel arrays, indexed by a per-system
+    // `index` that every consumer had to keep aligned. Holding them here removes that
+    // invariant and lets locations be created at runtime.
+    float orbital_radius;   // distance from `primary`
+    float orbital_velocity; // radians per unit game time
+    float initial_angle;    // phase at time 0
+    float radius;           // display radius; 0 means not drawn and not hit-testable
+    Color color;
+    Vector2 position; // position relative to `primary`, refreshed by System::update
 
     LocationResources resources;
 
@@ -64,4 +78,9 @@ public:
     ShuttlePtr shuttle;
 
     Location(System *s, const int id, const char *n, LocationType t);
+
+    // Absolute position in system coordinates: this body's offset plus every
+    // ancestor's. Iterative and depth-capped, so a malformed parent chain cannot
+    // blow the stack the way the old recursion could.
+    Vector2 resolvedPosition() const;
 };

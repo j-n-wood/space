@@ -71,8 +71,8 @@ TEST_CASE("loadSystem populates system from database")
 
     SUBCASE("loads bodies for system 1")
     {
-        CHECK(system->numPlanets > 0);
-        CHECK(system->locations.size() == static_cast<size_t>(system->numPlanets));
+        CHECK(system->bodyCount() > 0);
+        CHECK(system->locations.size() == system->bodyCount());
     }
 
     SUBCASE("first location is the star Sol")
@@ -84,21 +84,27 @@ TEST_CASE("loadSystem populates system from database")
         CHECK(star->type == LOCATION_TYPE_STAR);
     }
 
-    SUBCASE("orbital data arrays match numPlanets")
+    SUBCASE("every location carries its own orbital elements")
     {
-        const auto n = static_cast<size_t>(system->numPlanets);
-        CHECK(system->planetDistances.size() == n);
-        CHECK(system->planetSizes.size() == n);
-        CHECK(system->planetColors.size() == n);
-        CHECK(system->planetVelocities.size() == n);
-        CHECK(system->planetPositions.size() == n);
-        CHECK(system->planetPrimaryIndexes.size() == n);
+        // Orbital elements live on Location now, so there are no parallel arrays to
+        // keep aligned. Every orbiting body must have a non-zero radius and a primary.
+        for (Location *loc : system->locations)
+        {
+            if (loc->type == LOCATION_TYPE_PLANET || loc->type == LOCATION_TYPE_MOON)
+            {
+                CHECK(loc->orbital_radius > 0.0f);
+                CHECK(loc->primary != nullptr);
+            }
+        }
     }
 
-    SUBCASE("star has primary index -1")
+    SUBCASE("star and space have no primary")
     {
-        REQUIRE(system->planetPrimaryIndexes.size() > 0);
-        CHECK(system->planetPrimaryIndexes[0] == -1);
+        Location *star = findStar(system);
+        REQUIRE(star != nullptr);
+        CHECK(star->primary == nullptr);
+        REQUIRE(system->space != nullptr);
+        CHECK(system->space->primary == nullptr);
     }
 
     SUBCASE("parent-child relationships are built for non-star bodies")
