@@ -137,15 +137,14 @@ public:
         {
             return false;
         }
-        if (current_dest.sublocation == SLOC_ORBIT)
+        if (endpointSublocation(current_dest.state) == SLOC_ORBIT)
         {
-            if (current_dest.docked)
-            {
-                return state == CS_ORBIT_DOCKED;
-            }
-            return state == CS_ORBIT;
+            return state == (endpointWantsDocked(current_dest.state) ? CS_ORBIT_DOCKED : CS_ORBIT);
         }
 
+        // Surface is deliberately loose: landing counts whether or not a station was
+        // there to dock at. A shuttle descending to a body with no resource facility
+        // ends at CS_SURFACE, and the autopilot must still advance or it hangs.
         return state == CS_SURFACE_DOCKED || state == CS_SURFACE;
     }
 

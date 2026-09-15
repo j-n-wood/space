@@ -197,7 +197,7 @@ Facility *Game::facilityAt(const Endpoint &endpoint)
 {
     if (endpoint.location)
     {
-        if (endpoint.sublocation == SLOC_SURFACE)
+        if (endpointSublocation(endpoint.state) == SLOC_SURFACE)
         {
             return resourceFacilityAt(endpoint.location);
         }
@@ -371,9 +371,13 @@ Shuttle *Game::createShuttle(Facility *facility)
     location->shuttle = std::move(std::make_unique<Shuttle>(cs, 1, location));
     shuttles.push_back(location->shuttle.get());
     location->shuttle->id = ++craft_max_id;
-    // initial destination is the other kind of sublocation
-    location->shuttle->destinations[0] = Endpoint(location, SublocationType(1 - facility->sublocation), true);
-    location->shuttle->destinations[1] = Endpoint(location, facility->sublocation, true);
+    // A shuttle runs between the two sublocations at one body, so its route is this
+    // facility and the other kind. SublocationType has exactly two values, so the
+    // toggle is well defined -- it used to yield -1 for an Earth City.
+    const SublocationType here = facility->sublocation;
+    const SublocationType there = (here == SLOC_ORBIT) ? SLOC_SURFACE : SLOC_ORBIT;
+    location->shuttle->destinations[0] = Endpoint(location, endpointStateFor(there, true));
+    location->shuttle->destinations[1] = Endpoint(location, endpointStateFor(here, true));
     return location->shuttle.get();
 }
 
@@ -383,8 +387,8 @@ IOS *Game::createIOS(Location *location)
     CraftState cs{location != nullptr ? CS_ORBIT_DOCKED : CS_TRANSIT}; // default to orbit if location provided, otherwise transit (space)
     ios.emplace_back(std::make_unique<IOS>(cs, 3, location));
     auto i = ios.back().get();
-    i->destinations[0] = Endpoint(location, SLOC_ORBIT, true);
-    i->destinations[1] = Endpoint(location, SLOC_ORBIT, true);
+    i->destinations[0] = Endpoint(location, EP_ORBIT_DOCKED);
+    i->destinations[1] = Endpoint(location, EP_ORBIT_DOCKED);
     // generate a name based on creation count
     std::snprintf(i->name, sizeof i->name, "IOS-%04d", ios_number++);
     i->id = ++craft_max_id;

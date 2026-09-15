@@ -75,7 +75,7 @@ void Overlay::render()
             if (craftLocation)
             {
                 pm.viewState.setCurrentSystem(craftLocation->system); // system could change eventually
-                pm.viewState.setCurrentFacility(game->facilityAt(Endpoint(craftLocation, SLOC_ORBIT, true)));
+                pm.viewState.setCurrentFacility(game->orbitalAt(craftLocation));
             }
         }
     }

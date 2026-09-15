@@ -274,38 +274,71 @@ Two details worth keeping:
   explicit id at runtime would not move the mark — safe today only because every runtime
   craft goes through `++craft_max_id`.
 
-## Stage 3 — collapse `Endpoint`
+## Stage 3 — collapse `Endpoint` (done, with two divergences)
 
 ```cpp
+// The state a craft is asked to END UP in. Four values, in waypoint.h.
+enum EndpointState { EP_ORBIT, EP_ORBIT_DOCKED, EP_SURFACE, EP_SURFACE_DOCKED, EP_COUNT };
+
 class Endpoint
 {
 public:
-    Location *location{nullptr};        // a body, or a facility-location
-    CraftState desired_state{CS_ORBIT}; // one of the four stable states
+    Location *location;
+    EndpointState state;
 };
 ```
 
-`sublocation` and `docked` both go: docking is `desired_state == CS_ORBIT_DOCKED` or
-`CS_SURFACE_DOCKED`, and where a craft ends up is a property of the target. `atEndpoint()` —
-today the load-bearing bridge between the decomposed Endpoint and the overloaded
-`CraftState`, and named as the root mismatch in `craft_state.md` — becomes:
+`sublocation` and `docked` both went: the pair could express four meaningful states in eight
+combinations, and the fourth combination was never legal.
+
+**Divergence 1 — `EndpointState`, not `CraftState`.** The plan said hold a `CraftState`.
+Two reasons it did not: `CraftState` lives in `craft.h`, which includes `waypoint.h`, so
+storing one in `Endpoint` is an include cycle; and only four of its fourteen values are legal
+destinations — you cannot ask a craft to finish in `CS_TRANSIT` or mid-manoeuvre. A dedicated
+four-value enum says exactly what is meant and cannot hold nonsense.
+
+**Divergence 2 — `facilityAt` survives, and `atEndpoint` keeps its surface looseness.**
 
 ```cpp
 inline bool atEndpoint() const
 {
-    const Endpoint &d = currentDestination();
-    return d.location == location && state == d.desired_state;
+    const auto &d = destinations[destination_index];
+    if (d.location != location) { return false; }
+    if (endpointSublocation(d.state) == SLOC_ORBIT)
+    {
+        return state == (endpointWantsDocked(d.state) ? CS_ORBIT_DOCKED : CS_ORBIT);
+    }
+    // Surface is deliberately loose -- see below.
+    return state == CS_SURFACE_DOCKED || state == CS_SURFACE;
 }
 ```
 
-`Game::facilityAt(const Endpoint&)` is **deleted**; callers that want the facility at a
-target use `asFacility(endpoint.location)` — an enum test and a `static_cast`, no RTTI.
-`Autopilot::onDocked`
-([autopilot.cpp:51-52](../../src/state/autopilot.cpp#L51-L52)) becomes two casts instead of two
-scans, and its "source/dest orbital destroyed" TODO becomes a null check that means
-something. The throwaway Endpoints built purely as lookup keys in
-[view_state.cpp:32-35](../../src/pages/view_state.cpp#L32-L35) and
-[overlay.cpp:78](../../src/pages/overlay.cpp#L78) disappear.
+The plan's one-line `state == d.desired_state` would have been a behaviour change. A shuttle
+descending to a body with **no** resource facility ends at `CS_SURFACE`, not
+`CS_SURFACE_DOCKED` ([shuttle.cpp](../../src/state/shuttle.cpp) `CS_DESCENDING`), while the
+autopilot sets every endpoint to docked. Strict equality would leave `atEndpoint()` false
+forever and the autopilot stuck part-way round its route. The looseness is load-bearing and
+is now commented as such.
+
+Deleting `Game::facilityAt` needs a change this stage did **not** make: `craft->location`
+would have to become the facility-location when docked, rather than always the body. That is
+51 call sites, 12 of which (`orbitalAt(craft->location)` and friends) would invert meaning —
+they ask "what facility is at my body", which becomes nonsense once the craft is *at* the
+facility. `facilityAt` is therefore still present, deriving the sublocation from the endpoint
+state. See [Remaining](#remaining).
+
+The throwaway Endpoints built purely as lookup keys in
+[view_state.cpp](../../src/pages/view_state.cpp) and
+[overlay.cpp](../../src/pages/overlay.cpp) did disappear — they now call `orbitalAt` /
+`resourceFacilityAt` directly, which is what they always meant.
+
+## Remaining
+
+**Make `craft->location` precise.** The last step of the original idea: a docked craft's
+location becomes the facility-location rather than the body. That deletes `facilityAt`,
+makes `asFacility(endpoint.location)` the way to reach a facility, and finishes the collapse.
+It is a semantic change across ~51 sites and deserves its own plan, its own characterisation
+tests, and a play-test — it is not a tidy-up.
 
 `craft_destinations` drops `sublocation`/`docked` for `desired_state`;
 `MAX_DESTINATIONS = 2` is untouched, and the missing bounds check on `destIndex`

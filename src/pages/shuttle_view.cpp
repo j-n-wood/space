@@ -103,9 +103,11 @@ void destinationSelected(void *state, Location *loc)
     if (shuttleView->craft && loc)
     {
         Craft *craft = shuttleView->craft;
+        // For now a picked destination is always orbit; could be surface or city in
+        // future. setDestination already decides whether to dock on arrival, so the
+        // duplicate of that rule which used to live here is gone.
+        craft->destinations[craft->destination_index].state = EP_ORBIT;
         craft->setDestination(craft->destination_index, loc);
-        craft->destinations[craft->destination_index].docked = (craft->autopilot->state >= AS_ON) && (Game::getCurrent()->orbitalAt(loc) != nullptr); // if autopilot on and destination has an orbital station, assume want to dock
-        craft->destinations[craft->destination_index].sublocation = SLOC_ORBIT;                                                                       // for now assume always orbit, could be surface or city in future
 
         shuttleView->destinationPicker->visible = false;
     }

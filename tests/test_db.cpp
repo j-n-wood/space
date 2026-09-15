@@ -899,8 +899,8 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     shuttle->pods[1].contentType = 0; // Derrick
     shuttle->pods[1].amount = 2;
 
-    shuttle->destinations[0] = Endpoint(earth, SLOC_SURFACE, true);
-    shuttle->destinations[1] = Endpoint(earth, SLOC_ORBIT, false);
+    shuttle->destinations[0] = Endpoint(earth, EP_SURFACE_DOCKED);
+    shuttle->destinations[1] = Endpoint(earth, EP_ORBIT);
 
     shuttle->autopilot->state = AS_ON;
     for (int i = 0; i < ResourceType::Count; ++i)
@@ -980,13 +980,11 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     {
         REQUIRE(ls->destinations[0].location != nullptr);
         CHECK_STREQ(ls->destinations[0].location->name, "Earth");
-        CHECK(ls->destinations[0].sublocation == SLOC_SURFACE);
-        CHECK(ls->destinations[0].docked == true);
+        CHECK(ls->destinations[0].state == EP_SURFACE_DOCKED);
 
         REQUIRE(ls->destinations[1].location != nullptr);
         CHECK_STREQ(ls->destinations[1].location->name, "Earth");
-        CHECK(ls->destinations[1].sublocation == SLOC_ORBIT);
-        CHECK(ls->destinations[1].docked == false);
+        CHECK(ls->destinations[1].state == EP_ORBIT);
     }
 
     SUBCASE("round-trips autopilot state (AS_ON for shuttle)")
@@ -1133,4 +1131,81 @@ TEST_CASE("facility type is stored, not inferred from its contents")
     CHECK(ec->sublocation == SLOC_SURFACE);
 
     removeSaveFile();
+}
+
+TEST_CASE("EndpointState replaces the sublocation/docked pair")
+{
+    // The old pair could express four meaningful states in eight combinations.
+    // These round-trip every one of the four through the helpers.
+    struct Case
+    {
+        SublocationType sublocation;
+        bool docked;
+        EndpointState expected;
+    };
+    const Case cases[] = {
+        {SLOC_ORBIT, false, EP_ORBIT},
+        {SLOC_ORBIT, true, EP_ORBIT_DOCKED},
+        {SLOC_SURFACE, false, EP_SURFACE},
+        {SLOC_SURFACE, true, EP_SURFACE_DOCKED},
+    };
+
+    for (const Case &c : cases)
+    {
+        const EndpointState s = endpointStateFor(c.sublocation, c.docked);
+        CHECK(s == c.expected);
+        CHECK(endpointSublocation(s) == c.sublocation);
+        CHECK(endpointWantsDocked(s) == c.docked);
+    }
+}
+
+TEST_CASE("atEndpoint matches the state the endpoint asks for")
+{
+    Game *game = Game::createCurrent();
+    Loader loader(DB_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(game->initialise(&loader));
+
+    Location *earth = game->locationByID(4);
+    REQUIRE(earth != nullptr);
+
+    Shuttle *shuttle = earth->shuttle ? earth->shuttle.get() : game->createShuttle(earth);
+    REQUIRE(shuttle != nullptr);
+    shuttle->location = earth;
+    shuttle->destination_index = 0;
+
+    SUBCASE("orbit states must match exactly")
+    {
+        shuttle->destinations[0] = Endpoint(earth, EP_ORBIT_DOCKED);
+        shuttle->state = CS_ORBIT_DOCKED;
+        CHECK(shuttle->atEndpoint());
+        shuttle->state = CS_ORBIT; // in orbit but not docked is not arrival
+        CHECK_FALSE(shuttle->atEndpoint());
+
+        shuttle->destinations[0] = Endpoint(earth, EP_ORBIT);
+        CHECK(shuttle->atEndpoint());
+        shuttle->state = CS_ORBIT_DOCKED;
+        CHECK_FALSE(shuttle->atEndpoint());
+    }
+
+    SUBCASE("surface arrival counts whether or not a station was there")
+    {
+        // Deliberately loose: a shuttle descending to a body with no resource
+        // facility ends at CS_SURFACE, and the autopilot must still advance its
+        // endpoint or it hangs part-way round the route.
+        shuttle->destinations[0] = Endpoint(earth, EP_SURFACE_DOCKED);
+        shuttle->state = CS_SURFACE_DOCKED;
+        CHECK(shuttle->atEndpoint());
+        shuttle->state = CS_SURFACE;
+        CHECK(shuttle->atEndpoint());
+    }
+
+    SUBCASE("a different location is never the endpoint")
+    {
+        Location *luna = game->locationByID(5);
+        REQUIRE(luna != nullptr);
+        shuttle->destinations[0] = Endpoint(luna, EP_ORBIT);
+        shuttle->state = CS_ORBIT;
+        CHECK_FALSE(shuttle->atEndpoint());
+    }
 }

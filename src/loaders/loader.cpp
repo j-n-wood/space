@@ -324,7 +324,7 @@ bool Loader::loadCraft()
 {
     // read craft and create instances
 
-    SQLiteQuery destQuery(this, "SELECT system_id, location_id, sublocation, docked FROM craft_destinations WHERE craft_id = ? ORDER BY destination_index");
+    SQLiteQuery destQuery(this, "SELECT system_id, location_id, state FROM craft_destinations WHERE craft_id = ? ORDER BY destination_index");
     if (!destQuery.stmt)
     {
         TraceLog(LOG_ERROR, "Failed to prepare craft_destinations query");
@@ -455,13 +455,12 @@ bool Loader::loadCraft()
             return false;
         }
         int destIndex = 0;
-        while (destQuery.next())
+        while (destQuery.next() && destIndex < MAX_DESTINATIONS)
         {
             int system_id = sqlite3_column_int(destQuery, 0);
             int dest_location_id = sqlite3_column_int(destQuery, 1);
-            int sublocation = sqlite3_column_int(destQuery, 2);
-            bool docked = sqlite3_column_int(destQuery, 3) > 0;
-            craft->destinations[destIndex] = Endpoint(findLocation(system_id, dest_location_id), SublocationType(sublocation), docked);
+            int state = sqlite3_column_int(destQuery, 2);
+            craft->destinations[destIndex] = Endpoint(findLocation(system_id, dest_location_id), static_cast<EndpointState>(state));
             destIndex++;
         }
 

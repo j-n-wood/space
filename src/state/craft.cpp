@@ -254,12 +254,13 @@ void Craft::setDestination(const uint8_t index, Location *loc)
         return;
     }
     destinations[index].location = loc;
-    // set to dock if autopilot is engaged
+    // dock on arrival if autopilot is engaged and there is a station to dock at
 
     Game *game = Game::getCurrent();
-    Orbital *orbital = game->orbitalAt(loc); // set docking target if have an orbital station at the destination
+    Orbital *orbital = game->orbitalAt(loc);
 
-    destinations[index].docked = (autopilot->state >= AS_ON) && (orbital != nullptr);
+    const bool dock = (autopilot->state >= AS_ON) && (orbital != nullptr);
+    destinations[index].state = endpointStateFor(endpointSublocation(destinations[index].state), dock);
 }
 
 bool Craft::engageAutopilot()
@@ -279,12 +280,13 @@ bool Craft::engageAutopilot()
         return false;
     }
 
-    // force destination endpoints to be docked
+    // force destination endpoints to be docked -- the autopilot moves cargo, which
+    // means docking at both ends
     for (int i = 0; i < MAX_DESTINATIONS; ++i)
     {
         if (destinations[i].location)
         {
-            destinations[i].docked = true;
+            destinations[i].state = endpointStateFor(endpointSublocation(destinations[i].state), true);
         }
     }
 

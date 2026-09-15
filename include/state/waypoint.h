@@ -17,19 +17,51 @@ extern const char *SublocationTypeName[SLOC_COUNT];
 
 class Location;
 
-// a fully specified location (location: body in system, sublocation: surface or orbit) used for navigation and routing
-// if we allow multiple facilities at a sublocation (e.g. multiple orbitals) an index can be provided.
+// The state a craft is asked to END UP in on arrival. Deliberately not CraftState:
+// only these four are legal destinations -- you cannot ask a craft to finish in
+// transit or mid-manoeuvre -- and CraftState lives in craft.h, which includes this
+// header. Replaces the old (sublocation, docked) pair, which could express the same
+// four states in eight combinations.
+enum EndpointState
+{
+    EP_ORBIT,
+    EP_ORBIT_DOCKED,
+    EP_SURFACE,
+    EP_SURFACE_DOCKED,
+    EP_COUNT
+};
+
+extern const char *EndpointStateName[EP_COUNT];
+
+inline bool endpointWantsDocked(EndpointState s)
+{
+    return s == EP_ORBIT_DOCKED || s == EP_SURFACE_DOCKED;
+}
+
+inline SublocationType endpointSublocation(EndpointState s)
+{
+    return (s == EP_ORBIT || s == EP_ORBIT_DOCKED) ? SLOC_ORBIT : SLOC_SURFACE;
+}
+
+inline EndpointState endpointStateFor(SublocationType sublocation, bool docked)
+{
+    if (sublocation == SLOC_ORBIT)
+    {
+        return docked ? EP_ORBIT_DOCKED : EP_ORBIT;
+    }
+    return docked ? EP_SURFACE_DOCKED : EP_SURFACE;
+}
+
+// A travel target: where to go, and what to be doing on arrival.
 class Endpoint
 {
 public:
     Location *location;
-    SublocationType sublocation;
-    bool docked; // endpoint is docked at a facility
+    EndpointState state;
 
-    Endpoint() : location{nullptr}, sublocation{SLOC_ORBIT}, docked{false} {}
+    Endpoint() : location{nullptr}, state{EP_ORBIT} {}
 
-    explicit Endpoint(Location *loc, SublocationType sloc, bool d) : location{loc},
-                                                                     sublocation{sloc}, docked{d} {}
+    explicit Endpoint(Location *loc, EndpointState s) : location{loc}, state{s} {}
 
     // for display and debugging, not persisted
     const char *description(char *dest, size_t len) const;

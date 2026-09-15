@@ -163,7 +163,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS body_resources ( body_id int, resource_id int, availability int );"
         "CREATE TABLE IF NOT EXISTS craft ( id int, name text, type int, state int, state_timer float, total_state_timer float, location_id int, fuel int, max_pods int, drive int, destination_index int, faction_id int );"
         "CREATE TABLE IF NOT EXISTS craft_pods ( craft_id int, pod_index int, type int, content_type int, amount int );"
-        "CREATE TABLE IF NOT EXISTS craft_destinations ( craft_id int, destination_index int, system_id int, location_id int, sublocation int, docked int );"
+        "CREATE TABLE IF NOT EXISTS craft_destinations ( craft_id int, destination_index int, system_id int, location_id int, state int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot ( craft_id int, state int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot_flows ( craft_id int, resource_index int, flow_flags int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot_cursors ( craft_id int, endpoint_index int, cursor_position int );"
@@ -809,8 +809,8 @@ int SaveGame::saveCraft(Craft *craft)
 
 int SaveGame::saveCraftDestinations(Craft *craft)
 {
-    // Save the craft's destinations to the craft_destinations table
-    // This will include the system, location, sublocation, and docked state for each destination
+    // Save the craft's destinations to the craft_destinations table.
+    // The old (sublocation, docked) pair is now one EndpointState.
 
     for (uint8_t i = 0; i < MAX_DESTINATIONS; ++i)
     {
@@ -818,14 +818,14 @@ int SaveGame::saveCraftDestinations(Craft *craft)
         int systemId = dest.location && dest.location->system ? dest.location->system->id : 0;
         int locationId = dest.location ? dest.location->id : 0;
 
-        SQLiteQuery destQuery(loader, "INSERT INTO craft_destinations (craft_id, destination_index, system_id, location_id, sublocation, docked) VALUES (?, ?, ?, ?, ?, ?);");
+        SQLiteQuery destQuery(loader, "INSERT INTO craft_destinations (craft_id, destination_index, system_id, location_id, state) VALUES (?, ?, ?, ?, ?);");
         if (!destQuery.stmt)
         {
             TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft_destinations insert");
             return -9;
         }
 
-        if (!destQuery.reset().bind(1, craft->id).bind(2, i).bind(3, systemId).bind(4, locationId).bind(5, static_cast<int>(dest.sublocation)).bind(6, dest.docked).step("SaveGame: Failed to execute craft_destinations insert"))
+        if (!destQuery.reset().bind(1, craft->id).bind(2, i).bind(3, systemId).bind(4, locationId).bind(5, static_cast<int>(dest.state)).step("SaveGame: Failed to execute craft_destinations insert"))
         {
             return -14;
         }

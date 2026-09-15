@@ -29,10 +29,10 @@ ViewState &ViewState::setCraftFocus(Craft *c)
         {
             // check for orbital first
             Game *game = Game::getCurrent();
-            Facility *f = game->facilityAt(Endpoint(c->location, SLOC_ORBIT, true));
+            Facility *f = game->orbitalAt(c->location);
             if (!f)
             {
-                f = game->facilityAt(Endpoint(c->location, SLOC_SURFACE, true));
+                f = game->resourceFacilityAt(c->location);
             }
             setCurrentFacility(f);
         }
