@@ -256,11 +256,23 @@ anyway, so transit times are right and the later rendering work is a one-line ra
 **Persistence.** Facilities keep their own `facilities` table but gain the location columns
 they need (`name`, `primary_id`, `orbital_radius`, `orbital_velocity`, `initial_angle`).
 They are *not* written to `bodies`, so `bodies` stays a pure celestial-body table and the
-loader order is: bodies → locations → facilities as child locations. Because Stage 1 made
-`locationByID` a lookup, facility ids only need to be unique, not dense: allocate from
-`Game::location_max_id`, seeded to the max body id after `loadBodies`, mirroring
-`craft_max_id` ([game.cpp:264](../../src/state/game.cpp#L264)). This also supplies the stable
-facility identity that `facility_lookup.md` flagged as missing.
+loader order is: bodies → locations → facilities as child locations.
+
+**Id allocation — already in place.** Because Stage 1 made `locationByID` a lookup, facility
+ids only need to be unique, not dense. `Game::location_max_id` and `nextLocationID()` landed
+with the facility-type work; facilities draw from them to extend the loaded body sequence
+rather than colliding with it. This also supplies the stable facility identity that
+`facility_lookup.md` flagged as missing.
+
+Two details worth keeping:
+
+- The watermark is **derived, never persisted** — a stored counter can drift from the data it
+  describes. `craft_max_id` sets the precedent, rebuilt during load by
+  [loader.cpp:418-420](../../src/loaders/loader.cpp#L418-L420).
+- It is maintained in `Game::createLocation`, not in the loader, so *every* creation path
+  updates it. The craft equivalent only updates during load, so a craft created with an
+  explicit id at runtime would not move the mark — safe today only because every runtime
+  craft goes through `++craft_max_id`.
 
 ## Stage 3 — collapse `Endpoint`
 
