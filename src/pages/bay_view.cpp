@@ -49,7 +49,7 @@ Rectangle main_section_dest_dfcc{640 + 4, 300, 96 * 4, 86 * 4};
 void BayView::activate(ViewState &viewState)
 {
     auto game{Game::getCurrent()};
-    auto l{viewState.getCurrentLocation()};
+    auto l{viewState.getCurrentBody()};
 
     Facility *f{nullptr};
     switch (side)
@@ -67,9 +67,7 @@ void BayView::activate(ViewState &viewState)
     if (f)
     {
         facility = f;
-        // TODO orbit/surface prefix dropped -- see StoresView. The facility is in hand
-        // here, so the title can take its name directly once the header stops showing
-        // the body instead of the precise location.
+        // No orbit/surface prefix -- see StoresView
         std::snprintf(title, sizeof title, "%s Bay", bayTypeName[type]);
 
         int dlg_width = GetScreenWidth() - 600;
@@ -243,12 +241,12 @@ void BayView::input()
         auto &pm{PageManager::getInstance()};
         if (craft->type == CT_SHUTTLE)
         {
-            pm.viewState.setCurrentCraft(craft);
+            pm.viewState.setCraftFocus(craft);
             pm.switchToPage(PAGE_SHUTTLE);
         }
         else if (craft->type == CT_IOS)
         {
-            pm.viewState.setCurrentCraft(craft);
+            pm.viewState.setCraftFocus(craft);
             pm.switchToPage(PAGE_COCKPIT);
         }
     }

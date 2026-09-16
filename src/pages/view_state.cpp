@@ -1,17 +1,47 @@
 #include "pages/view_state.h"
 #include "state/game.h"
 
+Location *ViewState::craftPlace() const
+{
+    return focusCraft ? focusCraft->location : nullptr;
+}
+
+Location *ViewState::getCurrentBody() const
+{
+    Location *place = getCurrentPlace();
+    return place ? place->body() : nullptr;
+}
+
+Facility *ViewState::getCurrentFacility() const
+{
+    return asFacility(getCurrentPlace());
+}
+
+System *ViewState::getCurrentSystem() const
+{
+    Location *place = getCurrentPlace();
+    return (place && place->system) ? place->system : browsedSystem;
+}
+
+ViewState &ViewState::setCurrentCraft(Craft *c)
+{
+    if (!c && focusCraft)
+    {
+        // Stop following, stay put. Without this the place would fall back to whatever
+        // was focused before the craft was picked up.
+        focusPlace = focusCraft->location;
+    }
+    focusCraft = c;
+    return *this;
+}
+
 ViewState &ViewState::setFacilityFocus(Facility *f)
 {
     // not valid to use with null facility
     if (f)
     {
-        setCurrentFacility(f);
-        // The UI shows a body, not a region: the standard buttons key off the body's
-        // shuttle and facilities.
-        setCurrentLocation(f->body());
-        setCurrentSystem(f->body()->system);
-        setCurrentCraft(nullptr); // clear craft focus when setting facility focus
+        focusCraft = nullptr;
+        focusPlace = f; // a facility IS a place; the body follows from body()
     }
     else
     {
@@ -22,28 +52,16 @@ ViewState &ViewState::setFacilityFocus(Facility *f)
 
 ViewState &ViewState::setCraftFocus(Craft *c)
 {
-    setCurrentCraft(c);
     if (c)
     {
-        // set location and facility based on craft location
-        setCurrentLocation(c->location);
-        if (c->location)
-        {
-            // check for orbital first
-            Game *game = Game::getCurrent();
-            Facility *f = game->orbitalAt(c->location);
-            if (!f)
-            {
-                f = game->resourceFacilityAt(c->location);
-            }
-            setCurrentFacility(f);
-        }
+        // The craft's own location is exact -- docked, it IS the facility. Nothing is
+        // looked up, so there is nothing to guess wrong.
+        focusCraft = c;
+        focusPlace = c->location;
     }
     else
     {
-        // if no craft, clear location and facility focus as well
-        setCurrentLocation(nullptr);
-        setCurrentFacility(nullptr);
+        setCurrentCraft(nullptr);
     }
     return *this;
 }
@@ -56,9 +74,8 @@ ViewState &ViewState::setLocationFocus(Location *l)
         TraceLog(LOG_WARNING, "Attempting to set location focus to null, ignored");
         return *this;
     }
-    setCurrentLocation(l);
-    setCurrentSystem(l->system);
-    setCurrentFacility(nullptr); // clear facility focus when setting location focus
-    setCurrentCraft(nullptr);    // clear craft focus when setting location focus
+    focusCraft = nullptr;
+    focusPlace = l;
+    browsedSystem = l->system;
     return *this;
 }

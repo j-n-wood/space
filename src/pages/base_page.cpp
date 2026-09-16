@@ -73,9 +73,10 @@ void BasePage::renderStandardButtons()
 
     Overlay &overlay = Overlay::getInstance(); // get the overlay instance to set tooltips when hovering buttons
 
-    // conditional enablement depends on focus location
+    // The sidebar offers both sides of one body at once, so it is body-scoped whatever
+    // the focus is doing -- docked, in orbit, or on the ground.
     auto &vs{PageManager::getInstance().viewState};
-    Location *location{vs.getCurrentLocation()};
+    Location *location{vs.getCurrentBody()};
 
     // can have orbital and/or surface facility
     Orbital *orbital{nullptr};

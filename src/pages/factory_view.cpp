@@ -18,10 +18,10 @@ void FactoryView::activate(ViewState &viewState)
     switch (side)
     {
     case LOCATION_TYPE_ORBIT:
-        f = game->orbitalAt(viewState.getCurrentLocation());
+        f = game->orbitalAt(viewState.getCurrentBody());
         break;
     case LOCATION_TYPE_SURFACE:
-        f = game->resourceFacilityAt(viewState.getCurrentLocation());
+        f = game->resourceFacilityAt(viewState.getCurrentBody());
         break;
     default:
         break;

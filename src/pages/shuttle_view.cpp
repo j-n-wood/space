@@ -65,10 +65,10 @@ void ShuttleView::activate(ViewState &viewState)
     {
         location = craft->body(); // the page shows a body, and seeds the picker from its system
     }
-    else if (auto l = viewState.getCurrentLocation())
+    else if (auto l = viewState.getCurrentBody())
     {
         location = l;
-        craft = location->shuttle;
+        craft = location->shuttle; // the shuttle is registered on the body
     }
 
     if (craft)

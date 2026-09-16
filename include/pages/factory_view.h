@@ -20,7 +20,7 @@ public:
     FactoryView(LocationType s) : factory{nullptr}, side{s}
     {
         backgroundSource = pageBackgroundSources[PB_FACTORY];
-        // TODO orbit/surface prefix dropped -- see StoresView
+        // No orbit/surface prefix -- see StoresView
         std::snprintf(title, sizeof title, "Factory");
 
         pageLog.top = 850;

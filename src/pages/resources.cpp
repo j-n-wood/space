@@ -19,7 +19,7 @@ void Resources::render()
 void Resources::activate(ViewState &viewState)
 {
     auto game{Game::getCurrent()};
-    location = viewState.getCurrentLocation();
+    location = viewState.getCurrentBody(); // resource availability is loaded onto bodies
     facility = game->resourceFacilityAt(location);
 }
 

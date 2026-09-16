@@ -6,22 +6,32 @@ class Facility;
 class Craft;
 class ResearchFacility; // currently only one
 
+// What the UI is looking at. Two questions with two different answers, and both are
+// derived from the focus rather than stored alongside it (architecture.md: "Location
+// depends on focus"):
+//
+//   getCurrentPlace() -- exactly where the focus is. Names the place: "Earth Orbital",
+//                        "Earth Orbit", "Earth Station".
+//   getCurrentBody()  -- the body whose facilities the sidebar offers. The sidebar
+//                        shows orbit-side and surface-side controls together, so it is
+//                        body-scoped however precise the focus is.
+//
+// A UI concept only: nothing in state/ or loaders/ knows about this, and it is not
+// persisted. In theory there could be more than one, linking to viewports.
 class ViewState
 {
-    // current UI variables
-    // in theory, could have more than one, linking to viewports
-    // note current location, facility to be replaced with 'focus' i.e. facility, craft, or tool page (MC) - focus is a UI concept, not part
-    // of the data for craft, facilities, etc.
-    System *currentSystem;
-    Location *currentLocation;
-    Facility *currentFacility;
-    Craft *currentCraft;
+    // The focus. A craft is followed, so its place is read through it rather than
+    // copied -- which is why nothing has to resync when the craft moves.
+    Location *focusPlace; // exactly where the focus is; null = nowhere (master control)
+    Craft *focusCraft;    // the craft being followed, if any
+
+    System *browsedSystem; // fallback when nothing is focused
     ResearchFacility *currentResearchFacility;
 
     int faction_id;
 
 public:
-    ViewState() : currentSystem(nullptr), currentLocation(nullptr), currentFacility(nullptr), currentCraft(nullptr), faction_id(0) {};
+    ViewState() : focusPlace(nullptr), focusCraft(nullptr), browsedSystem(nullptr), currentResearchFacility(nullptr), faction_id(0) {};
 
     inline int getFactionId() const { return faction_id; }
     inline ViewState &setFactionId(int id)
@@ -30,33 +40,28 @@ public:
         return *this;
     }
 
-    inline System *getCurrentSystem() const { return currentSystem; }
+    // The focused place's system, or the one being browsed if nothing is focused.
+    System *getCurrentSystem() const;
     inline ViewState &setCurrentSystem(System *s)
     {
-        currentSystem = s;
+        browsedSystem = s;
         return *this;
     }
 
-    inline Location *getCurrentLocation() const { return currentLocation; }
-    inline ViewState &setCurrentLocation(Location *l)
-    {
-        currentLocation = l;
-        return *this;
-    }
+    // Exactly where the focus is: a facility, an orbit or surface region, or a body.
+    inline Location *getCurrentPlace() const { return focusCraft ? craftPlace() : focusPlace; }
 
-    inline Facility *getCurrentFacility() const { return currentFacility; }
-    inline ViewState &setCurrentFacility(Facility *f)
-    {
-        currentFacility = f;
-        return *this;
-    }
+    // The body whose facilities the sidebar offers. Always a celestial body, or null.
+    Location *getCurrentBody() const;
 
-    inline Craft *getCurrentCraft() const { return currentCraft; }
-    inline ViewState &setCurrentCraft(Craft *c)
-    {
-        currentCraft = c;
-        return *this;
-    }
+    // The facility we are AT, or null if the focus is a bare region or a body. Derived,
+    // so it can never disagree with the place the way a stored copy could.
+    Facility *getCurrentFacility() const;
+
+    inline Craft *getCurrentCraft() const { return focusCraft; }
+
+    // Stop following, but stay where the craft left us.
+    ViewState &setCurrentCraft(Craft *c);
 
     ViewState &setFacilityFocus(Facility *f);
 
@@ -73,4 +78,8 @@ public:
         currentResearchFacility = rf;
         return *this;
     }
+
+private:
+    // Craft is an incomplete type here, so the dereference lives in the .cpp.
+    Location *craftPlace() const;
 };

@@ -63,30 +63,18 @@ void Overlay::render()
 
     auto &pm{PageManager::getInstance()};
 
-    // allow for auto-update of state if following a craft and it arrives at a location
-    // TODO use a subscription method to avoid checking this every frame
-    auto craft = pm.viewState.getCurrentCraft();
-    if (craft)
-    {
-        // Follow the BODY, not the exact location: the standard buttons key off the
-        // body's facilities and shuttle, so focusing a region or a docking bay would
-        // empty the sidebar.
-        auto craftLocation = craft->body();
-        if (craftLocation != pm.viewState.getCurrentLocation())
-        {
-            pm.viewState.setCurrentLocation(craftLocation);
-            if (craftLocation)
-            {
-                pm.viewState.setCurrentSystem(craftLocation->system); // system could change eventually
-                pm.viewState.setCurrentFacility(game->orbitalAt(craftLocation));
-            }
-        }
-    }
+    // Following a craft needs no work here: ViewState reads the place through the craft,
+    // so it tracks as the craft moves.
 
-    DrawText(pm.viewState.getCurrentSystem()->name, 10, 10, 20, WHITE);
-    if (auto location = pm.viewState.getCurrentLocation())
+    // system | place | page. The place names its own side -- "Earth Orbital", "Earth
+    // Orbit", "Earth Station" -- so the page title does not have to.
+    if (auto system = pm.viewState.getCurrentSystem())
     {
-        DrawText(location->name, 100, 10, 20, WHITE);
+        DrawText(system->name, 10, 10, 20, WHITE);
+    }
+    if (auto place = pm.viewState.getCurrentPlace())
+    {
+        DrawText(place->name, 100, 10, 20, WHITE);
     }
     DrawText((PageManager::getInstance()).getCurrentPage()->title, 200, 10, 20, WHITE);
 
@@ -128,7 +116,7 @@ void Overlay::render()
         GuiTextBox(inputRect, consoleInput, sizeof(consoleInput), true);
         if (IsKeyPressed(KEY_ENTER))
         {
-            if (!game->processConsoleCommand(consoleInput, pm.viewState.getCurrentLocation(), pm.viewState.getCurrentFacility()))
+            if (!game->processConsoleCommand(consoleInput, pm.viewState.getCurrentBody(), pm.viewState.getCurrentFacility()))
             {
                 // some other commands - move to appropriate controller
                 // command 'faction {faction_id}' to switch faction for testing

@@ -16,9 +16,8 @@ public:
     StoresView(LocationType s) : side{s}, stores{nullptr}
     {
         backgroundSource = pageBackgroundSources[PB_RESEARCH];
-        // TODO the header reads "<system> <location> <title>", and the location name
-        // already says which side ("Earth Orbital", "Earth Station"), so the prefix is
-        // redundant -- once the header shows the precise location rather than the body.
+        // No orbit/surface prefix: the header reads "<system> <place> <title>" and the
+        // place names its own side -- "Earth Orbital Stores", "Earth Station Stores".
         std::snprintf(title, sizeof title, "Stores");
     }
     ~StoresView() {}

@@ -36,8 +36,8 @@ void takeDefaultFocus()
 	System *system = game->allSystems()[1].get();
 	Location *earth = game->locationByID(4);
 	pm.viewState.setCurrentSystem(system);
-	pm.viewState.setCurrentLocation(earth);
-	pm.viewState.setCurrentFacility(game->orbitalAt(earth));
+	// Start focused on Earth's orbital. The body, and so the sidebar, follows from it.
+	pm.viewState.setFacilityFocus(game->orbitalAt(earth));
 }
 
 void buildTestData(Game *game)

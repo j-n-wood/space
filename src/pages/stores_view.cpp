@@ -15,10 +15,10 @@ void StoresView::render()
 {
     BasePage::render();
 
-    // location resources
-    if (auto location{PageManager::getInstance().viewState.getCurrentLocation()})
+    // Nothing to list without stores. activate() leaves them null when this side of the
+    // body has no facility.
+    if (stores)
     {
-        // what are the current stores?
         listResources();
         listItems();
     }
@@ -29,7 +29,7 @@ void StoresView::activate(ViewState &viewState)
     stores = nullptr;
 
     auto game{Game::getCurrent()};
-    auto l{viewState.getCurrentLocation()};
+    auto l{viewState.getCurrentBody()};
 
     Facility *f{nullptr};
     switch (side)
