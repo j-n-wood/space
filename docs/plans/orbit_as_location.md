@@ -276,6 +276,36 @@ populated while docked, the Space Bay shows a docked IOS, F5/F8 round-trips.
 
 ## Deferred
 
+**Page titles, and the header breadcrumb behind them.** `SublocationType` is gone — pages are
+configured with `LOCATION_TYPE_ORBIT` / `LOCATION_TYPE_SURFACE`, and `Facility::sublocation()`
+is replaced by `Location::inOrbit()`. Its name array went with it, so three titles lost their
+orbit/surface prefix: "Orbital Stores" → "Stores", "Surface Factory" → "Factory", "Orbital
+Shuttle Bay" → "Shuttle Bay". TODOs mark all three.
+
+The prefix is redundant rather than missing. The header is already a breadcrumb — system,
+location, title ([overlay.cpp:86-91](src/pages/overlay.cpp#L86-L91)) — and facilities are named
+`"<body> <label>"` with labels "Orbital", "Station", "City", against regions named "Earth Orbit"
+and "Earth Surface". So the side is already in the location name and the complete title comes
+together across the three fields:
+
+```
+Sol   Earth Orbital   Shuttle Bay
+Sol   Earth Station   Shuttle Bay
+Sol   Earth Orbit     -- in orbit, no station
+```
+
+What blocks it is that the header draws `viewState.getCurrentLocation()`, deliberately pinned
+to the **body** so the standard buttons keep finding the body's facilities and shuttle
+([overlay.cpp:71-74](src/pages/overlay.cpp#L71-L74),
+[view_state.cpp:10-12](src/pages/view_state.cpp#L10-L12)). The fix is the focus rework
+`ViewState`'s own comment already anticipates: carry the precise location for display, keep the
+body for the sidebar. The two are one `body()` call apart.
+
+While there: [view_state.cpp:34-39](src/pages/view_state.cpp#L34-L39) `setCraftFocus` finds the
+facility by trying `orbitalAt` then `resourceFacilityAt`. `orbitalAt` matches on `body()`, so a
+craft docked at Earth Station reports Earth Orbital. Since step 6 the craft's location IS the
+facility when docked, so this is `asFacility(c->location)` and the fallback goes.
+
 **Struct-of-array positioning — a phase after the craft state rework.** The location count
 roughly triples, and `System::update` plus the orrery's draw and hit-test loops walk every one
 each frame. ~500-600 struct traversals is not terrible, so this is a deliberate follow-on, not

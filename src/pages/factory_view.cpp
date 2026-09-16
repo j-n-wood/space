@@ -15,12 +15,12 @@ void FactoryView::activate(ViewState &viewState)
 
     auto game{Game::getCurrent()};
     Facility *f{nullptr};
-    switch (sublocationType)
+    switch (side)
     {
-    case SublocationType::SLOC_ORBIT:
+    case LOCATION_TYPE_ORBIT:
         f = game->orbitalAt(viewState.getCurrentLocation());
         break;
-    case SublocationType::SLOC_SURFACE:
+    case LOCATION_TYPE_SURFACE:
         f = game->resourceFacilityAt(viewState.getCurrentLocation());
         break;
     default:

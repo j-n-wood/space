@@ -48,8 +48,7 @@ void Autopilot::onDocked(Craft *craft)
 
     if (true) // TODO: validate we really are at destination
     {
-        // The endpoints name the facilities directly now -- no reconstructing them from
-        // a location and a sublocation.
+        // The endpoints name the facilities directly, so no reconstruction is needed.
         Facility *current = asFacility(craft->destinations[craft->destination_index].location);
         Facility *other = asFacility(craft->destinations[(craft->destination_index + 1) % MAX_DESTINATIONS].location);
 

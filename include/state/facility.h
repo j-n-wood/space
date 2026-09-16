@@ -20,12 +20,9 @@ class Facility : public Location
 public:
     int faction_id;
 
-    // Where it sits, and so what a craft must do to reach it: a facility hanging off an
-    // orbit location IS in orbit. Used to configure the stores, factory and bay pages.
-    SublocationType sublocation() const
-    {
-        return (primary && primary->type == LOCATION_TYPE_ORBIT) ? SLOC_ORBIT : SLOC_SURFACE;
-    }
+    // Which side of the body a facility is on is Location::inOrbit() -- it hangs off the
+    // orbit or the surface region, so the hierarchy already answers it. There is no
+    // separate sublocation enum or field.
 
     Stores stores;
     std::unique_ptr<Factory> factory; // RF bases typically do not have factory, orbitals do

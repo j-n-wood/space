@@ -10,7 +10,7 @@ OrbitalView::OrbitalView()
 
 void OrbitalView::activate(ViewState &viewState)
 {
-    if (viewState.getCurrentFacility() && viewState.getCurrentFacility()->sublocation() == SLOC_ORBIT)
+    if (viewState.getCurrentFacility() && viewState.getCurrentFacility()->inOrbit())
     {
         orbital = dynamic_cast<Orbital *>(viewState.getCurrentFacility());
     }

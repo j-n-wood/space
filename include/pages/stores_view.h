@@ -9,14 +9,17 @@ class Stores;
 
 class StoresView : public BasePage
 {
-    SublocationType sublocationType;
+    LocationType side; // LOCATION_TYPE_ORBIT or LOCATION_TYPE_SURFACE
     Stores *stores;
 
 public:
-    StoresView(SublocationType slt) : stores{nullptr}, sublocationType(slt)
+    StoresView(LocationType s) : side{s}, stores{nullptr}
     {
         backgroundSource = pageBackgroundSources[PB_RESEARCH];
-        std::snprintf(title, sizeof title, "%s Stores", SublocationTypeName[slt]);
+        // TODO the header reads "<system> <location> <title>", and the location name
+        // already says which side ("Earth Orbital", "Earth Station"), so the prefix is
+        // redundant -- once the header shows the precise location rather than the body.
+        std::snprintf(title, sizeof title, "Stores");
     }
     ~StoresView() {}
 

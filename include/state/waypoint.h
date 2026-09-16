@@ -3,17 +3,6 @@
 #include <cstdint>
 #include <cstddef>
 
-// Which side of a body: what a craft must do to reach something there. Purely
-// positional -- what a facility *is* lives in LocationType.
-enum SublocationType
-{
-    SLOC_SURFACE,
-    SLOC_ORBIT,
-    SLOC_COUNT
-};
-
-extern const char *SublocationTypeName[SLOC_COUNT];
-
 class Location;
 
 // A travel target. The location says everything: Mars Orbital means docked there,

@@ -1,11 +1,6 @@
 #include "loaders/loader.h"
 #include "state/location.h"
 
-const char *SublocationTypeName[SLOC_COUNT] = {
-    "Surface",
-    "Orbital",
-};
-
 Location::Location(System *s, const int lid, const char *n, LocationType t)
     : type(t), system(s), id(lid), primary_id(-1), primary(nullptr),
       orbital_radius(0.0f), orbital_velocity(0.0f), initial_angle(0.0f), radius(0.0f),

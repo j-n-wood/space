@@ -150,8 +150,8 @@ public:
     const Shuttles &allShuttles() const { return shuttles; }
 
     // `location` is the orbit or surface location the facility sits in -- that parent
-    // is what makes it orbital or surface, so no sublocation is passed. A body may be
-    // given for convenience; it resolves to the matching child.
+    // is what makes it orbital or surface. A body may be given for convenience; it
+    // resolves to the matching child.
     EarthCity *createEarthCity(Location *location, int id = -1);
     ResourceFacility *createResourceFacility(Location *location, int id = -1);
     Orbital *createOrbital(Location *location, int id = -1);
@@ -181,9 +181,9 @@ public:
     // behaviour belongs to commissioning, not to creation.
     Shuttle *createShuttle(Location *location);
 
-    // Give a shuttle the obvious route for a facility: this facility, and the other
-    // sublocation at the same body. Only meaningful if both ends exist, which is why it
-    // is a separate call rather than part of creation.
+    // Give a shuttle the obvious route for a facility: this facility, and whatever is
+    // on the other side of the same body. Only meaningful if both ends exist, which is
+    // why it is a separate call rather than part of creation.
     void setDefaultRoute(Shuttle *shuttle, Facility *facility);
 
     // The precise location to aim a craft at, given somewhere vaguer. A facility is

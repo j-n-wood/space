@@ -268,7 +268,6 @@ TEST_CASE("Game::createOrbital works on a stack-allocated Game (no singleton)")
     CHECK(orb->primary == orbitRegion);
     CHECK(orb->body() == body);
     CHECK(orb->inOrbit());
-    CHECK(orb->sublocation() == SLOC_ORBIT);
     // The factory is what used to be wired via Game::getCurrent(); now wired
     // by Game::createOrbital itself.
     CHECK(orb->factory != nullptr);
@@ -914,8 +913,8 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     shuttle->pods[1].amount = 2;
 
     // Two genuinely different locations at one body: the station on the ground, and
-    // the orbit region with no docking implied. That distinction used to need a
-    // sublocation and a docked flag alongside a single shared body.
+    // the orbit region with no docking implied. That distinction used to need a side
+    // and a docked flag alongside a single shared body.
     REQUIRE(game->resourceFacilityAt(earth) != nullptr);
     REQUIRE(earth->orbit() != nullptr);
     shuttle->destinations[0] = Endpoint(game->resourceFacilityAt(earth));
@@ -1102,7 +1101,7 @@ TEST_CASE("Autopilot::nextFlagged with predicate skips rejected resources")
 TEST_CASE("facility type is stored, not inferred from its contents")
 {
     // Regression for the save-time inference that used to live in saveBase:
-    //   if (rf->training_facility || rf->research_facility) sublocation = SLOC_EARTH_CITY;
+    //   if (rf->training_facility || rf->research_facility) type = EARTH_CITY;
     // Game::createResearchFacility accepts ANY ResourceFacility, so attaching one to
     // a plain surface facility made it save as an Earth City and load back as an
     // EarthCity object -- a round trip that changed the object's class.
@@ -1140,7 +1139,7 @@ TEST_CASE("facility type is stored, not inferred from its contents")
     CHECK(loadedRf->type == LOCATION_TYPE_RESOURCE_FACILITY);
     CHECK_FALSE(loadedRf->isEarthCity());
     CHECK(loadedRf->training_facility == nullptr);
-    CHECK(loadedRf->sublocation() == SLOC_SURFACE);
+    CHECK_FALSE(loadedRf->inOrbit());
 
     // and the Earth City is still itself
     Location *earth = loaded.locationByID(4);
@@ -1150,7 +1149,7 @@ TEST_CASE("facility type is stored, not inferred from its contents")
     CHECK(ec->type == LOCATION_TYPE_EARTH_CITY);
     CHECK(ec->isEarthCity());
     CHECK(ec->training_facility != nullptr);
-    CHECK(ec->sublocation() == SLOC_SURFACE);
+    CHECK_FALSE(ec->inOrbit());
 
     removeSaveFile();
 }
@@ -1158,7 +1157,7 @@ TEST_CASE("facility type is stored, not inferred from its contents")
 TEST_CASE("a destination resolves a body to an exact place")
 {
     // The picker offers bodies; the endpoint has to name somewhere precise. This is
-    // what replaced the old "pick a body, then set a sublocation and a docked flag".
+    // what replaced the old "pick a body, then set a side and a docked flag".
     Game *game = Game::createCurrent();
     Loader loader(DB_PATH);
     REQUIRE(loader.isValid());

@@ -12,15 +12,16 @@ class Factory;
 class FactoryView : public BasePage, EventSink
 {
     Factory *factory;
-    SublocationType sublocationType;
+    LocationType side; // LOCATION_TYPE_ORBIT or LOCATION_TYPE_SURFACE
 
     PageLog pageLog;
 
 public:
-    FactoryView(SublocationType slt) : factory{nullptr}, sublocationType{slt}
+    FactoryView(LocationType s) : factory{nullptr}, side{s}
     {
         backgroundSource = pageBackgroundSources[PB_FACTORY];
-        std::snprintf(title, sizeof title, "%s Factory", SublocationTypeName[slt]);
+        // TODO orbit/surface prefix dropped -- see StoresView
+        std::snprintf(title, sizeof title, "Factory");
 
         pageLog.top = 850;
         pageLog.left = 350;

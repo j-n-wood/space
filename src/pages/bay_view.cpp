@@ -52,12 +52,12 @@ void BayView::activate(ViewState &viewState)
     auto l{viewState.getCurrentLocation()};
 
     Facility *f{nullptr};
-    switch (sublocationType)
+    switch (side)
     {
-    case SublocationType::SLOC_ORBIT:
+    case LOCATION_TYPE_ORBIT:
         f = game->orbitalAt(l);
         break;
-    case SublocationType::SLOC_SURFACE:
+    case LOCATION_TYPE_SURFACE:
         f = game->resourceFacilityAt(l);
         break;
     default:
@@ -67,7 +67,10 @@ void BayView::activate(ViewState &viewState)
     if (f)
     {
         facility = f;
-        std::snprintf(title, sizeof title, "%s %s Bay", SublocationTypeName[sublocationType], bayTypeName[type]);
+        // TODO orbit/surface prefix dropped -- see StoresView. The facility is in hand
+        // here, so the title can take its name directly once the header stops showing
+        // the body instead of the precise location.
+        std::snprintf(title, sizeof title, "%s Bay", bayTypeName[type]);
 
         int dlg_width = GetScreenWidth() - 600;
         int dlg_height = GetScreenHeight() - 400;
@@ -293,15 +296,8 @@ Shuttle *BayView::getShuttle()
         if (shuttle)
         {
             // has a shuttle. Is it docked here?
-            bool docked = false;
-            if ((facility->sublocation() == SLOC_ORBIT) && (shuttle->state == CS_ORBIT_DOCKED))
-            {
-                docked = true;
-            }
-            else if ((facility->sublocation() == SLOC_SURFACE) && (shuttle->state == CS_SURFACE_DOCKED))
-            {
-                docked = true;
-            }
+            const bool docked = facility->inOrbit() ? (shuttle->state == CS_ORBIT_DOCKED)
+                                                    : (shuttle->state == CS_SURFACE_DOCKED);
 
             if (docked)
             {

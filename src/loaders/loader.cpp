@@ -129,8 +129,7 @@ bool Loader::loadFacilities()
         }
 
         // `type` is a LocationType: what the facility IS. Where it sits comes from its
-        // parent -- location_id names the orbit or surface location, so no sublocation
-        // needs passing.
+        // parent -- location_id names the orbit or surface location it belongs to.
         Facility *fac = nullptr;
         switch (static_cast<LocationType>(type))
         {

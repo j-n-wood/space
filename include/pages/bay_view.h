@@ -18,7 +18,7 @@ extern const char *bayTypeName[BT_COUNT];
 
 class BayView : public BasePage
 {
-    SublocationType sublocationType;
+    LocationType side; // LOCATION_TYPE_ORBIT or LOCATION_TYPE_SURFACE
     BayType type;
     Facility *facility;
     Craft *craft; // current craft in bay, if any
@@ -33,7 +33,7 @@ class BayView : public BasePage
     ItemList itemList;
 
 public:
-    BayView(SublocationType s, BayType bt) : sublocationType{s}, type{bt}, facility{nullptr}, craft{nullptr}, section{0}, targetSection{0}, offset{0.0f}, driveSection{2}, resourceList{nullptr, {0, 0, 0, 0}}, itemList{{0, 0, 0, 0}}
+    BayView(LocationType s, BayType bt) : side{s}, type{bt}, facility{nullptr}, craft{nullptr}, section{0}, targetSection{0}, offset{0.0f}, driveSection{2}, resourceList{nullptr, {0, 0, 0, 0}}, itemList{{0, 0, 0, 0}}
     {
         backgroundSource = pageBackgroundSources[PB_HANGAR];
         partsTexture = TextureManager::getInstance().getTexture(TEXTURE_ITEMS);

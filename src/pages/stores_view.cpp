@@ -32,12 +32,12 @@ void StoresView::activate(ViewState &viewState)
     auto l{viewState.getCurrentLocation()};
 
     Facility *f{nullptr};
-    switch (sublocationType)
+    switch (side)
     {
-    case SublocationType::SLOC_ORBIT:
+    case LOCATION_TYPE_ORBIT:
         f = game->orbitalAt(l);
         break;
-    case SublocationType::SLOC_SURFACE:
+    case LOCATION_TYPE_SURFACE:
         f = game->resourceFacilityAt(l);
         break;
     default:

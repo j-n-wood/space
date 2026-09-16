@@ -457,13 +457,13 @@ void Game::setDefaultRoute(Shuttle *shuttle, Facility *facility)
 
     // Start docked at the facility we were commissioned from -- and located there, or
     // state and position would disagree from the outset.
-    shuttle->state = (facility->sublocation() == SLOC_ORBIT) ? CS_ORBIT_DOCKED : CS_SURFACE_DOCKED;
+    const bool hereIsOrbit = facility->inOrbit();
+    shuttle->state = hereIsOrbit ? CS_ORBIT_DOCKED : CS_SURFACE_DOCKED;
     shuttle->location = facility;
 
     // A shuttle runs between the two sides of one body, so the obvious route is this
     // facility and whatever is on the other side: a station if there is one, the bare
     // region otherwise. Only a sensible default, not a rule -- the far end may be empty.
-    const bool hereIsOrbit = (facility->sublocation() == SLOC_ORBIT);
     Location *b = facility->body();
     shuttle->destinations[0] = Endpoint(targetFor(b, !hereIsOrbit));
     shuttle->destinations[1] = Endpoint(facility);
