@@ -67,17 +67,23 @@ void buildTestData(Game *game)
 	of->stores.items[ItemType::DFCC] = 1;
 	of->stores.items[ItemType::Ios_Drone] = 10;
 
+	// Mars orbital first: setDestination resolves a body to an exact place there and
+	// then, so an endpoint set before the orbital exists would name the bare orbit
+	// region and the autopilot would find no facility to load from.
+	Location *mars = game->locationByID(6);
+	Orbital *mars_orbital{game->createOrbital(mars)};
+	mars_orbital->operational = true;
+
 	// test IOS
 	IOS *ios = game->createIOS(of);
 	ios->drive = true;
 	ios->fuel = 250;
 	ios->setPodType(0, PT_SUPPLY);
-	Location *mars = game->locationByID(6);
 	ios->setDestination(0, mars); // where to go next
 	ios->engageAutopilot();
 
 	// test IOS 2 at luna
-	Location *luna = earth->children[0];
+	Location *luna = game->locationByID(5); // by id: children now include the regions too
 	IOS *ios2 = game->createIOS(luna);
 	ios2->state = CS_ORBIT; // there is no orbital here
 	ios2->drive = true;
@@ -98,10 +104,6 @@ void buildTestData(Game *game)
 	// set dest -> earth orbital
 	ios2->setDestination(0, earth);
 	ios2->setDestination(1, luna);
-
-	// mars orbital
-	Orbital *mars_orbital{game->createOrbital(mars)};
-	mars_orbital->operational = true;
 
 	auto ec = game->resourceFacilityAt(earth);
 	PageManager::getInstance().viewState.setCurrentResearchFacility(ec->research_facility.get()); // currently global and single

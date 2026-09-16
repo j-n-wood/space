@@ -480,3 +480,43 @@ TEST_CASE("a craft is always somewhere")
 
     std::remove(FL_SAVE_PATH);
 }
+
+TEST_CASE("a surface facility mines the body it sits on")
+{
+    // Silent regression from facility parenting: `primary` is the surface REGION, and
+    // resource availability is loaded onto bodies only, so reading availability off the
+    // parent collected nothing at all while reporting no error anywhere.
+    Game *game = loadGame();
+    REQUIRE(game != nullptr);
+
+    Location *earth = game->locationByID(EARTH_ID);
+    REQUIRE(earth != nullptr);
+    ResourceFacility *station = game->resourceFacilityAt(earth);
+    REQUIRE(station != nullptr);
+
+    // the facility hangs off the region; the region has no resources of its own
+    REQUIRE(station->primary != nullptr);
+    CHECK(station->primary->type == LOCATION_TYPE_SURFACE);
+    CHECK(station->body() == earth);
+
+    // find a resource Earth actually has
+    int available = -1;
+    for (int idx = 0; idx < ResourceType::Count; ++idx)
+    {
+        if (earth->resources.availability[idx])
+        {
+            available = idx;
+            break;
+        }
+    }
+    REQUIRE(available >= 0);
+    CHECK(station->primary->resources.availability[available] == 0); // the region has none
+
+    station->num_derricks = 1;
+    station->damage = 0;
+    const int before = station->stores.resources[available];
+
+    station->update();
+
+    CHECK(station->stores.resources[available] == before + 1);
+}

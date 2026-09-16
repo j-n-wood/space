@@ -10,7 +10,8 @@ public:
     EarthCityView()
     {
         backgroundSource = pageBackgroundSources[PB_EARTH_CITY];
-        std::snprintf(title, sizeof title, "Earth City");
+        // No title: the place is already named "Earth City" in the header.
+        title[0] = '\0';
     }
     ~EarthCityView() {}
 

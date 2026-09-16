@@ -5,7 +5,8 @@
 OrbitalView::OrbitalView()
 {
     backgroundSource = pageBackgroundSources[PB_ORBITAL];
-    std::snprintf(title, sizeof title, "Orbital");
+    // No title: the place is already named "<body> Orbital" in the header.
+    title[0] = '\0';
 }
 
 void OrbitalView::activate(ViewState &viewState)

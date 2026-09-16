@@ -66,17 +66,32 @@ void Overlay::render()
     // Following a craft needs no work here: ViewState reads the place through the craft,
     // so it tracks as the craft moves.
 
-    // system | place | page. The place names its own side -- "Earth Orbital", "Earth
-    // Orbit", "Earth Station" -- so the page title does not have to.
-    if (auto system = pm.viewState.getCurrentSystem())
+    // system | place | page, laid out by measuring rather than at fixed columns: place
+    // names are now full ones like "Earth Orbital", so a fixed column would collide.
+    // The place names its own side, so a page whose title would repeat it leaves the
+    // title empty and contributes nothing here.
     {
-        DrawText(system->name, 10, 10, 20, WHITE);
+        const int HEADER_TOP = 10;
+        const int HEADER_SIZE = 20;
+        const int HEADER_GAP = 20;
+        int x = 10;
+
+        auto drawField = [&](const char *text)
+        {
+            if (!text || !text[0])
+            {
+                return;
+            }
+            DrawText(text, x, HEADER_TOP, HEADER_SIZE, WHITE);
+            x += MeasureText(text, HEADER_SIZE) + HEADER_GAP;
+        };
+
+        auto system = pm.viewState.getCurrentSystem();
+        auto place = pm.viewState.getCurrentPlace();
+        drawField(system ? system->name : nullptr);
+        drawField(place ? place->name : nullptr);
+        drawField(pm.getCurrentPage()->title);
     }
-    if (auto place = pm.viewState.getCurrentPlace())
-    {
-        DrawText(place->name, 100, 10, 20, WHITE);
-    }
-    DrawText((PageManager::getInstance()).getCurrentPage()->title, 200, 10, 20, WHITE);
 
     if (toolTipSet)
     {
