@@ -48,8 +48,10 @@ void Autopilot::onDocked(Craft *craft)
 
     if (true) // TODO: validate we really are at destination
     {
-        Facility *current = game->facilityAt(craft->destinations[craft->destination_index]);
-        Facility *other = game->facilityAt(craft->destinations[(craft->destination_index + 1) % MAX_DESTINATIONS]);
+        // The endpoints name the facilities directly now -- no reconstructing them from
+        // a location and a sublocation.
+        Facility *current = asFacility(craft->destinations[craft->destination_index].location);
+        Facility *other = asFacility(craft->destinations[(craft->destination_index + 1) % MAX_DESTINATIONS].location);
 
         // which cursor counts as current, if current changes on arrival?
         // A: source is surface for shuttles
@@ -128,17 +130,23 @@ void Autopilot::update(Craft *craft, float delta)
         if (dest.location && craft->location &&
             dest.location->body() == craft->location->body())
         {
-            if (dest.state == EP_ORBIT_DOCKED)
+            // Where the target sits says what to do to reach it: something in orbit
+            // means dock, something on the ground means descend. No endpoint state to
+            // consult -- the location is the instruction.
+            if (dest.location->inOrbit())
             {
-                TraceLog(LOG_INFO, "Autopilot: %s docking at destination orbit", craft->name);
-                craft->state = CS_ORBIT_DOCKING;
-                craft->state_timer = CSTD_DOCK;
+                if (dest.location->isFacility())
+                {
+                    TraceLog(LOG_INFO, "Autopilot: %s docking at destination orbit", craft->name);
+                    craft->state = CS_ORBIT_DOCKING;
+                    craft->state_timer = CSTD_DOCK;
+                }
+                else
+                {
+                    TraceLog(LOG_WARNING, "Autopilot: %s at destination orbit but no station to dock with", craft->name);
+                }
             }
-            else if (dest.state == EP_ORBIT)
-            {
-                TraceLog(LOG_WARNING, "Autopilot: %s at destination orbit but no station to dock with", craft->name);
-            }
-            else if (dest.state == EP_SURFACE_DOCKED)
+            else
             {
                 TraceLog(LOG_INFO, "Autopilot: %s descending to surface", craft->name);
                 craft->state = CS_DESCENDING;

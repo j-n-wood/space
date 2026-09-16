@@ -160,7 +160,6 @@ public:
     // locate game state
     ResourceFacility *resourceFacilityAt(Location *location);
     Orbital *orbitalAt(Location *location) const;
-    Facility *facilityAt(const Endpoint &endpoint);
 
     // faction related
     void setFactionHostility(int faction_id, bool hostile);
@@ -186,8 +185,16 @@ public:
     // sublocation at the same body. Only meaningful if both ends exist, which is why it
     // is a separate call rather than part of creation.
     void setDefaultRoute(Shuttle *shuttle, Facility *facility);
-    IOS *createIOS(Location *location); // create at location - may not have a facility. Used by save/load
-    IOS *createIOS(Facility *facility);
+
+    // The precise location to aim a craft at, given somewhere vaguer. A facility is
+    // already precise; a region resolves to the facility in it if there is one; a body
+    // resolves through its orbit or surface region. This is what lets the destination
+    // picker keep offering bodies while endpoints name exact places.
+    Location *targetFor(Location *location, bool wantOrbit);
+    // Create an IOS AT a location, which must be given: a craft is always somewhere, so
+    // "nowhere in particular" is a system's space location rather than a null pointer.
+    IOS *createIOS(Location *location);
+    IOS *createIOS(Facility *facility); // at that facility's body
     ResearchFacility *createResearchFacility(Facility *facility);
 
     // locations

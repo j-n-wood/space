@@ -217,8 +217,9 @@ while every reader looks at the body. `Game` takes ownership as it already does 
 
 ## Migration order
 
-Build and test after each step. Breakages here are silent — `orbitalAt`/`resourceFacilityAt`
-return `nullptr` when handed the wrong location kind — so each fix lands while still a no-op.
+**All eight steps are delivered.** Build and test after each step: breakages here are silent —
+`orbitalAt`/`resourceFacilityAt` return `nullptr` when handed the wrong location kind — so each
+fix lands while still a no-op.
 
 1. **New types and helpers.** `LOCATION_TYPE_ORBIT/SURFACE`, `body()`, `orbit()`, `surface()`,
    `asFacility()`. Additive.
@@ -233,7 +234,9 @@ return `nullptr` when handed the wrong location kind — so each fix lands while
 7. **Endpoints to bare locations.** Delete `EndpointState`, then `SublocationType`, then
    `facilityAt`. `atEndpoint` becomes the one-line compare.
 8. **Persistence**: drop `craft_destinations.state` and `facilities.sublocation`; require a
-   non-null location, persisting id 0 for "nowhere".
+   non-null location, persisting id 0 for "nowhere". `Facility::sublocation()` survives as a
+   derived accessor — it configures the stores, factory and bay pages — but is no longer a
+   stored field. `createShuttle` and `createIOS` reject a null location.
 
 ## Verification
 

@@ -97,16 +97,12 @@ Location *Game::placeLocation(LocationPtr location, int id)
         return nullptr;
     }
 
-    // Placed BY id rather than appended, so ids stay dense regardless of the order
-    // things load in, and locationByID can index straight in. A gap is a null slot,
-    // not a wrong answer -- which is what the old locations[id] gave when density
-    // was merely assumed.
+    // Placed BY id rather than appended, so ids stay dense whatever order things load
+    // in and locationByID can index straight in. An unused id is a null slot.
     //
-    // resize grows capacity geometrically, so loading one location at a time is
-    // amortised rather than quadratic -- but the constructor reserves past the
-    // expected count so it does not reallocate at all. Reallocation would be safe
-    // if it happened: callers hold Location*, which points at the heap object, not
-    // into this vector.
+    // The constructor reserves past the expected count, so this does not reallocate in
+    // practice. If it did, callers are safe: they hold Location*, which points at the
+    // heap object rather than into this vector.
     if (static_cast<size_t>(id) >= locations.size())
     {
         locations.resize(static_cast<size_t>(id) + 1);
@@ -145,11 +141,11 @@ Location *Game::facilityParentFor(Location *location, bool wantOrbit)
         return nullptr;
     }
     Location *parent = wantOrbit ? b->orbit() : b->surface();
-    if (!parent)
+    if (!parent && b->type != LOCATION_TYPE_SPACE)
     {
         // Every body in the database ships with its regions, and nothing creates a
         // body at runtime -- so this means the data is wrong, not that a region needs
-        // making.
+        // making. A system's `space` is the exception: nothing orbits or lands on it.
         TraceLog(LOG_ERROR, "%s has no %s region", b->name, wantOrbit ? "orbit" : "surface");
     }
     return parent;
@@ -279,55 +275,12 @@ Orbital *Game::orbitalAt(Location *location) const
     return nullptr;
 }
 
-Facility *Game::facilityAt(const Endpoint &endpoint)
-{
-    if (endpoint.location)
-    {
-        if (endpointSublocation(endpoint.state) == SLOC_SURFACE)
-        {
-            return resourceFacilityAt(endpoint.location);
-        }
-        return orbitalAt(endpoint.location);
-    }
-    return nullptr;
-}
-
 Location *Game::createLocation(System *system, const int id, const char *name, LocationType type)
 {
-    if (id < 0)
+    Location *locPtr = placeLocation(std::make_unique<Location>(system, id, name, type), id);
+    if (!locPtr)
     {
-        TraceLog(LOG_ERROR, "Negative location id %d for %s", id, name ? name : "?");
         return nullptr;
-    }
-
-    // Placed BY id rather than appended, so ids stay dense regardless of the order
-    // things load in, and locationByID can index straight in. A gap is a null slot,
-    // not a wrong answer -- which is what the old locations[id] gave when density
-    // was merely assumed.
-    //
-    // resize grows capacity geometrically, so loading one location at a time is
-    // amortised rather than quadratic -- but the constructor reserves past the
-    // expected count so it does not reallocate at all. Reallocation would be safe
-    // if it happened: callers hold Location*, which points at the heap object, not
-    // into this vector.
-    if (static_cast<size_t>(id) >= locations.size())
-    {
-        locations.resize(static_cast<size_t>(id) + 1);
-    }
-    if (locations[id])
-    {
-        TraceLog(LOG_ERROR, "Duplicate location id %d (%s)", id, name ? name : "?");
-        return nullptr;
-    }
-
-    locations[id] = std::make_unique<Location>(system, id, name, type);
-    Location *locPtr = locations[id].get();
-
-    // Track the high-water mark here rather than in the loader, so it holds for
-    // every creation path -- loaded bodies and anything created during play.
-    if (location_max_id < id)
-    {
-        location_max_id = id;
     }
 
     if (system)
@@ -339,10 +292,8 @@ Location *Game::createLocation(System *system, const int id, const char *name, L
 
 Location *Game::locationByID(int id)
 {
-    // O(1), and correct by construction: createLocation places by id, so the slot
-    // either holds that location or is empty. This is not the old locations[id],
-    // which required density it never enforced and returned the wrong location when
-    // the assumption broke.
+    // O(1), and correct by construction: placeLocation stores by id, so the slot
+    // either holds that location or is empty.
     if (id < 0 || static_cast<size_t>(id) >= locations.size())
     {
         return nullptr;
@@ -472,6 +423,30 @@ Shuttle *Game::createShuttle(Location *position)
     return s;
 }
 
+Location *Game::targetFor(Location *location, bool wantOrbit)
+{
+    if (!location)
+    {
+        return nullptr;
+    }
+    if (location->isFacility())
+    {
+        return location; // already exact
+    }
+
+    Location *region = facilityParentFor(location, wantOrbit);
+    if (!region)
+    {
+        return nullptr;
+    }
+
+    // Prefer the station in that region; the bare region is the answer when there is
+    // none -- which is what "orbit Mars, no station" means.
+    Facility *f = wantOrbit ? static_cast<Facility *>(orbitalAt(region))
+                            : static_cast<Facility *>(resourceFacilityAt(region));
+    return f ? static_cast<Location *>(f) : region;
+}
+
 void Game::setDefaultRoute(Shuttle *shuttle, Facility *facility)
 {
     if (!shuttle || !facility || !facility->body())
@@ -485,30 +460,31 @@ void Game::setDefaultRoute(Shuttle *shuttle, Facility *facility)
     shuttle->state = (facility->sublocation() == SLOC_ORBIT) ? CS_ORBIT_DOCKED : CS_SURFACE_DOCKED;
     shuttle->location = facility;
 
-    // A shuttle runs between the two sublocations at one body, so the obvious route is
-    // this facility and the other kind. SublocationType has exactly two values, so the
-    // toggle is well defined -- it used to yield -1 for an Earth City.
-    //
-    // This is only a sensible default, not a rule: the far end may not exist yet, and
-    // once facilities become locations the route should name them rather than the body.
-    // Endpoints still name the BODY: atEndpoint compares against craft->location,
-    // which is a body until step 6. Naming the facility's region here instead would
-    // stall the autopilot at its first dock.
+    // A shuttle runs between the two sides of one body, so the obvious route is this
+    // facility and whatever is on the other side: a station if there is one, the bare
+    // region otherwise. Only a sensible default, not a rule -- the far end may be empty.
+    const bool hereIsOrbit = (facility->sublocation() == SLOC_ORBIT);
     Location *b = facility->body();
-    const SublocationType here = facility->sublocation();
-    const SublocationType there = (here == SLOC_ORBIT) ? SLOC_SURFACE : SLOC_ORBIT;
-    shuttle->destinations[0] = Endpoint(b, endpointStateFor(there, true));
-    shuttle->destinations[1] = Endpoint(b, endpointStateFor(here, true));
+    shuttle->destinations[0] = Endpoint(targetFor(b, !hereIsOrbit));
+    shuttle->destinations[1] = Endpoint(facility);
 }
 
 IOS *Game::createIOS(Location *location)
 {
-    // create an IOS at a location, starting at the given location (used for loading saved game where we already have location info)
-    CraftState cs{location != nullptr ? CS_ORBIT_DOCKED : CS_TRANSIT}; // default to orbit if location provided, otherwise transit (space)
-    ios.emplace_back(std::make_unique<IOS>(cs, 3, location));
+    // A craft is always somewhere: "nowhere in particular" is a system's space location,
+    // not a null pointer.
+    if (!location)
+    {
+        TraceLog(LOG_ERROR, "Null location provided to createIOS");
+        return nullptr;
+    }
+
+    ios.emplace_back(std::make_unique<IOS>(CS_ORBIT_DOCKED, 3, location));
     auto i = ios.back().get();
-    i->destinations[0] = Endpoint(location, EP_ORBIT_DOCKED);
-    i->destinations[1] = Endpoint(location, EP_ORBIT_DOCKED);
+    // Aim at the orbital if the body has one, otherwise its orbit region.
+    Location *target = targetFor(location, true);
+    i->destinations[0] = Endpoint(target);
+    i->destinations[1] = Endpoint(target);
     // generate a name based on creation count
     std::snprintf(i->name, sizeof i->name, "IOS-%04d", ios_number++);
     i->id = ++craft_max_id;

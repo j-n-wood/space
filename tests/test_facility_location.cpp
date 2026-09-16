@@ -389,12 +389,7 @@ TEST_CASE("a shuttle's owner and its position are separate")
     // Create it AT the orbital -- the case that matters once a docked craft's
     // location is the facility. Ownership must still land on the body, or a save
     // and reload reparents the shuttle somewhere no reader looks.
-    //
-    // The cast selects createShuttle(Location*) deliberately. An Orbital* binds to
-    // the Facility* overload instead (fewer base conversions), which means "a
-    // shuttle belonging to this facility's body" and sets up its route -- a
-    // different operation that happens to share a name.
-    Shuttle *s = game->createShuttle(static_cast<Location *>(orbital));
+    Shuttle *s = game->createShuttle(orbital);
     REQUIRE(s != nullptr);
 
     CHECK(s->location == orbital);       // position: where it is
@@ -414,5 +409,74 @@ TEST_CASE("a shuttle's owner and its position are separate")
 
     // one shuttle per body still holds, whichever location it is asked for
     CHECK(game->createShuttle(earth) == nullptr);
-    CHECK(game->createShuttle(static_cast<Location *>(orbital)) == nullptr);
+    CHECK(game->createShuttle(orbital) == nullptr);
+}
+
+TEST_CASE("a craft is always somewhere")
+{
+    // Step 8 of docs/plans/orbit_as_location.md. A null craft location used to mean
+    // "in space", which collided with location id 0 -- a real location, Sol space.
+    // Null is now unrepresentable: the factories refuse it and the loader treats an
+    // unresolvable id as an error rather than quietly producing a craft nowhere.
+    const char *FL_SAVE_PATH = "./test_craft_location.db";
+
+    Game *game = loadGame();
+    REQUIRE(game != nullptr);
+
+    CHECK(game->createShuttle(nullptr) == nullptr);
+    CHECK(game->createIOS(static_cast<Location *>(nullptr)) == nullptr);
+
+    // id 0 is Sol space: the "nowhere in particular" location, and a real one
+    Location *space = game->locationByID(0);
+    REQUIRE(space != nullptr);
+    CHECK(space->type == LOCATION_TYPE_SPACE);
+
+    Location *earth = game->locationByID(EARTH_ID);
+    REQUIRE(earth != nullptr);
+    Orbital *orbital = game->orbitalAt(earth);
+    REQUIRE(orbital != nullptr);
+
+    // one docked, one adrift -- the two shapes that have to survive a round trip
+    Shuttle *docked = game->createShuttle(orbital);
+    REQUIRE(docked != nullptr);
+    IOS *adrift = game->createIOS(space);
+    REQUIRE(adrift != nullptr);
+    adrift->state = CS_TRANSIT;
+
+    const int dockedId = docked->id;
+    const int adriftId = adrift->id;
+
+    SaveGame saver;
+    REQUIRE(saver.save(FL_SAVE_PATH) == 0);
+
+    Game *loaded = Game::createCurrent();
+    Loader reloader(FL_SAVE_PATH);
+    REQUIRE(reloader.isValid());
+    REQUIRE(loaded->initialise(&reloader));
+
+    int checked = 0;
+    for (auto &shuttle : loaded->allShuttles())
+    {
+        REQUIRE(shuttle->location != nullptr);
+        if (shuttle->id == dockedId)
+        {
+            CHECK(shuttle->location->type == LOCATION_TYPE_ORBITAL);
+            CHECK(shuttle->location->body()->id == EARTH_ID);
+            ++checked;
+        }
+    }
+    for (auto &craft : loaded->allIOS())
+    {
+        REQUIRE(craft->location != nullptr);
+        if (craft->id == adriftId)
+        {
+            // saved as id 0 and reloaded as the location, not as a null pointer
+            CHECK(craft->location->id == 0);
+            CHECK(craft->location->type == LOCATION_TYPE_SPACE);
+            ++checked;
+        }
+    }
+    CHECK(checked == 2);
+
+    std::remove(FL_SAVE_PATH);
 }

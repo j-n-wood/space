@@ -84,8 +84,7 @@ bool Location::inOrbit() const
 
 Vector2 Location::resolvedPosition() const
 {
-    // Depth cap rather than trusting the parent chain: a cycle here used to be
-    // unbounded recursion.
+    // Depth cap rather than trusting the parent chain: a cycle must not hang.
     const int MAX_DEPTH = 16;
     Vector2 p = position;
     int depth = 0;

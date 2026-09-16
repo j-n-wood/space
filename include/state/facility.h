@@ -20,10 +20,8 @@ class Facility : public Location
 public:
     int faction_id;
 
-    // Where it sits, and so what a craft must do to reach it. Derived from the parent
-    // now that orbit and surface are locations in their own right: a facility hanging
-    // off an orbit location IS in orbit. Kept as an accessor so the ~10 call sites
-    // read unchanged while the underlying fact moves into the hierarchy.
+    // Where it sits, and so what a craft must do to reach it: a facility hanging off an
+    // orbit location IS in orbit. Used to configure the stores, factory and bay pages.
     SublocationType sublocation() const
     {
         return (primary && primary->type == LOCATION_TYPE_ORBIT) ? SLOC_ORBIT : SLOC_SURFACE;
@@ -38,10 +36,9 @@ public:
     uint8_t construction_progress; // 0-100, for construction progress of facility, if under construction
     float damage;                  // 0-100, for damage level of facility, if damaged
 
-    // `parent` is the body this facility belongs to. Id and name are assigned by the
-    // Game factory that creates it, which owns the id sequence.
-    // `parent` is the orbit or surface location this facility sits in -- that parent is
-    // what makes it orbital or surface, so no sublocation is passed or stored.
+    // `parent` is the orbit or surface location this facility sits in, and is what makes
+    // it orbital or surface. Id and name are assigned by the Game factory that creates
+    // it, which owns the id sequence.
     Facility(Location *parent, LocationType t)
         : Location(parent ? parent->system : nullptr, -1, "", t),
           faction_id{0}, operational{false}, aoc_installed{false},

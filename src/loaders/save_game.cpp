@@ -151,7 +151,7 @@ int SaveGame::initialiseSaveFile()
         "BEGIN TRANSACTION;"
         "CREATE TABLE IF NOT EXISTS bodies ( id INTEGER, system_id INT, primary_id INT, type INT, name TEXT, orbital_radius FLOAT, orbital_velocity FLOAT, initial_angle FLOAT, radius FLOAT, color TEXT );"
         "CREATE TABLE IF NOT EXISTS systems ( id INTEGER, name TEXT );"
-        "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, sublocation INT, num_derricks INT, operational INT, construction_progress INT, damage INT, faction_id INT, aoc_installed INT, sdm_installed INT, mtx_installed INT );"
+        "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT, operational INT, construction_progress INT, damage INT, faction_id INT, aoc_installed INT, sdm_installed INT, mtx_installed INT );"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT, ios_number INT, scg_number INT );"
         "CREATE TABLE IF NOT EXISTS factions ( id INT, name TEXT, hostile INT );"
@@ -163,7 +163,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS body_resources ( body_id int, resource_id int, availability int );"
         "CREATE TABLE IF NOT EXISTS craft ( id int, name text, type int, state int, state_timer float, total_state_timer float, location_id int, fuel int, max_pods int, drive int, destination_index int, faction_id int );"
         "CREATE TABLE IF NOT EXISTS craft_pods ( craft_id int, pod_index int, type int, content_type int, amount int );"
-        "CREATE TABLE IF NOT EXISTS craft_destinations ( craft_id int, destination_index int, system_id int, location_id int, state int );"
+        "CREATE TABLE IF NOT EXISTS craft_destinations ( craft_id int, destination_index int, system_id int, location_id int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot ( craft_id int, state int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot_flows ( craft_id int, resource_index int, flow_flags int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot_cursors ( craft_id int, endpoint_index int, cursor_position int );"
@@ -427,10 +427,6 @@ int SaveGame::saveLocation(SQLiteQuery &bodyQuery, System *system, size_t locati
         return -14;
     }
 
-    // Read the orbital elements off the location itself. These used to come from
-    // System's parallel arrays indexed by the location's *vector position*, which
-    // only coincided with its `index` by luck -- and the guarded fallbacks below
-    // silently wrote zeroes whenever they diverged.
     char colorText[9];
     ColorToHexString(location->color, colorText);
 
@@ -463,26 +459,24 @@ int SaveGame::saveBase(ResourceFacility *rf)
         return -8;
     }
 
-    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, sublocation, num_derricks, operational, construction_progress, damage, faction_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!facilityQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare facility insert for base");
         return -9;
     }
 
-    // Both stored, neither inferred. Deriving the tag from training_facility ||
-    // research_facility meant giving a plain resource facility a research facility
-    // made it save as an Earth City and load back as one.
+    // `type` is stored, never inferred from the fitted facilities: a plain resource
+    // facility with a research facility in it is still a resource facility.
     if (!facilityQuery.bind(1, facilityId)
              .bind(2, rf->primary->system->id)
              .bind(3, rf->primary->id)
              .bind(4, static_cast<int>(rf->type))
-             .bind(5, static_cast<int>(rf->sublocation()))
-             .bind(6, (int)rf->num_derricks)
-             .bind(7, rf->operational)
-             .bind(8, rf->construction_progress)
-             .bind(9, rf->damage)
-             .bind(10, rf->faction_id)
+             .bind(5, (int)rf->num_derricks)
+             .bind(6, rf->operational)
+             .bind(7, rf->construction_progress)
+             .bind(8, rf->damage)
+             .bind(9, rf->faction_id)
              .step("SaveGame: Failed to execute facility insert for base"))
     {
         return -14;
@@ -524,7 +518,7 @@ int SaveGame::saveOrbital(Orbital *orbital)
         return -8;
     }
 
-    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, sublocation, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!facilityQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare facility insert for orbital");
@@ -535,15 +529,14 @@ int SaveGame::saveOrbital(Orbital *orbital)
              .bind(2, orbital->primary->system->id)
              .bind(3, orbital->primary->id)
              .bind(4, static_cast<int>(orbital->type))
-             .bind(5, static_cast<int>(orbital->sublocation()))
-             .bind(6, 0) // num derricks, not applicable to orbitals
-             .bind(7, orbital->operational)
-             .bind(8, orbital->construction_progress)
-             .bind(9, orbital->damage)
-             .bind(10, orbital->faction_id)
-             .bind(11, orbital->aoc_installed)
-             .bind(12, orbital->sdm_installed)
-             .bind(13, orbital->mtx_installed)
+             .bind(5, 0) // num derricks, not applicable to orbitals
+             .bind(6, orbital->operational)
+             .bind(7, orbital->construction_progress)
+             .bind(8, orbital->damage)
+             .bind(9, orbital->faction_id)
+             .bind(10, orbital->aoc_installed)
+             .bind(11, orbital->sdm_installed)
+             .bind(12, orbital->mtx_installed)
              .step("SaveGame: Failed to execute facility insert for orbital"))
     {
         return -14;
@@ -809,8 +802,8 @@ int SaveGame::saveCraft(Craft *craft)
 
 int SaveGame::saveCraftDestinations(Craft *craft)
 {
-    // Save the craft's destinations to the craft_destinations table.
-    // The old (sublocation, docked) pair is now one EndpointState.
+    // An endpoint is a location, so its id is the whole record: orbit, surface and
+    // docked are all implied by which location it names.
 
     for (uint8_t i = 0; i < MAX_DESTINATIONS; ++i)
     {
@@ -818,14 +811,14 @@ int SaveGame::saveCraftDestinations(Craft *craft)
         int systemId = dest.location && dest.location->system ? dest.location->system->id : 0;
         int locationId = dest.location ? dest.location->id : 0;
 
-        SQLiteQuery destQuery(loader, "INSERT INTO craft_destinations (craft_id, destination_index, system_id, location_id, state) VALUES (?, ?, ?, ?, ?);");
+        SQLiteQuery destQuery(loader, "INSERT INTO craft_destinations (craft_id, destination_index, system_id, location_id) VALUES (?, ?, ?, ?);");
         if (!destQuery.stmt)
         {
             TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft_destinations insert");
             return -9;
         }
 
-        if (!destQuery.reset().bind(1, craft->id).bind(2, i).bind(3, systemId).bind(4, locationId).bind(5, static_cast<int>(dest.state)).step("SaveGame: Failed to execute craft_destinations insert"))
+        if (!destQuery.reset().bind(1, craft->id).bind(2, i).bind(3, systemId).bind(4, locationId).step("SaveGame: Failed to execute craft_destinations insert"))
         {
             return -14;
         }

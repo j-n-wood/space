@@ -103,10 +103,8 @@ void destinationSelected(void *state, Location *loc)
     if (shuttleView->craft && loc)
     {
         Craft *craft = shuttleView->craft;
-        // For now a picked destination is always orbit; could be surface or city in
-        // future. setDestination already decides whether to dock on arrival, so the
-        // duplicate of that rule which used to live here is gone.
-        craft->destinations[craft->destination_index].state = EP_ORBIT;
+        // The picker offers bodies; setDestination resolves one to an exact place --
+        // the orbital if there is one, its orbit region otherwise.
         craft->setDestination(craft->destination_index, loc);
 
         shuttleView->destinationPicker->visible = false;

@@ -105,7 +105,7 @@ Facility *Loader::findFacilityById(int facility_id)
 
 bool Loader::loadFacilities()
 {
-    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed, sublocation FROM facilities ORDER BY id");
+    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed FROM facilities ORDER BY id");
 
     while (query.next())
     {
@@ -121,8 +121,6 @@ bool Loader::loadFacilities()
         int aoc_installed = sqlite3_column_int(query, 9);
         int sdm_installed = sqlite3_column_int(query, 10);
         int mtx_installed = sqlite3_column_int(query, 11);
-        // column 12 is the legacy `sublocation`; the parent location now carries that
-        // fact, so it is no longer read. The column goes in the persistence step.
         Location *loc = findLocation(system_id, location_id);
         if (!loc)
         {
@@ -326,7 +324,7 @@ bool Loader::loadCraft()
 {
     // read craft and create instances
 
-    SQLiteQuery destQuery(this, "SELECT system_id, location_id, state FROM craft_destinations WHERE craft_id = ? ORDER BY destination_index");
+    SQLiteQuery destQuery(this, "SELECT system_id, location_id FROM craft_destinations WHERE craft_id = ? ORDER BY destination_index");
     if (!destQuery.stmt)
     {
         TraceLog(LOG_ERROR, "Failed to prepare craft_destinations query");
@@ -378,13 +376,14 @@ bool Loader::loadCraft()
         bool drive = sqlite3_column_int(query, 9) > 0;
         int destination_index = sqlite3_column_int(query, 10);
         int faction_id = sqlite3_column_int(query, 11);
-        // TODO do we need system ID?
+        // Location ids are global, so the system is not needed to resolve one. A craft
+        // is always somewhere: "nowhere in particular" is Sol space, id 0.
         Location *loc = game->locationByID(location_id);
-        if ((location_id > 0) && (!loc))
+        if (!loc)
         {
             TraceLog(LOG_ERROR, "Failed to find location %d for craft %d", location_id, id);
             return false;
-        } // otherwise in the 'space' location (0)
+        }
 
         Craft *craft = nullptr;
         if (type == CT_SHUTTLE)
@@ -461,8 +460,7 @@ bool Loader::loadCraft()
         {
             int system_id = sqlite3_column_int(destQuery, 0);
             int dest_location_id = sqlite3_column_int(destQuery, 1);
-            int state = sqlite3_column_int(destQuery, 2);
-            craft->destinations[destIndex] = Endpoint(findLocation(system_id, dest_location_id), static_cast<EndpointState>(state));
+            craft->destinations[destIndex] = Endpoint(findLocation(system_id, dest_location_id));
             destIndex++;
         }
 

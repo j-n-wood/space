@@ -913,8 +913,13 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     shuttle->pods[1].contentType = 0; // Derrick
     shuttle->pods[1].amount = 2;
 
-    shuttle->destinations[0] = Endpoint(earth, EP_SURFACE_DOCKED);
-    shuttle->destinations[1] = Endpoint(earth, EP_ORBIT);
+    // Two genuinely different locations at one body: the station on the ground, and
+    // the orbit region with no docking implied. That distinction used to need a
+    // sublocation and a docked flag alongside a single shared body.
+    REQUIRE(game->resourceFacilityAt(earth) != nullptr);
+    REQUIRE(earth->orbit() != nullptr);
+    shuttle->destinations[0] = Endpoint(game->resourceFacilityAt(earth));
+    shuttle->destinations[1] = Endpoint(earth->orbit());
 
     shuttle->autopilot->state = AS_ON;
     for (int i = 0; i < ResourceType::Count; ++i)
@@ -992,13 +997,16 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
 
     SUBCASE("round-trips destinations")
     {
+        // The location id is the whole record now, so a round trip has to bring back
+        // the exact places -- a surface station and an orbit region, both at Earth.
         REQUIRE(ls->destinations[0].location != nullptr);
-        CHECK_STREQ(ls->destinations[0].location->name, "Earth");
-        CHECK(ls->destinations[0].state == EP_SURFACE_DOCKED);
+        CHECK(ls->destinations[0].location->isFacility());
+        CHECK_FALSE(ls->destinations[0].location->inOrbit());
+        CHECK_STREQ(ls->destinations[0].location->body()->name, "Earth");
 
         REQUIRE(ls->destinations[1].location != nullptr);
-        CHECK_STREQ(ls->destinations[1].location->name, "Earth");
-        CHECK(ls->destinations[1].state == EP_ORBIT);
+        CHECK(ls->destinations[1].location->type == LOCATION_TYPE_ORBIT);
+        CHECK_STREQ(ls->destinations[1].location->body()->name, "Earth");
     }
 
     SUBCASE("round-trips autopilot state (AS_ON for shuttle)")
@@ -1147,33 +1155,42 @@ TEST_CASE("facility type is stored, not inferred from its contents")
     removeSaveFile();
 }
 
-TEST_CASE("EndpointState replaces the sublocation/docked pair")
+TEST_CASE("a destination resolves a body to an exact place")
 {
-    // The old pair could express four meaningful states in eight combinations.
-    // These round-trip every one of the four through the helpers.
-    struct Case
-    {
-        SublocationType sublocation;
-        bool docked;
-        EndpointState expected;
-    };
-    const Case cases[] = {
-        {SLOC_ORBIT, false, EP_ORBIT},
-        {SLOC_ORBIT, true, EP_ORBIT_DOCKED},
-        {SLOC_SURFACE, false, EP_SURFACE},
-        {SLOC_SURFACE, true, EP_SURFACE_DOCKED},
-    };
+    // The picker offers bodies; the endpoint has to name somewhere precise. This is
+    // what replaced the old "pick a body, then set a sublocation and a docked flag".
+    Game *game = Game::createCurrent();
+    Loader loader(DB_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(game->initialise(&loader));
 
-    for (const Case &c : cases)
+    Location *earth = game->locationByID(4);
+    REQUIRE(earth != nullptr);
+    Orbital *earthOrbital = game->orbitalAt(earth);
+    REQUIRE(earthOrbital != nullptr);
+
+    SUBCASE("a body with a station resolves to the station")
     {
-        const EndpointState s = endpointStateFor(c.sublocation, c.docked);
-        CHECK(s == c.expected);
-        CHECK(endpointSublocation(s) == c.sublocation);
-        CHECK(endpointWantsDocked(s) == c.docked);
+        CHECK(game->targetFor(earth, true) == earthOrbital);
+    }
+
+    SUBCASE("a body without one resolves to its orbit region")
+    {
+        // Luna has a surface station but no orbital.
+        Location *luna = game->locationByID(5);
+        REQUIRE(luna != nullptr);
+        REQUIRE(game->orbitalAt(luna) == nullptr);
+        REQUIRE(luna->orbit() != nullptr);
+        CHECK(game->targetFor(luna, true) == luna->orbit());
+    }
+
+    SUBCASE("something already exact is left alone")
+    {
+        CHECK(game->targetFor(earthOrbital, true) == earthOrbital);
     }
 }
 
-TEST_CASE("atEndpoint matches the state the endpoint asks for")
+TEST_CASE("atEndpoint compares locations")
 {
     Game *game = Game::createCurrent();
     Loader loader(DB_PATH);
@@ -1182,44 +1199,47 @@ TEST_CASE("atEndpoint matches the state the endpoint asks for")
 
     Location *earth = game->locationByID(4);
     REQUIRE(earth != nullptr);
+    REQUIRE(earth->orbit() != nullptr);
+    Orbital *orbital = game->orbitalAt(earth);
+    REQUIRE(orbital != nullptr);
 
     Shuttle *shuttle = earth->shuttle ? earth->shuttle : game->createShuttle(earth);
     REQUIRE(shuttle != nullptr);
-    shuttle->location = earth;
     shuttle->destination_index = 0;
 
-    SUBCASE("orbit states must match exactly")
+    SUBCASE("the same location is arrival")
     {
-        shuttle->destinations[0] = Endpoint(earth, EP_ORBIT_DOCKED);
-        shuttle->state = CS_ORBIT_DOCKED;
-        CHECK(shuttle->atEndpoint());
-        shuttle->state = CS_ORBIT; // in orbit but not docked is not arrival
-        CHECK_FALSE(shuttle->atEndpoint());
-
-        shuttle->destinations[0] = Endpoint(earth, EP_ORBIT);
-        CHECK(shuttle->atEndpoint());
-        shuttle->state = CS_ORBIT_DOCKED;
-        CHECK_FALSE(shuttle->atEndpoint());
-    }
-
-    SUBCASE("surface arrival counts whether or not a station was there")
-    {
-        // Deliberately loose: a shuttle descending to a body with no resource
-        // facility ends at CS_SURFACE, and the autopilot must still advance its
-        // endpoint or it hangs part-way round the route.
-        shuttle->destinations[0] = Endpoint(earth, EP_SURFACE_DOCKED);
-        shuttle->state = CS_SURFACE_DOCKED;
-        CHECK(shuttle->atEndpoint());
-        shuttle->state = CS_SURFACE;
+        shuttle->destinations[0] = Endpoint(orbital);
+        shuttle->location = orbital;
         CHECK(shuttle->atEndpoint());
     }
 
-    SUBCASE("a different location is never the endpoint")
+    SUBCASE("in orbit is not the same as docked")
+    {
+        shuttle->destinations[0] = Endpoint(orbital);
+        shuttle->location = earth->orbit();
+        CHECK_FALSE(shuttle->atEndpoint());
+
+        shuttle->destinations[0] = Endpoint(earth->orbit());
+        CHECK(shuttle->atEndpoint());
+    }
+
+    SUBCASE("docked inside the region we were sent to counts")
+    {
+        // Descending auto-docks when a station is there, so aiming at the region and
+        // ending up in its station is arrival, not an overshoot.
+        shuttle->destinations[0] = Endpoint(earth->orbit());
+        shuttle->location = orbital;
+        CHECK(shuttle->atEndpoint());
+    }
+
+    SUBCASE("another body is never the endpoint")
     {
         Location *luna = game->locationByID(5);
         REQUIRE(luna != nullptr);
-        shuttle->destinations[0] = Endpoint(luna, EP_ORBIT);
-        shuttle->state = CS_ORBIT;
+        REQUIRE(luna->orbit() != nullptr);
+        shuttle->destinations[0] = Endpoint(luna->orbit());
+        shuttle->location = earth->orbit();
         CHECK_FALSE(shuttle->atEndpoint());
     }
 }

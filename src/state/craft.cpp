@@ -117,24 +117,17 @@ bool Craft::atEndpoint() const
         return false;
     }
 
-    // Compare BODIES, not exact locations. That is correct whether an endpoint names
-    // a body (as it does now) or a facility (as it will), and whether the craft's
-    // location is the body or the precise place it has reached. The state below is
-    // what separates the two ends of a shuttle's run at a single body.
-    if (dest.location->body() != location->body())
+    // Both sides name a precise location, so orbit, surface and docked are all implied
+    // by which one it is.
+    if (dest.location == location)
     {
-        return false;
+        return true;
     }
 
-    if (endpointSublocation(dest.state) == SLOC_ORBIT)
-    {
-        return state == (endpointWantsDocked(dest.state) ? CS_ORBIT_DOCKED : CS_ORBIT);
-    }
-
-    // Surface is deliberately loose: landing counts whether or not a station was
-    // there to dock at. A shuttle descending to a body with no resource facility
-    // ends at CS_SURFACE, and the autopilot must still advance or it hangs.
-    return state == CS_SURFACE_DOCKED || state == CS_SURFACE;
+    // One tolerance: sent to a region, and ended up docked at a station inside it.
+    // Descending auto-docks when a station is there, so this counts as arrival rather
+    // than leaving the autopilot circling.
+    return location->isFacility() && location->primary == dest.location;
 }
 
 bool Craft::isPodEmpty(const int index)
@@ -236,7 +229,8 @@ void Craft::onDockWorkComplete()
 
 const char *Craft::statusText(char *status, size_t len)
 {
-    const char *location_name = location ? location->name : "Space"; // TODO location cannot be empty now
+    // A craft is always somewhere; "nowhere in particular" is a system's space location.
+    const char *location_name = location ? location->name : "Space";
 
     switch (state)
     {
@@ -341,14 +335,11 @@ void Craft::setDestination(const uint8_t index, Location *loc)
     {
         return;
     }
-    destinations[index].location = loc;
-    // dock on arrival if autopilot is engaged and there is a station to dock at
-
+    // The picker still offers bodies, so resolve to an exact place: the orbital if
+    // there is one, otherwise the body's orbit region. Naming the station IS asking
+    // to dock at it.
     Game *game = Game::getCurrent();
-    Orbital *orbital = game->orbitalAt(loc);
-
-    const bool dock = (autopilot->state >= AS_ON) && (orbital != nullptr);
-    destinations[index].state = endpointStateFor(endpointSublocation(destinations[index].state), dock);
+    destinations[index].location = game->targetFor(loc, true);
 }
 
 bool Craft::engageAutopilot()
@@ -368,13 +359,15 @@ bool Craft::engageAutopilot()
         return false;
     }
 
-    // force destination endpoints to be docked -- the autopilot moves cargo, which
-    // means docking at both ends
+    // The autopilot moves cargo, so it wants to dock at both ends. Upgrade any endpoint
+    // that names a bare region to the station inside it, if there is one.
+    Game *game = Game::getCurrent();
     for (int i = 0; i < MAX_DESTINATIONS; ++i)
     {
-        if (destinations[i].location)
+        Location *target = destinations[i].location;
+        if (target && !target->isFacility())
         {
-            destinations[i].state = endpointStateFor(endpointSublocation(destinations[i].state), true);
+            destinations[i].location = game->targetFor(target, target->inOrbit());
         }
     }
 
