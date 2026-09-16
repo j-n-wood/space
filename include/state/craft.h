@@ -134,24 +134,9 @@ public:
         return destinations[(destination_index + MAX_DESTINATIONS - 1) % MAX_DESTINATIONS];
     }
 
-    // test if at endpoint
-    inline bool atEndpoint() const
-    {
-        const auto &current_dest{destinations[destination_index]};
-        if (current_dest.location != location)
-        {
-            return false;
-        }
-        if (endpointSublocation(current_dest.state) == SLOC_ORBIT)
-        {
-            return state == (endpointWantsDocked(current_dest.state) ? CS_ORBIT_DOCKED : CS_ORBIT);
-        }
-
-        // Surface is deliberately loose: landing counts whether or not a station was
-        // there to dock at. A shuttle descending to a body with no resource facility
-        // ends at CS_SURFACE, and the autopilot must still advance or it hangs.
-        return state == CS_SURFACE_DOCKED || state == CS_SURFACE;
-    }
+    // Am I where my current endpoint says? Out of line because it dereferences
+    // Location, and location.h includes shuttle.h includes this header.
+    bool atEndpoint() const;
 
     // runs when transit between locations is complete. Used to trigger game events.
     Craft &arriveAtLocation();
@@ -172,22 +157,13 @@ public:
 
     void disengageAutopilot();
 
-    inline Craft &launch()
-    {
-        if (state == CS_SURFACE_DOCKED)
-        {
-            // last_at_source = true;
-            state = CS_SURFACE_LAUNCH;
-            state_timer = CSTD_LAUNCH;
-        }
-        else if (state == CS_ORBIT_DOCKED)
-        {
-            // last_at_source = false;
-            state = CS_ORBIT_LAUNCH;
-            state_timer = CSTD_LAUNCH;
-        }
-        return *this;
-    }
+    // Undock. Moves the craft out of the facility and back into the region containing
+    // it -- a step up the hierarchy. Out of line because it dereferences Location.
+    Craft &launch();
+
+    // Move to this body's orbit or surface region: what ascending and descending
+    // arrive at. A no-op if the body has no such region.
+    void enterRegion(bool orbit);
 
     inline Craft &work(float duration)
     {

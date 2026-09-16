@@ -30,6 +30,7 @@ void Shuttle::update(float delta)
                 break;
             case CS_ASCENDING:
                 state = CS_ORBIT;
+                enterRegion(true); // reached orbit
                 break;
             case CS_ORBIT_WORK:
                 state = CS_ORBIT;
@@ -39,7 +40,9 @@ void Shuttle::update(float delta)
                 onDockWorkComplete();
                 break;
             case CS_DESCENDING:
-                // is there a facility to land at?
+                // Reached the ground either way; onDocked steps into the station if
+                // there is one to dock at.
+                enterRegion(false);
                 if (Game::getCurrent()->resourceFacilityAt(location))
                 {
                     state = CS_SURFACE_DOCKED;

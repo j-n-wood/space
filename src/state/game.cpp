@@ -480,8 +480,10 @@ void Game::setDefaultRoute(Shuttle *shuttle, Facility *facility)
         return;
     }
 
-    // Start docked at the facility we were commissioned from.
+    // Start docked at the facility we were commissioned from -- and located there, or
+    // state and position would disagree from the outset.
     shuttle->state = (facility->sublocation() == SLOC_ORBIT) ? CS_ORBIT_DOCKED : CS_SURFACE_DOCKED;
+    shuttle->location = facility;
 
     // A shuttle runs between the two sublocations at one body, so the obvious route is
     // this facility and the other kind. SublocationType has exactly two values, so the

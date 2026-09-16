@@ -295,6 +295,87 @@ TEST_CASE("an autopilot shuttle advances past its first dock")
     CHECK(s->autopilot->state == AS_ON); // and did not disable itself on the way
 }
 
+TEST_CASE("a craft's location matches what it is doing")
+{
+    // The rule: docked states put the craft AT the facility, orbit and surface states
+    // at the corresponding region. Driven by a real autopilot cycle rather than by
+    // poking states, so every transition -- dock, work, undock, ascend, descend -- is
+    // exercised the way the game exercises it.
+    Game *game = loadGame();
+    REQUIRE(game != nullptr);
+
+    Location *earth = game->locationByID(EARTH_ID);
+    REQUIRE(earth != nullptr);
+    REQUIRE(earth->orbit() != nullptr);
+    REQUIRE(earth->surface() != nullptr);
+
+    Orbital *orbital = game->orbitalAt(earth);
+    REQUIRE(orbital != nullptr);
+
+    Shuttle *s = game->createShuttle(earth);
+    REQUIRE(s != nullptr);
+    game->setDefaultRoute(s, orbital);
+    s->setPodType(0, PT_SUPPLY);
+    s->drive = true;
+    s->fuel = 250;
+    REQUIRE(s->engageAutopilot());
+
+    int violations = 0;
+    int sawDocked = 0;
+    int sawRegion = 0;
+
+    for (int tick = 0; tick < 4000; ++tick)
+    {
+        game->update(0.05f);
+
+        REQUIRE(s->location != nullptr);
+        if (s->body() != earth)
+        {
+            ++violations; // a local run should never leave the body
+            break;
+        }
+
+        // Counted by where it IS, not by state: with both endpoints docked the craft
+        // passes through CS_ORBIT and CS_SURFACE inside a single tick, so those states
+        // are never sampled even though the regions are genuinely occupied.
+        if (s->location == earth->orbit() || s->location == earth->surface())
+        {
+            ++sawRegion;
+        }
+
+        switch (s->state)
+        {
+        case CS_ORBIT_DOCKED:
+        case CS_ORBIT_DOCK_WORK:
+            if (!s->location->isFacility() || !s->location->inOrbit()) { ++violations; }
+            else { ++sawDocked; }
+            break;
+        case CS_SURFACE_DOCKED:
+        case CS_SURFACE_DOCK_WORK:
+            if (!s->location->isFacility() || s->location->inOrbit()) { ++violations; }
+            else { ++sawDocked; }
+            break;
+        case CS_ORBIT:
+            if (s->location != earth->orbit()) { ++violations; }
+            break;
+        case CS_SURFACE:
+            if (s->location != earth->surface()) { ++violations; }
+            break;
+        case CS_ORBIT_LAUNCH:
+        case CS_SURFACE_LAUNCH:
+            // undocked, so out of the facility and back in its region
+            if (s->location->isFacility()) { ++violations; }
+            break;
+        default:
+            break; // ascending, descending: in between, claiming no region
+        }
+    }
+
+    CHECK(violations == 0);
+    CHECK(sawDocked > 0); // the cycle really did dock
+    CHECK(sawRegion > 0); // and really did occupy a region undocked
+}
+
 TEST_CASE("a shuttle's owner and its position are separate")
 {
     Game *game = loadGame();

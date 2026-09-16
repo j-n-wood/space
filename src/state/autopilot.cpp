@@ -121,8 +121,12 @@ void Autopilot::update(Craft *craft, float delta)
     if (craft->state == CS_ORBIT)
     {
         auto &dest{craft->currentDestination()};
-        // are we at desired location?
-        if (dest.location == craft->location)
+        // Same BODY means a local manoeuvre -- ascend, descend or dock. A different
+        // body is what makes a leg a transit. Comparing exact locations here would
+        // fire the interplanetary drive for a surface-to-orbit hop, since the craft
+        // sits in a region while the endpoint still names the body.
+        if (dest.location && craft->location &&
+            dest.location->body() == craft->location->body())
         {
             if (dest.state == EP_ORBIT_DOCKED)
             {

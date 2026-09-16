@@ -77,6 +77,66 @@ Location *Craft::body() const
     return location ? location->body() : nullptr;
 }
 
+Craft &Craft::launch()
+{
+    if (state != CS_SURFACE_DOCKED && state != CS_ORBIT_DOCKED)
+    {
+        return *this;
+    }
+
+    state = (state == CS_SURFACE_DOCKED) ? CS_SURFACE_LAUNCH : CS_ORBIT_LAUNCH;
+    state_timer = CSTD_LAUNCH;
+
+    // Leaving a facility puts us back in the region it sits in.
+    if (location && location->isFacility() && location->primary)
+    {
+        location = location->primary;
+    }
+    return *this;
+}
+
+void Craft::enterRegion(bool orbit)
+{
+    Location *b = body();
+    if (!b)
+    {
+        return;
+    }
+    Location *region = orbit ? b->orbit() : b->surface();
+    if (region)
+    {
+        location = region;
+    }
+}
+
+bool Craft::atEndpoint() const
+{
+    const Endpoint &dest = destinations[destination_index];
+    if (!dest.location || !location)
+    {
+        return false;
+    }
+
+    // Compare BODIES, not exact locations. That is correct whether an endpoint names
+    // a body (as it does now) or a facility (as it will), and whether the craft's
+    // location is the body or the precise place it has reached. The state below is
+    // what separates the two ends of a shuttle's run at a single body.
+    if (dest.location->body() != location->body())
+    {
+        return false;
+    }
+
+    if (endpointSublocation(dest.state) == SLOC_ORBIT)
+    {
+        return state == (endpointWantsDocked(dest.state) ? CS_ORBIT_DOCKED : CS_ORBIT);
+    }
+
+    // Surface is deliberately loose: landing counts whether or not a station was
+    // there to dock at. A shuttle descending to a body with no resource facility
+    // ends at CS_SURFACE, and the autopilot must still advance or it hangs.
+    return state == CS_SURFACE_DOCKED || state == CS_SURFACE;
+}
+
 bool Craft::isPodEmpty(const int index)
 {
     if (index >= max_pods)
@@ -124,7 +184,16 @@ void Craft::update(float delta)
 Craft &Craft::arriveAtLocation()
 {
     auto &current_dest{destinations[destination_index]};
-    location = current_dest.location;
+
+    // Transit ends in orbit, so arrive at the destination body's orbit region rather
+    // than at the body itself. Docking, if the endpoint wants it, happens next.
+    Location *target = current_dest.location;
+    if (target)
+    {
+        Location *b = target->body();
+        location = (b && b->orbit()) ? b->orbit() : target;
+    }
+
     if (atEndpoint())
     {
         TraceLog(LOG_INFO, "Arrived at destination: %s", location ? location->name : "Space");
@@ -135,6 +204,20 @@ Craft &Craft::arriveAtLocation()
 
 void Craft::onDocked()
 {
+    // Docking moves the craft INTO the facility: it is a child of the region we were
+    // in, so this is a step down the hierarchy rather than a lookup.
+    Location *b = body();
+    if (b)
+    {
+        Game *game = Game::getCurrent();
+        Facility *f = (state == CS_ORBIT_DOCKED) ? static_cast<Facility *>(game->orbitalAt(b))
+                                                 : static_cast<Facility *>(game->resourceFacilityAt(b));
+        if (f)
+        {
+            location = f;
+        }
+    }
+
     if (atEndpoint())
     {
         autopilot->onDocked(this); // called before advancing endpoint, current dest = where we are now
