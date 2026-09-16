@@ -2,7 +2,7 @@
 #include "state/research_facility.h"
 #include "state/training_facility.h"
 
-EarthCity::EarthCity(Location *l, SublocationType s) : ResourceFacility{l, LOCATION_TYPE_EARTH_CITY, s}
+EarthCity::EarthCity(Location *l) : ResourceFacility{l, LOCATION_TYPE_EARTH_CITY}
 {
     training_facility = std::make_unique<TrainingFacility>();
     operational = true; // start operational, as we don't have construction progress implemented yet

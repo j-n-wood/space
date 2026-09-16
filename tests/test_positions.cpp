@@ -63,6 +63,10 @@ std::map<int, Sample> samplePositions(Game *game)
     std::map<int, Sample> out;
     for (auto &loc : game->allLocations())
     {
+        if (!loc)
+        {
+            continue; // locations are stored by id, so a slot may be empty
+        }
         const Vector2 p = resolvedPositionOf(loc.get());
         out[loc->id] = Sample{p.x, p.y};
     }
@@ -120,7 +124,10 @@ TEST_CASE("resolved body positions match the recorded baseline")
         return;
     }
 
-    CHECK(expected.size() == actual.size());
+    // A subset check, not set equality: the baseline was captured before orbit and
+    // surface locations existed, and adding locations is expected. What must not happen
+    // is an existing body moving, so every recorded id is still checked exactly.
+    CHECK(actual.size() >= expected.size());
 
     for (const auto &entry : expected)
     {
@@ -199,7 +206,7 @@ TEST_CASE("location ids continue the loaded sequence")
     int highest = -1;
     for (auto &loc : game->allLocations())
     {
-        if (loc->id > highest)
+        if (loc && loc->id > highest)
         {
             highest = loc->id;
         }

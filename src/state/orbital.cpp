@@ -1,7 +1,7 @@
 #include "state/orbital.h"
 #include "state/game.h"
 
-Orbital::Orbital(Location *l, SublocationType s) : Facility{l, LOCATION_TYPE_ORBITAL, s}
+Orbital::Orbital(Location *l) : Facility{l, LOCATION_TYPE_ORBITAL}
 {
 }
 

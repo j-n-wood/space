@@ -20,10 +20,14 @@ class Facility : public Location
 public:
     int faction_id;
 
-    // Where it sits, and so what a craft must do to reach it. Independent of `type`
-    // -- a future kind could exist at either surface or orbit without inventing a
-    // type per placement.
-    SublocationType sublocation;
+    // Where it sits, and so what a craft must do to reach it. Derived from the parent
+    // now that orbit and surface are locations in their own right: a facility hanging
+    // off an orbit location IS in orbit. Kept as an accessor so the ~10 call sites
+    // read unchanged while the underlying fact moves into the hierarchy.
+    SublocationType sublocation() const
+    {
+        return (primary && primary->type == LOCATION_TYPE_ORBIT) ? SLOC_ORBIT : SLOC_SURFACE;
+    }
 
     Stores stores;
     std::unique_ptr<Factory> factory; // RF bases typically do not have factory, orbitals do
@@ -36,9 +40,11 @@ public:
 
     // `parent` is the body this facility belongs to. Id and name are assigned by the
     // Game factory that creates it, which owns the id sequence.
-    Facility(Location *parent, LocationType t, SublocationType s)
+    // `parent` is the orbit or surface location this facility sits in -- that parent is
+    // what makes it orbital or surface, so no sublocation is passed or stored.
+    Facility(Location *parent, LocationType t)
         : Location(parent ? parent->system : nullptr, -1, "", t),
-          faction_id{0}, sublocation{s}, operational{false}, aoc_installed{false},
+          faction_id{0}, operational{false}, aoc_installed{false},
           sdm_installed{false}, mtx_installed{false}, construction_progress{0}, damage{0}
     {
         primary = parent;

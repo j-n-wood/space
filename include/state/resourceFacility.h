@@ -15,8 +15,8 @@ public:
     std::unique_ptr<ResearchFacility> research_facility;
     std::unique_ptr<TrainingFacility> training_facility;
 
-    explicit ResourceFacility(Location *l, SublocationType s = SLOC_SURFACE)
-        : ResourceFacility(l, LOCATION_TYPE_RESOURCE_FACILITY, s) {}
+    explicit ResourceFacility(Location *l)
+        : ResourceFacility(l, LOCATION_TYPE_RESOURCE_FACILITY) {}
     ~ResourceFacility();
 
     virtual void update() override;
@@ -24,7 +24,7 @@ public:
 
 protected:
     // for EarthCity, which is a resource facility of a different kind
-    ResourceFacility(Location *l, LocationType t, SublocationType s);
+    ResourceFacility(Location *l, LocationType t);
 };
 
 // Non-owning: Game::locations owns every location, facilities included.

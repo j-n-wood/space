@@ -75,9 +75,10 @@ const IOSs &Game::allIOS() const
 
 namespace
 {
-    // Low orbit: far enough that a station is a distinct position for transit maths,
-    // close enough that reaching it and reaching the body cost about the same.
-    const float ORBITAL_STATION_RADIUS = 2.0f;
+    // Separation of a facility from the centre of its orbit or surface region: enough
+    // to give siblings distinct positions for transit maths, small enough that reaching
+    // one costs about the same as reaching another.
+    const float FACILITY_SIBLING_RADIUS = 0.5f;
 
     // Spread siblings around the parent so several facilities at one body get
     // distinct positions. The golden angle avoids clustering as the count grows.
@@ -88,22 +89,83 @@ namespace
     }
 }
 
-void Game::attachFacilityLocation(Facility *facility, Location *parent, const char *label, int id)
+Location *Game::placeLocation(LocationPtr location, int id)
 {
-    // A persisted id keeps identity across a round trip; -1 allocates a new one.
-    facility->id = (id >= 0) ? id : nextLocationID();
-    if (location_max_id < facility->id)
+    if (!location || id < 0)
     {
-        location_max_id = facility->id;
+        TraceLog(LOG_ERROR, "placeLocation needs a location and a non-negative id (%d)", id);
+        return nullptr;
     }
+
+    // Placed BY id rather than appended, so ids stay dense regardless of the order
+    // things load in, and locationByID can index straight in. A gap is a null slot,
+    // not a wrong answer -- which is what the old locations[id] gave when density
+    // was merely assumed.
+    //
+    // resize grows capacity geometrically, so loading one location at a time is
+    // amortised rather than quadratic -- but the constructor reserves past the
+    // expected count so it does not reallocate at all. Reallocation would be safe
+    // if it happened: callers hold Location*, which points at the heap object, not
+    // into this vector.
+    if (static_cast<size_t>(id) >= locations.size())
+    {
+        locations.resize(static_cast<size_t>(id) + 1);
+    }
+    if (locations[id])
+    {
+        TraceLog(LOG_ERROR, "Duplicate location id %d (%s)", id, location->name);
+        return nullptr;
+    }
+
+    location->id = id;
+    locations[id] = std::move(location);
+
+    if (location_max_id < id)
+    {
+        location_max_id = id;
+    }
+    return locations[id].get();
+}
+
+Location *Game::facilityParentFor(Location *location, bool wantOrbit)
+{
+    if (!location)
+    {
+        return nullptr;
+    }
+    // Already the right kind of region
+    if (location->type == (wantOrbit ? LOCATION_TYPE_ORBIT : LOCATION_TYPE_SURFACE))
+    {
+        return location;
+    }
+    // A body was given: resolve to its orbit or surface child
+    Location *b = location->body();
+    if (!b)
+    {
+        return nullptr;
+    }
+    Location *parent = wantOrbit ? b->orbit() : b->surface();
+    if (!parent)
+    {
+        // Every body in the database ships with its regions, and nothing creates a
+        // body at runtime -- so this means the data is wrong, not that a region needs
+        // making.
+        TraceLog(LOG_ERROR, "%s has no %s region", b->name, wantOrbit ? "orbit" : "surface");
+    }
+    return parent;
+}
+
+void Game::attachFacilityLocation(Facility *facility, Location *parent, const char *label)
+{
     facility->system = parent->system;
     facility->primary = parent;
     facility->primary_id = parent->id;
-    std::snprintf(facility->name, sizeof facility->name, "%s %s", parent->name, label);
+    std::snprintf(facility->name, sizeof facility->name, "%s %s", parent->body()->name, label);
 
-    // Surface facilities sit at the body; orbitals stand off it. Either way the
-    // angle separates siblings at the same parent.
-    facility->orbital_radius = (facility->sublocation == SLOC_ORBIT) ? ORBITAL_STATION_RADIUS : 0.0f;
+    // A facility sits within its orbit or surface region, so it needs only a small
+    // offset -- enough to give siblings distinct positions for transit maths. The
+    // standoff from the body itself belongs to the orbit location.
+    facility->orbital_radius = FACILITY_SIBLING_RADIUS;
     facility->orbital_velocity = 0.0f; // holds station relative to the parent
     facility->initial_angle = nextSiblingAngle(parent);
     facility->position = (Vector2){
@@ -117,17 +179,22 @@ void Game::attachFacilityLocation(Facility *facility, Location *parent, const ch
     }
 }
 
-EarthCity *Game::createEarthCity(Location *location, SublocationType sublocation, int id)
+EarthCity *Game::createEarthCity(Location *location, int id)
 {
-    if (!location)
+    Location *parent = facilityParentFor(location, false);
+    if (!parent)
     {
-        TraceLog(LOG_ERROR, "Null location provided to createEarthCity");
+        TraceLog(LOG_ERROR, "No surface location for createEarthCity");
         return nullptr;
     }
     // Game::locations owns it; bases below is a non-owning view.
-    locations.emplace_back(std::make_unique<EarthCity>(location, sublocation));
-    EarthCity *ec = static_cast<EarthCity *>(locations.back().get());
-    attachFacilityLocation(ec, location, "City", id);
+    EarthCity *ec = static_cast<EarthCity *>(
+        placeLocation(std::make_unique<EarthCity>(parent), (id >= 0) ? id : nextLocationID()));
+    if (!ec)
+    {
+        return nullptr;
+    }
+    attachFacilityLocation(ec, parent, "City");
     bases.push_back(ec);
 
     auto factory = createFactory(ec); // EC production
@@ -137,16 +204,21 @@ EarthCity *Game::createEarthCity(Location *location, SublocationType sublocation
     return ec;
 }
 
-ResourceFacility *Game::createResourceFacility(Location *location, SublocationType sublocation, int id)
+ResourceFacility *Game::createResourceFacility(Location *location, int id)
 {
-    if (!location)
+    Location *parent = facilityParentFor(location, false);
+    if (!parent)
     {
-        TraceLog(LOG_ERROR, "Null location provided to createResourceFacility");
+        TraceLog(LOG_ERROR, "No surface location for createResourceFacility");
         return nullptr;
     }
-    locations.emplace_back(std::make_unique<ResourceFacility>(location, sublocation));
-    ResourceFacility *rf = static_cast<ResourceFacility *>(locations.back().get());
-    attachFacilityLocation(rf, location, "Station", id);
+    ResourceFacility *rf = static_cast<ResourceFacility *>(
+        placeLocation(std::make_unique<ResourceFacility>(parent), (id >= 0) ? id : nextLocationID()));
+    if (!rf)
+    {
+        return nullptr;
+    }
+    attachFacilityLocation(rf, parent, "Station");
     bases.push_back(rf);
     return rf;
 }
@@ -155,11 +227,12 @@ ResourceFacility *Game::resourceFacilityAt(Location *location)
 {
     if (location)
     {
-        // Facilities are children of the body, so this could become a walk of
-        // location->children. Left as a scan until the Endpoint collapse lands.
+        // Facilities hang off the body's surface location, not the body itself, so
+        // match on the body. Accepts a body or either of its regions.
+        Location *b = location->body();
         for (ResourceFacility *base : bases)
         {
-            if (base->primary == location)
+            if (base->body() == b)
             {
                 return base;
             }
@@ -168,16 +241,21 @@ ResourceFacility *Game::resourceFacilityAt(Location *location)
     return nullptr;
 }
 
-Orbital *Game::createOrbital(Location *location, SublocationType sublocation, int id)
+Orbital *Game::createOrbital(Location *location, int id)
 {
-    if (!location)
+    Location *parent = facilityParentFor(location, true);
+    if (!parent)
     {
-        TraceLog(LOG_ERROR, "Null location provided to createOrbital");
+        TraceLog(LOG_ERROR, "No orbit location for createOrbital");
         return nullptr;
     }
-    locations.emplace_back(std::make_unique<Orbital>(location, sublocation));
-    Orbital *o = static_cast<Orbital *>(locations.back().get());
-    attachFacilityLocation(o, location, "Orbital", id);
+    Orbital *o = static_cast<Orbital *>(
+        placeLocation(std::make_unique<Orbital>(parent), (id >= 0) ? id : nextLocationID()));
+    if (!o)
+    {
+        return nullptr;
+    }
+    attachFacilityLocation(o, parent, "Orbital");
     orbitals.push_back(o);
     createFactory(o);
     return o;
@@ -187,11 +265,12 @@ Orbital *Game::orbitalAt(Location *location) const
 {
     if (location)
     {
-        // Facilities are children of the body, so this could become a walk of
-        // location->children. Left as a scan until the Endpoint collapse lands.
+        // Facilities hang off the body's orbit location, not the body itself, so
+        // match on the body. Accepts a body or either of its regions.
+        const Location *b = location->body();
         for (Orbital *orbital : orbitals)
         {
-            if (orbital->primary == location)
+            if (orbital->body() == b)
             {
                 return orbital;
             }
@@ -401,7 +480,7 @@ void Game::setDefaultRoute(Shuttle *shuttle, Facility *facility)
     }
 
     // Start docked at the facility we were commissioned from.
-    shuttle->state = (facility->sublocation == SLOC_ORBIT) ? CS_ORBIT_DOCKED : CS_SURFACE_DOCKED;
+    shuttle->state = (facility->sublocation() == SLOC_ORBIT) ? CS_ORBIT_DOCKED : CS_SURFACE_DOCKED;
 
     // A shuttle runs between the two sublocations at one body, so the obvious route is
     // this facility and the other kind. SublocationType has exactly two values, so the
@@ -409,7 +488,7 @@ void Game::setDefaultRoute(Shuttle *shuttle, Facility *facility)
     //
     // This is only a sensible default, not a rule: the far end may not exist yet, and
     // once facilities become locations the route should name them rather than the body.
-    const SublocationType here = facility->sublocation;
+    const SublocationType here = facility->sublocation();
     const SublocationType there = (here == SLOC_ORBIT) ? SLOC_SURFACE : SLOC_ORBIT;
     shuttle->destinations[0] = Endpoint(facility->primary, endpointStateFor(there, true));
     shuttle->destinations[1] = Endpoint(facility->primary, endpointStateFor(here, true));

@@ -5,6 +5,6 @@
 class EarthCity : public ResourceFacility
 {
 public:
-    explicit EarthCity(Location *l, SublocationType s = SLOC_SURFACE);
+    explicit EarthCity(Location *l);
     ~EarthCity();
 };

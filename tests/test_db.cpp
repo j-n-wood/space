@@ -254,10 +254,21 @@ TEST_CASE("Game::createOrbital works on a stack-allocated Game (no singleton)")
     Location *body = game.createLocation(sys, 1, "TestBody", LOCATION_TYPE_PLANET);
     REQUIRE(body != nullptr);
 
+    // Bodies come from the database with their regions already attached, so a
+    // synthetic one has to be built the same way the loader builds it.
+    Location *orbitRegion = game.createLocation(sys, 2, "TestBody Orbit", LOCATION_TYPE_ORBIT);
+    REQUIRE(orbitRegion != nullptr);
+    orbitRegion->primary = body;
+    orbitRegion->primary_id = body->id;
+    body->children.push_back(orbitRegion);
+
     Orbital *orb = game.createOrbital(body);
     REQUIRE(orb != nullptr);
-    CHECK(orb->primary == body);
-    CHECK(orb->sublocation == SLOC_ORBIT);
+    REQUIRE(body->orbit() == orbitRegion);
+    CHECK(orb->primary == orbitRegion);
+    CHECK(orb->body() == body);
+    CHECK(orb->inOrbit());
+    CHECK(orb->sublocation() == SLOC_ORBIT);
     // The factory is what used to be wired via Game::getCurrent(); now wired
     // by Game::createOrbital itself.
     CHECK(orb->factory != nullptr);
@@ -460,7 +471,8 @@ TEST_CASE("SaveGame produces a loadable database")
         REQUIRE(earth != nullptr);
         Orbital *orb = loaded.orbitalAt(earth);
         REQUIRE(orb != nullptr);
-        CHECK_STREQ(orb->primary->name, "Earth");
+        // parented on Earth's orbit region now, so ask for the body
+        CHECK_STREQ(orb->body()->name, "Earth");
     }
 
     SUBCASE("round-trips facility stores")
@@ -881,8 +893,8 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
 
     // --- Shuttle: docked, drive fitted, pods loaded, autopilot AS_ON, varied flow + cursors
     // Based at the body. createShuttle places a craft AT the location given, so passing
-    // the orbital would put it there -- which is step 6 of the plan, not yet.
-    Shuttle *shuttle = game->createShuttle(orb->primary);
+    // the orbital or its orbit region would put it there -- which is step 6, not yet.
+    Shuttle *shuttle = game->createShuttle(orb->body());
     REQUIRE(shuttle != nullptr);
 
     std::snprintf(shuttle->name, sizeof shuttle->name, "Discovery");
@@ -1036,7 +1048,7 @@ TEST_CASE("SaveGame round-trips autopilot state across all values")
         Orbital *orb = game->orbitalAt(earth);
         REQUIRE(orb != nullptr);
 
-        Shuttle *shuttle = game->createShuttle(orb->primary);
+        Shuttle *shuttle = game->createShuttle(orb->body());
         REQUIRE(shuttle != nullptr);
         shuttle->autopilot->state = s;
 
@@ -1120,7 +1132,7 @@ TEST_CASE("facility type is stored, not inferred from its contents")
     CHECK(loadedRf->type == LOCATION_TYPE_RESOURCE_FACILITY);
     CHECK_FALSE(loadedRf->isEarthCity());
     CHECK(loadedRf->training_facility == nullptr);
-    CHECK(loadedRf->sublocation == SLOC_SURFACE);
+    CHECK(loadedRf->sublocation() == SLOC_SURFACE);
 
     // and the Earth City is still itself
     Location *earth = loaded.locationByID(4);
@@ -1130,7 +1142,7 @@ TEST_CASE("facility type is stored, not inferred from its contents")
     CHECK(ec->type == LOCATION_TYPE_EARTH_CITY);
     CHECK(ec->isEarthCity());
     CHECK(ec->training_facility != nullptr);
-    CHECK(ec->sublocation == SLOC_SURFACE);
+    CHECK(ec->sublocation() == SLOC_SURFACE);
 
     removeSaveFile();
 }

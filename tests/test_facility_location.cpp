@@ -55,14 +55,19 @@ TEST_CASE("facilities are child locations of their body")
     Orbital *orbital = game->orbitalAt(earth);
     REQUIRE(orbital != nullptr);
 
-    CHECK(orbital->primary == earth);
+    // An orbital sits IN the body's orbit region, not directly on the body -- which is
+    // what makes "am I in orbit?" an ancestor test rather than a set of types.
+    REQUIRE(earth->orbit() != nullptr);
+    CHECK(orbital->primary == earth->orbit());
+    CHECK(orbital->body() == earth);
+    CHECK(orbital->inOrbit());
     CHECK(orbital->system == earth->system);
     CHECK(orbital->isFacility());
     CHECK(orbital->type == LOCATION_TYPE_ORBITAL);
 
-    // it is in the parent's child list, and resolvable as a location
+    // it is in the orbit region's child list, and resolvable as a location
     bool found = false;
-    for (Location *child : earth->children)
+    for (Location *child : earth->orbit()->children)
     {
         if (child == orbital)
         {
@@ -84,35 +89,44 @@ TEST_CASE("facilities are child locations of their body")
     CHECK(inSystem);
 }
 
-TEST_CASE("facility ids extend the body sequence and stay unique")
+TEST_CASE("location ids are unique and shared across every kind")
 {
     Game *game = loadGame();
     REQUIRE(game != nullptr);
 
-    int highestBody = -1;
-    for (auto &loc : game->allLocations())
-    {
-        if (!loc->isFacility() && loc->id > highestBody)
-        {
-            highestBody = loc->id;
-        }
-    }
-    REQUIRE(highestBody > 0);
-
-    // Facility ids used to start at 1 and collide with body ids.
+    // Facility ids used to start at 1 and collide with body ids. They now draw from
+    // the same sequence as every other location. Note they are NOT above all body
+    // ids: the orbit and surface regions were appended after them, which is fine --
+    // the invariant is uniqueness, not ordering.
     std::set<int> seen;
     int facilityCount = 0;
+    int regionCount = 0;
+    int highest = -1;
+
     for (auto &loc : game->allLocations())
     {
+        if (!loc)
+        {
+            continue; // stored by id, so a slot may be empty
+        }
         CHECK(seen.insert(loc->id).second); // unique across every location
+        if (loc->id > highest)
+        {
+            highest = loc->id;
+        }
         if (loc->isFacility())
         {
             ++facilityCount;
-            CHECK(loc->id > highestBody);
+        }
+        if (loc->type == LOCATION_TYPE_ORBIT || loc->type == LOCATION_TYPE_SURFACE)
+        {
+            ++regionCount;
         }
     }
+
     CHECK(facilityCount > 0);
-    CHECK(game->location_max_id >= highestBody);
+    CHECK(regionCount > 0);
+    CHECK(game->location_max_id == highest);
 }
 
 TEST_CASE("facility positions resolve relative to their parent")
@@ -136,10 +150,13 @@ TEST_CASE("facility positions resolve relative to their parent")
     CHECK(standoff > 0.0f);
     CHECK(standoff < 10.0f);
 
-    // A surface facility sits at the body itself.
+    // A surface facility sits in the body's surface region, which is at the body --
+    // so only the small sibling offset separates it, much less than the orbit standoff.
     ResourceFacility *surface = game->resourceFacilityAt(earth);
     REQUIRE(surface != nullptr);
-    CHECK(distanceBetween(surface, earth) == doctest::Approx(0.0f));
+    const float groundOffset = distanceBetween(surface, earth);
+    CHECK(groundOffset < standoff);
+    CHECK(groundOffset < 1.0f);
 }
 
 TEST_CASE("facilities are not drawn or hit-tested in the orrery")
@@ -152,7 +169,7 @@ TEST_CASE("facilities are not drawn or hit-tested in the orrery")
     int checked = 0;
     for (auto &loc : game->allLocations())
     {
-        if (loc->isFacility())
+        if (loc && loc->isFacility())
         {
             CHECK(loc->radius == doctest::Approx(0.0f));
             ++checked;
@@ -176,7 +193,8 @@ TEST_CASE("siblings at one body get distinct positions")
     Orbital *second = game->createOrbital(earth);
     REQUIRE(second != nullptr);
     CHECK(second != first);
-    CHECK(second->primary == earth);
+    CHECK(second->body() == earth);
+    CHECK(second->primary == first->primary); // siblings in the same orbit region
     CHECK(second->id != first->id);
 
     for (auto &sys : game->allSystems())

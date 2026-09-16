@@ -121,7 +121,8 @@ bool Loader::loadFacilities()
         int aoc_installed = sqlite3_column_int(query, 9);
         int sdm_installed = sqlite3_column_int(query, 10);
         int mtx_installed = sqlite3_column_int(query, 11);
-        SublocationType sublocation = static_cast<SublocationType>(sqlite3_column_int(query, 12));
+        // column 12 is the legacy `sublocation`; the parent location now carries that
+        // fact, so it is no longer read. The column goes in the persistence step.
         Location *loc = findLocation(system_id, location_id);
         if (!loc)
         {
@@ -129,14 +130,15 @@ bool Loader::loadFacilities()
             return false;
         }
 
-        // `type` is a LocationType: what the facility IS. `sublocation` is read
-        // separately and passed through, rather than inferred from the type.
+        // `type` is a LocationType: what the facility IS. Where it sits comes from its
+        // parent -- location_id names the orbit or surface location, so no sublocation
+        // needs passing.
         Facility *fac = nullptr;
         switch (static_cast<LocationType>(type))
         {
         case LOCATION_TYPE_RESOURCE_FACILITY:
         {
-            auto rf = game->createResourceFacility(loc, sublocation, id);
+            auto rf = game->createResourceFacility(loc, id);
             rf->num_derricks = num_derricks;
             rf->operational = operational;
             rf->construction_progress = construction_progress;
@@ -146,7 +148,7 @@ bool Loader::loadFacilities()
         }
         case LOCATION_TYPE_ORBITAL:
         {
-            auto orbital = game->createOrbital(loc, sublocation, id);
+            auto orbital = game->createOrbital(loc, id);
             orbital->operational = operational;
             orbital->construction_progress = construction_progress;
             orbital->damage = damage;
@@ -158,7 +160,7 @@ bool Loader::loadFacilities()
         }
         case LOCATION_TYPE_EARTH_CITY:
         {
-            auto ec = game->createEarthCity(loc, sublocation, id);
+            auto ec = game->createEarthCity(loc, id);
             ec->num_derricks = num_derricks;
             ec->damage = damage;
             fac = ec;

@@ -138,6 +138,12 @@ bool Loader::loadBodies()
     // Resolve primary_id into the `primary` pointer and build the child lists.
     for (auto &loc : game->allLocations())
     {
+        // Locations are stored BY id, so a slot may be empty -- facilities occupy ids
+        // in this range but are loaded later, after the bodies they hang off.
+        if (!loc)
+        {
+            continue;
+        }
         System *system = loc->system;
         if (!system)
         {

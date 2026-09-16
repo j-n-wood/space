@@ -291,11 +291,11 @@ Shuttle *BayView::getShuttle()
         {
             // has a shuttle. Is it docked here?
             bool docked = false;
-            if ((facility->sublocation == SLOC_ORBIT) && (shuttle->state == CS_ORBIT_DOCKED))
+            if ((facility->sublocation() == SLOC_ORBIT) && (shuttle->state == CS_ORBIT_DOCKED))
             {
                 docked = true;
             }
-            else if ((facility->sublocation == SLOC_SURFACE) && (shuttle->state == CS_SURFACE_DOCKED))
+            else if ((facility->sublocation() == SLOC_SURFACE) && (shuttle->state == CS_SURFACE_DOCKED))
             {
                 docked = true;
             }

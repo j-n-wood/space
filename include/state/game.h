@@ -66,12 +66,23 @@ class Game
     // current game instance
     static std::unique_ptr<Game> current;
 
-    // Shared setup for a facility created as a child location of `parent`: assigns
-    // an id from the location sequence, names it, gives it a position relative to
-    // the parent, and links it into the system and the parent's children.
+    // Take ownership of a location at slot `id`, keeping the id space dense. The one
+    // place that writes `locations`, so every creation path -- bodies and facilities
+    // alike -- lands where locationByID will look for it.
+    Location *placeLocation(LocationPtr location, int id);
+
+    // The orbit or surface location a facility of this kind belongs in. Accepts that
+    // location directly, or a body, in which case the matching child is used. Bodies
+    // and their regions come from the database; nothing creates a body at runtime, so
+    // a missing region is an error rather than something to conjure.
+    Location *facilityParentFor(Location *location, bool wantOrbit);
+
+    // Shared setup for a facility created as a child location of `parent`: names it,
+    // gives it a position relative to the parent, and links it into the system and
+    // the parent's children.
     // `id` of -1 allocates the next free location id; the loader passes the
     // persisted one so identity survives a round trip.
-    void attachFacilityLocation(Facility *facility, Location *parent, const char *label, int id);
+    void attachFacilityLocation(Facility *facility, Location *parent, const char *label);
 
 public:
     // game state
@@ -138,11 +149,12 @@ public:
     const IOSs &allIOS() const;
     const Shuttles &allShuttles() const { return shuttles; }
 
-    // Sublocation is defaulted so runtime callers are unchanged; the loader passes
-    // the persisted value.
-    EarthCity *createEarthCity(Location *location, SublocationType sublocation = SLOC_SURFACE, int id = -1);
-    ResourceFacility *createResourceFacility(Location *location, SublocationType sublocation = SLOC_SURFACE, int id = -1);
-    Orbital *createOrbital(Location *location, SublocationType sublocation = SLOC_ORBIT, int id = -1);
+    // `location` is the orbit or surface location the facility sits in -- that parent
+    // is what makes it orbital or surface, so no sublocation is passed. A body may be
+    // given for convenience; it resolves to the matching child.
+    EarthCity *createEarthCity(Location *location, int id = -1);
+    ResourceFacility *createResourceFacility(Location *location, int id = -1);
+    Orbital *createOrbital(Location *location, int id = -1);
     ResearchFacility *createResearchFacility(ResourceFacility *facility);
 
     // locate game state
