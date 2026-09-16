@@ -72,6 +72,11 @@ Craft::~Craft()
 {
 }
 
+Location *Craft::body() const
+{
+    return location ? location->body() : nullptr;
+}
+
 bool Craft::isPodEmpty(const int index)
 {
     if (index >= max_pods)

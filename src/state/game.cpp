@@ -377,12 +377,13 @@ ResearchFacility *Game::createResearchFacility(ResourceFacility *facility)
 
 bool Game::canCommissionShuttle(Facility *facility) const
 {
-    // require ios_chassis item, and no existing shuttle at location
-    if (!facility || !facility->primary)
+    // require ios_chassis item, and no existing shuttle at the body. The shuttle hangs
+    // off the body, not off this facility's orbit or surface region, so ask for the body.
+    if (!facility || !facility->body())
     {
         return false;
     }
-    if (facility->primary->shuttle)
+    if (facility->body()->shuttle)
     {
         return false;
     }
@@ -391,7 +392,7 @@ bool Game::canCommissionShuttle(Facility *facility) const
 
 bool Game::canCommissionIOS(Facility *facility) const
 {
-    if (!facility || !facility->primary)
+    if (!facility || !facility->body())
     {
         return false;
     }
@@ -406,7 +407,7 @@ Shuttle *Game::commissionShuttle(Facility *facility)
     }
     // remove required item from stores
     facility->stores.items[ItemType::S_Chassis] -= 1;
-    auto shuttle = createShuttle(facility->primary);
+    auto shuttle = createShuttle(facility->body());
     if (!shuttle)
     {
         return nullptr;
@@ -473,7 +474,7 @@ Shuttle *Game::createShuttle(Location *position)
 
 void Game::setDefaultRoute(Shuttle *shuttle, Facility *facility)
 {
-    if (!shuttle || !facility || !facility->primary)
+    if (!shuttle || !facility || !facility->body())
     {
         TraceLog(LOG_ERROR, "setDefaultRoute needs a shuttle and a sited facility");
         return;
@@ -488,10 +489,14 @@ void Game::setDefaultRoute(Shuttle *shuttle, Facility *facility)
     //
     // This is only a sensible default, not a rule: the far end may not exist yet, and
     // once facilities become locations the route should name them rather than the body.
+    // Endpoints still name the BODY: atEndpoint compares against craft->location,
+    // which is a body until step 6. Naming the facility's region here instead would
+    // stall the autopilot at its first dock.
+    Location *b = facility->body();
     const SublocationType here = facility->sublocation();
     const SublocationType there = (here == SLOC_ORBIT) ? SLOC_SURFACE : SLOC_ORBIT;
-    shuttle->destinations[0] = Endpoint(facility->primary, endpointStateFor(there, true));
-    shuttle->destinations[1] = Endpoint(facility->primary, endpointStateFor(here, true));
+    shuttle->destinations[0] = Endpoint(b, endpointStateFor(there, true));
+    shuttle->destinations[1] = Endpoint(b, endpointStateFor(here, true));
 }
 
 IOS *Game::createIOS(Location *location)
@@ -510,8 +515,8 @@ IOS *Game::createIOS(Location *location)
 
 IOS *Game::createIOS(Facility *facility)
 {
-    // create an IOS at a location, starting at the given facility
-    Location *location{facility->primary};
+    // create an IOS at a location, starting at the given facility's body
+    Location *location{facility ? facility->body() : nullptr};
     if (!location)
     {
         TraceLog(LOG_ERROR, "Facility missing location");
@@ -1053,7 +1058,7 @@ void Game::onCaptureOrbital(Orbital *orbital, int new_faction_id)
         return;
     }
     orbital->faction_id = new_faction_id;
-    TraceLog(LOG_INFO, "Orbital at location %s captured by faction %d", orbital->primary->name, new_faction_id);
+    TraceLog(LOG_INFO, "Orbital at location %s captured by faction %d", orbital->body()->name, new_faction_id);
 
     // TODO
     // methanoids tend to trash orbitals before they are captured
@@ -1128,7 +1133,7 @@ bool Game::processConsoleCommand(const char *command, Location *l, Facility *f)
         if (f)
         {
             f->stores.items[item_id] += amount;
-            TraceLog(LOG_INFO, "Added %d of item %d to current location %s", amount, item_id, f->primary->name);
+            TraceLog(LOG_INFO, "Added %d of item %d to current location %s", amount, item_id, f->body()->name);
             return true;
         }
     }
@@ -1146,14 +1151,14 @@ bool Game::processConsoleCommand(const char *command, Location *l, Facility *f)
     // 'shuttle' to spawn shuttle at current facility if any
     else if (std::strcmp(command, "shuttle") == 0)
     {
-        if (f && !locationHasShuttle(f->primary)) // parent check is probably redundant as a facility should always have one, but just in case
+        if (f && !locationHasShuttle(f->body())) // shuttles hang off the body, not the region
         {
-            Shuttle *shuttle{createShuttle(f->primary)};
+            Shuttle *shuttle{createShuttle(f->body())};
             if (shuttle)
             {
                 setDefaultRoute(shuttle, f); // debug spawn, so no chassis cost
             }
-            TraceLog(LOG_INFO, "Shuttle created at facility: %s", f->primary->name);
+            TraceLog(LOG_INFO, "Shuttle created at facility: %s", f->body()->name);
             return true;
         }
     }

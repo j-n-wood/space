@@ -18,7 +18,7 @@ void DroneControlView::activate(Craft *c)
 {
     auto game = Game::getCurrent();
     craft = c;
-    location = c->location;
+    location = c->body(); // the body whose orbital we might fight over
     droneType = game->droneTypeForCraft(craft);
     visible = true;
     state = DCS_MANAGE;

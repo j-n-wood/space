@@ -99,6 +99,11 @@ public:
     Craft(CraftState cs, uint8_t mp, Location *loc);
     virtual ~Craft();
 
+    // The celestial body this craft is at. Today `location` is always a body so this
+    // returns it unchanged; once locations become precise it walks up from a facility
+    // or region. Out of line because location.h includes shuttle.h includes craft.h.
+    Location *body() const;
+
     bool isPodEmpty(const int index);
     void setPodType(const int index, const PodType pt);
     virtual void update(float delta);

@@ -68,7 +68,10 @@ void Overlay::render()
     auto craft = pm.viewState.getCurrentCraft();
     if (craft)
     {
-        auto craftLocation = craft->location;
+        // Follow the BODY, not the exact location: the standard buttons key off the
+        // body's facilities and shuttle, so focusing a region or a docking bay would
+        // empty the sidebar.
+        auto craftLocation = craft->body();
         if (craftLocation != pm.viewState.getCurrentLocation())
         {
             pm.viewState.setCurrentLocation(craftLocation);

@@ -13,6 +13,8 @@
 #include "../include/state/facility.h"
 #include "../include/state/resourceFacility.h"
 #include "../include/state/orbital.h"
+#include "../include/state/shuttle.h"
+#include "../include/state/autopilot.h"
 
 #include <cmath>
 #include <cstdio>
@@ -248,6 +250,49 @@ TEST_CASE("facilities round-trip as locations")
     CHECK(loaded->allLocations().size() == locationCount);
 
     std::remove(FL_SAVE_PATH);
+}
+
+TEST_CASE("an autopilot shuttle advances past its first dock")
+{
+    // The silent-failure regression. atEndpoint() compares the craft's location with
+    // its endpoint's; if either side starts naming a region or a facility while the
+    // other names a body, the comparison is never true, onDocked never advances the
+    // endpoint, and the shuttle sits at its first dock forever with no error anywhere.
+    Game *game = loadGame();
+    REQUIRE(game != nullptr);
+
+    Location *earth = game->locationByID(EARTH_ID);
+    REQUIRE(earth != nullptr);
+    Orbital *orbital = game->orbitalAt(earth);
+    REQUIRE(orbital != nullptr);
+    REQUIRE(game->resourceFacilityAt(earth) != nullptr); // both ends of the run exist
+
+    Shuttle *s = game->createShuttle(earth);
+    REQUIRE(s != nullptr);
+    game->setDefaultRoute(s, orbital);
+    s->setPodType(0, PT_SUPPLY);
+    s->drive = true;
+    s->fuel = 250;
+
+    REQUIRE(s->engageAutopilot());
+    REQUIRE(s->autopilot->state == AS_ON);
+
+    const uint8_t startIndex = s->destination_index;
+
+    // Run the clock. A working cycle dock -> load -> undock -> cross -> dock takes a
+    // few seconds of game time; a stalled one never moves off its first endpoint.
+    bool advanced = false;
+    for (int tick = 0; tick < 2000 && !advanced; ++tick)
+    {
+        game->update(0.05f);
+        if (s->destination_index != startIndex)
+        {
+            advanced = true;
+        }
+    }
+
+    CHECK_MESSAGE(advanced, "autopilot never advanced past its first endpoint");
+    CHECK(s->autopilot->state == AS_ON); // and did not disable itself on the way
 }
 
 TEST_CASE("a shuttle's owner and its position are separate")

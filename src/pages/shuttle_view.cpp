@@ -63,7 +63,7 @@ void ShuttleView::activate(ViewState &viewState)
 {
     if ((craft = viewState.getCurrentCraft()) != nullptr)
     {
-        location = craft->location;
+        location = craft->body(); // the page shows a body, and seeds the picker from its system
     }
     else if (auto l = viewState.getCurrentLocation())
     {
@@ -413,11 +413,11 @@ void ShuttleView::renderDebug()
 void ShuttleView::onOrbitalConstruction(Orbital *orbital)
 {
     char buffer[256];
-    if (craft->location == orbital->primary)
+    if (craft->body() == orbital->body())
     {
         if (orbital->operational)
         {
-            std::snprintf(buffer, sizeof buffer, "Orbital construction complete at location %s", craft->location->name);
+            std::snprintf(buffer, sizeof buffer, "Orbital construction complete at location %s", craft->body()->name);
             pageLog.addLog(buffer);
         }
         else

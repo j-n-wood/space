@@ -7,8 +7,10 @@ ViewState &ViewState::setFacilityFocus(Facility *f)
     if (f)
     {
         setCurrentFacility(f);
-        setCurrentLocation(f->primary);
-        setCurrentSystem(f->primary->system);
+        // The UI shows a body, not a region: the standard buttons key off the body's
+        // shuttle and facilities.
+        setCurrentLocation(f->body());
+        setCurrentSystem(f->body()->system);
         setCurrentCraft(nullptr); // clear craft focus when setting facility focus
     }
     else
