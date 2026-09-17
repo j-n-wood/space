@@ -145,30 +145,28 @@ void ShuttleView::input()
         return; // see render(): no craft focused, nothing to command
     }
 
+    auto can_dock = craft->canDock();
+    auto can_launch = craft->canLaunch();
     if (IsKeyPressed(KEY_D))
     {
         // dock/undock
-        if (craft->docked())
+        if (can_launch)
         {
             craft->launch();
         }
-        else if (craft_can_dock)
+        else if (can_dock)
         {
             craft->dock();
         }
     }
 
-    if (IsKeyPressed(KEY_A) && craft->hasCapability(CC_ATMOSPHERIC))
+    if (IsKeyPressed(KEY_A))
     {
-        // toggle autopilot
-        craft->autopilot->state = (craft->autopilot->state == AS_ON) ? AS_OFF : AS_ON;
-    }
-    {
-        if (craft->inOrbit())
+        if (craft->canDescend())
         {
             craft->descend();
         }
-        else
+        else if (craft->canAscend())
         {
             craft->ascend();
         }
@@ -177,11 +175,13 @@ void ShuttleView::input()
     auto &Overlay = Overlay::getInstance();
 
     // transparent buttons seem like overkill, reimplement
-    if ((craft->hasCapability(CC_INTERPLANETARY)) && (craft->drive))
+    auto can_engage_drive = craft->canEngageDrive();
+
+    if ((craft->hasCapability(CC_INTERPLANETARY)))
     {
         auto &source{uiElementSources[UI_DRIVE_CONTROLS]};
         const Rectangle driveButton{1127, 640, source.width * 4, source.height * 2};
-        if (Overlay.clickedArea(driveButton, "Engage drive"))
+        if (((Overlay.clickedArea(driveButton, can_engage_drive ? "Engage drive" : can_engage_drive.text())) || IsKeyPressed(KEY_E)) && can_engage_drive)
         {
             craft->engageDrive();
         }
@@ -203,11 +203,7 @@ void ShuttleView::input()
         }
     }
 
-    // engines
-    if (IsKeyPressed(KEY_E) && (craft->hasCapability(CC_INTERPLANETARY)) && (craft->drive))
-    {
-        craft->engageDrive();
-    }
+    // autopilot
 
     if (IsKeyPressed(KEY_X))
     {
@@ -224,7 +220,7 @@ void ShuttleView::input()
         }
     }
 
-    if (IsKeyPressed(KEY_T))
+    if (IsKeyPressed(KEY_T) && (craft->hasCapability(CC_INTERPLANETARY)))
     {
         // test - set a destination
         // lazy create destination picker on demand
@@ -265,7 +261,7 @@ void ShuttleView::render()
     }
 
     // set common state
-    craft_can_dock = Game::getCurrent()->craftCanDock(craft);
+    auto craft_can_dock = craft->canDock();
 
     // render viewport -- exactly one of these two, they are complements
     if (showsPlanetView(craft))
@@ -297,7 +293,7 @@ void ShuttleView::render()
     DrawText(craft->statusText(status, sizeof status), 320, 160, 20, YELLOW);
 
     // if have a destination, show that too
-    if (craft->type != CT_SHUTTLE)
+    if (craft->hasCapability(CC_INTERPLANETARY))
     {
         if (craft->currentDestination().location)
         {
@@ -350,7 +346,7 @@ void ShuttleView::render()
     // controls
 
     // render control buttons (normal rendering)
-    if ((craft->type != CT_SHUTTLE) && (craft->drive))
+    if (craft->hasCapability(CC_INTERPLANETARY))
     {
         // has interorbit drive
         auto &source{uiElementSources[UI_DRIVE_CONTROLS]};
@@ -384,18 +380,19 @@ void ShuttleView::render()
         {
             craft->dock();
         }
-        if ((craft->docked()) && (overlay.renderButton(dockButton, "", "Undock", WHITE)))
+        if ((craft->canLaunch()) && (overlay.renderButton(dockButton, "", "Undock", WHITE)))
         {
             craft->launch();
         }
 
         // can descend IF in orbit and a shuttle
-        bool can_descend = (craft->location->type == LOCATION_TYPE_ORBIT) && craft->hasCapability(CC_ATMOSPHERIC);
-        if (can_descend && (overlay.renderButton(descendButton, "", "Descend to surface", WHITE)))
+        auto can_descend = craft->canDescend();
+        if ((overlay.renderButton(descendButton, "", can_descend ? "Descend to surface" : can_descend.text(), can_descend ? WHITE : BLUE)) && can_descend)
         {
             craft->descend();
         }
-        if ((craft->hasCapability(CC_ATMOSPHERIC)) && (!craft->location->isOnSurface()) && (overlay.renderButton(ascendButton, "", "Ascend to orbit", WHITE)))
+        auto can_ascend = craft->canAscend();
+        if ((overlay.renderButton(ascendButton, "", can_ascend ? "Ascend to orbit" : can_ascend.text(), can_ascend ? WHITE : BLUE)) && can_ascend)
         {
             craft->ascend();
         }

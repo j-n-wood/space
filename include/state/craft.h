@@ -174,6 +174,13 @@ public:
         return *this;
     }
 
+    CraftActionResult canDock() const;
+    CraftActionResult canLaunch() const;
+    CraftActionResult canAscend() const;
+    CraftActionResult canDescend() const;
+    CraftActionResult canEngageDrive() const;
+    CraftActionResult canWork() const;
+
     Craft &engageDrive();
 
     Craft &disengageDrive();

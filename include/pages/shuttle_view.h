@@ -22,9 +22,6 @@ class ShuttleView : public BasePage, EventSink
 
     PageLog pageLog;
 
-    // current craft state. Updated in 'render', which occurs before 'input', then 'update'
-    bool craft_can_dock = false;
-
 public:
     Craft *craft;
     DestinationPickerPtr destinationPicker;

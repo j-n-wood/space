@@ -246,7 +246,7 @@ what the planned shuttle transfer-between-facilities states will need.
    [game.cpp:289](../../src/state/game.cpp#L289) yields `-1` for an Earth City.
 
 Also relevant when multiplicity lands: the shuttle transfer states are the first real
-customer for the `-Wswitch` property in [craft_state.md](craft_state.md) §2 — adding
+customer for the `-Wswitch` property on `CraftState` (see [craft_state.md](craft_state.md)) — adding
 `CS_SURFACE_TRANSFER` / `CS_ORBIT_TRANSFER` will make the compiler flag every predicate that
 has not considered them. `CA_TRANSFER` likely needs to be *two* actions (surface / orbit) so
 that `checkCapability`'s state-independent table stays honest, and `perform()` will need a

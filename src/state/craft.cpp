@@ -88,9 +88,147 @@ bool Craft::inOrbit() const
     return location && location->inOrbit();
 }
 
+CraftActionResult Craft::canAscend() const
+{
+    if (!hasCapability(CC_ATMOSPHERIC))
+    {
+        return CAC_NOT_CAPABLE;
+    } // tier 1
+    if (!drive)
+    {
+        return CAC_NO_DRIVE;
+    } // tier 2
+    if (moving() || working())
+    {
+        return CAC_BUSY;
+    } // tier 3
+    if (!location->isOnSurface())
+    {
+        return CAC_WRONG_STATE;
+    }
+    return CAC_OK;
+}
+
+CraftActionResult Craft::canDescend() const
+{
+    if (!hasCapability(CC_ATMOSPHERIC))
+    {
+        return CAC_NOT_CAPABLE;
+    } // tier 1
+    if (!drive)
+    {
+        return CAC_NO_DRIVE;
+    } // tier 2
+    if (moving() || working())
+    {
+        return CAC_BUSY;
+    } // tier 3
+    if (location->type != LOCATION_TYPE_ORBIT)
+    {
+        return CAC_WRONG_STATE;
+    }
+    return CAC_OK;
+}
+
+CraftActionResult Craft::canEngageDrive() const
+{
+    if (!hasCapability(CC_INTERPLANETARY))
+    {
+        return CAC_NOT_CAPABLE;
+    } // tier 1
+    if (!drive)
+    {
+        return CAC_NO_DRIVE;
+    } // tier 2
+    if (moving() || working())
+    {
+        return CAC_BUSY;
+    } // tier 3
+    if (docked())
+    {
+        return CAC_WRONG_STATE; // still made fast to a station -- launch first
+    }
+    if (!currentDestination().location)
+    {
+        return CAC_NO_DESTINATION; // engageDrive would silently do nothing
+    }
+    return CAC_OK;
+}
+
+CraftActionResult Craft::canWork() const
+{
+    if (moving() || working())
+    {
+        return CAC_BUSY;
+    }
+    return CAC_OK;
+}
+
+CraftActionResult Craft::canDock() const
+{
+    if (moving() || working())
+    {
+        return CAC_BUSY;
+    }
+
+    bool can_dock = false;
+    if (location->type != LOCATION_TYPE_ORBIT)
+    {
+        return CAC_NO_ORBITAL;
+    }
+    auto game = Game::getCurrent();
+
+    Orbital *o = game->orbitalAt(location);
+
+    if (!o)
+    {
+        return CAC_NO_ORBITAL;
+    }
+
+    if (!o->operational)
+    {
+        return CAC_ORBITAL_INCOMPLETE;
+    }
+
+    // TODO - if dock is occupied
+
+    if (o->faction_id != faction_id)
+    {
+        if (game->factions[o->faction_id].hostile)
+        {
+            int drone_count = o->stores.items[ItemType::Star_Drone] + o->stores.items[ItemType::Ios_Drone];
+            if (drone_count > 0)
+            {
+                return CAC_DEFENDED;
+            }
+        }
+    }
+    return CAC_OK;
+}
+
+CraftActionResult Craft::canLaunch() const
+{
+    if (!drive)
+    {
+        return CAC_NO_DRIVE;
+    }
+
+    if (moving() || working())
+    {
+        return CAC_BUSY;
+    }
+
+    if (!location->isFacility())
+    {
+        return CAC_WRONG_STATE;
+    }
+
+    return CAC_OK;
+}
+
 Craft &Craft::launch()
 {
-    if (!location->isFacility())
+    if (!canLaunch())
     {
         return *this;
     }
@@ -109,7 +247,7 @@ Craft &Craft::dock()
     // Only start the approach; onDocked() steps into the facility when the timer runs
     // out. Moving now would make docked() true for the whole manoeuvre, so the craft
     // would report itself arrived before it was.
-    if (location->type == LOCATION_TYPE_ORBIT && Game::getCurrent()->orbitalAt(location))
+    if (canDock())
     {
         setTimedState(CS_DOCKING, CSTD_DOCK);
     }
@@ -118,14 +256,11 @@ Craft &Craft::dock()
 
 Craft &Craft::ascend() // move from surface to orbit, can initiate from any surface type
 {
-    if (!hasCapability(CC_ATMOSPHERIC))
+    if (canAscend())
     {
-        return *this;
-    }
-
-    if (location->isOnSurface()) // assume if there is a surface, there is a body
-    {
-        // if at facility, instant-launch and appear on surface. Not docked now.
+        // Starting from a station is an instant launch into the climb: step out into
+        // the surface region first, or the craft would read as docked for the whole
+        // ascent -- inside a building and airborne at once.
         if (location->isFacility())
         {
             location = location->primary;
@@ -137,16 +272,7 @@ Craft &Craft::ascend() // move from surface to orbit, can initiate from any surf
 
 Craft &Craft::descend() // move from orbit to surface, can only initiate from orbit
 {
-    if (!hasCapability(CC_ATMOSPHERIC))
-    {
-        return *this;
-    }
-
-    // Position does not change here: the craft stays in the orbit region for the whole
-    // descent and enterRegion(false) puts it on the surface on arrival. Stepping to
-    // location->primary would park it on the bare body, which is not a place a craft
-    // can be -- neither docked() nor inOrbit() is true there.
-    if (location->type == LOCATION_TYPE_ORBIT) // assume if there is an orbit, there is a body
+    if (canDescend())
     {
         setTimedState(CS_DESCENDING, CSTD_DESCENT);
     }
@@ -411,25 +537,14 @@ const char *Craft::statusText(char *status, size_t len)
 
 Craft &Craft::engageDrive()
 {
-    if (!hasCapability(CC_INTERPLANETARY))
+    auto canEngage = canEngageDrive();
+    if (!canEngage)
     {
-        TraceLog(LOG_WARNING, "Cannot engage drive on %s as it is not interplanetary capable", name);
-        return *this;
-    }
-    if (!drive)
-    {
-        TraceLog(LOG_WARNING, "Cannot engage drive on %s as it is not fitted", name);
+        TraceLog(LOG_WARNING, "Cannot engage drive on %s : %s", name, canEngage.text());
         return *this;
     }
     if (destinations[destination_index].location)
     {
-        // cannot engage drive if docked
-        if (docked())
-        {
-            TraceLog(LOG_WARNING, "Cannot engage drive while docked");
-            return *this;
-        }
-
         auto source = location;
         auto destination = destinations[destination_index].location;
 

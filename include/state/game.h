@@ -240,9 +240,6 @@ public:
     void onSpacecraftDocked(Craft *craft);
     void onCaptureOrbital(Orbital *orbital, int faction_id);
 
-    // craft behaviour. On class so can access collections
-    bool craftCanDock(Craft *craft) const;
-
     // console input
     bool processConsoleCommand(const char *command, Location *l, Facility *f);
 };

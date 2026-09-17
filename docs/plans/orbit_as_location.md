@@ -32,9 +32,9 @@ Mars                    LOCATION_TYPE_PLANET
   answers it for a docked *and* an undocked craft.
 
 **Scope:** endpoints and location only. `CraftState` keeps its 14 values here; the four
-positional ones become redundant but harmless. Collapsing it is the next plan, written once
-this has landed — [craft_state.md](craft_state.md) is built on predicates over those 14 states
-and will need rewriting against a model that exists rather than a predicted one.
+positional ones become redundant but harmless. Collapsing them was the next plan and has
+since landed — see [craft_state.md](craft_state.md), where the enum is down to seven values
+because position moved onto `location`.
 
 ### Terminology
 
@@ -270,9 +270,9 @@ populated while docked, the Space Bay shows a docked IOS, F5/F8 round-trips.
 - **The data migration is the risky artefact**, not the code. ~317 inserted rows and every
   facility repointed. Verify by hierarchy assertion (test 1), not by eye, and keep the
   pre-migration `initial.db` recoverable through git.
-- **`craft_state.md` is now partly obsolete.** Its capability/fitment/situation tiers survive,
-  but its predicates are written against 14 states about to become far fewer. Mark it, and
-  rewrite it as the next plan rather than implementing it as it stands.
+- **`craft_state.md` needed rewriting against this**, not implementing as it stood: its
+  capability/fitment/situation tiers survived, but its predicates were written against 14
+  states that became seven. Done — it is now the verbs-and-guards plan.
 
 ## Deferred
 

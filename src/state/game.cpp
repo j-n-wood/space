@@ -977,33 +977,6 @@ void Game::advanceTick()
     }
 }
 
-bool Game::craftCanDock(Craft *craft) const
-{
-    // can dock if: in orbit, there is an orbital, it is complete
-    // if of a different faction: can dock if not hostile. If hostile, can dock if no defenders (drones at orbital)
-    bool can_dock = false;
-    if (craft->inOrbit())
-    {
-        if (Orbital *o = orbitalAt(craft->location))
-        {
-            can_dock = o->operational;
-
-            // if orbital is of different faction, check for hostiles
-            if (o->faction_id != craft->faction_id)
-            {
-                if (factions[o->faction_id].hostile)
-                {
-                    // check stores of drone types
-                    int drone_count = o->stores.items[ItemType::Star_Drone] + o->stores.items[ItemType::Ios_Drone];
-                    can_dock = drone_count == 0; // can dock if no drones present
-                }
-            }
-        }
-    }
-
-    return can_dock;
-}
-
 void Game::onSpacecraftArrival(Craft *craft)
 {
     // craft->arrive() already called

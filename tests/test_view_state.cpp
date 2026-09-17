@@ -154,6 +154,7 @@ TEST_CASE("the focus follows a craft with no resync")
 
     Shuttle *shuttle = earth->shuttle ? earth->shuttle : game->createShuttle(earth);
     REQUIRE(shuttle != nullptr);
+    shuttle->drive = true; // canLaunch() requires one; this case is about focus, not permission
 
     ViewState vs;
     shuttle->location = orbital;

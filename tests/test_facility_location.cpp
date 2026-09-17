@@ -541,3 +541,63 @@ TEST_CASE("a surface facility mines the body it sits on")
 
     CHECK(station->stores.resources[available] == before + 1);
 }
+
+TEST_CASE("verbs refuse exactly what their canX() refuses")
+{
+    // The point of canX(): one answer, asked by the UI to decide what to draw and by the
+    // verb to decide whether to act. If a verb accepts something its guard refuses, the
+    // UI and the game disagree, and the autopilot -- which calls verbs directly, never
+    // the UI -- gets the looser behaviour.
+    Game *game = loadGame();
+    REQUIRE(game != nullptr);
+
+    Location *earth = game->locationByID(EARTH_ID);
+    REQUIRE(earth != nullptr);
+    Orbital *orbital = game->orbitalAt(earth);
+    ResourceFacility *station = game->resourceFacilityAt(earth);
+    REQUIRE(orbital != nullptr);
+    REQUIRE(station != nullptr);
+
+    Shuttle *s = earth->shuttle ? earth->shuttle : game->createShuttle(earth);
+    REQUIRE(s != nullptr);
+    s->drive = true;
+
+    SUBCASE("a docked craft cannot engage its drive")
+    {
+        IOS *ios = game->createIOS(static_cast<Location *>(orbital));
+        REQUIRE(ios != nullptr);
+        ios->drive = true;
+        ios->location = orbital;
+        ios->assignState(CS_IDLE, 0.0f, 0.0f);
+        REQUIRE(ios->docked());
+
+        // Flying off while still made fast to a station should not be possible.
+        CHECK_FALSE(bool(ios->canEngageDrive()));
+        ios->engageDrive();
+        CHECK(ios->docked()); // and the verb must not have moved it either
+    }
+
+    SUBCASE("ascending is never done while still docked")
+    {
+        s->location = station;
+        s->assignState(CS_IDLE, 0.0f, 0.0f);
+        REQUIRE(s->docked());
+
+        s->ascend();
+        // Either the guard refuses a docked start, or the verb steps out of the facility
+        // first. What must not happen is climbing while still inside the station.
+        const bool climbingWhileDocked = s->moving() && s->docked();
+        CHECK_FALSE(climbingWhileDocked);
+    }
+
+    SUBCASE("launch obeys its own guard")
+    {
+        s->location = station;
+        s->assignState(CS_IDLE, 0.0f, 0.0f);
+        s->drive = false; // canLaunch() requires a drive
+
+        REQUIRE_FALSE(bool(s->canLaunch()));
+        s->launch();
+        CHECK(s->docked()); // refused, so still at the station
+    }
+}

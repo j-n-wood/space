@@ -227,7 +227,7 @@ there. See the sequencing note below.
 
 Since no `switch` on `LocationType` exists anywhere, nothing breaks implicitly — and equally
 nothing warns. This is the moment to make it an `enum class` and let `-Wswitch` police it, per
-the pattern in [`docs/plans/craft_state.md`](craft_state.md) §2; the new values
+the pattern `CraftState` uses (see [craft_state.md](craft_state.md)); the new values
 make that pay off immediately.
 
 The factory methods set up the parent link and the identity:
