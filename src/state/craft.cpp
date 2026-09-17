@@ -230,21 +230,23 @@ void Craft::onDockWorkComplete()
 const char *Craft::statusText(char *status, size_t len)
 {
     // A craft is always somewhere; "nowhere in particular" is a system's space location.
+    // The name carries the noun -- "Earth Orbit", "Earth Surface", "Earth Orbital" --
+    // so these strings supply only the verb. Adding one back doubles it.
     const char *location_name = location ? location->name : "Space";
 
     switch (state)
     {
     case CS_SURFACE: // surface no dock
-        std::snprintf(status, len, "On surface of %s", location_name);
+        std::snprintf(status, len, "On %s", location_name);
         break;
     case CS_SURFACE_DOCKED:
-        std::snprintf(status, len, "Docked at %s station", location_name);
+        std::snprintf(status, len, "Docked at %s", location_name);
         break;
     case CS_SURFACE_WORK:
-        std::snprintf(status, len, "Working on %s surface", location_name);
+        std::snprintf(status, len, "Working on %s", location_name);
         break;
     case CS_SURFACE_DOCK_WORK:
-        std::snprintf(status, len, "Working at %s station", location_name);
+        std::snprintf(status, len, "Working at %s", location_name);
         break;
     case CS_SURFACE_LAUNCH:
         std::snprintf(status, len, "Launching from %s", location_name);
@@ -253,25 +255,25 @@ const char *Craft::statusText(char *status, size_t len)
         std::snprintf(status, len, "Ascending from %s", location_name);
         break;
     case CS_ORBIT:
-        std::snprintf(status, len, "Orbiting %s", location_name);
+        std::snprintf(status, len, "In %s", location_name);
         break;
     case CS_ORBIT_DOCKING:
-        std::snprintf(status, len, "Docking with %s orbital", location_name);
+        std::snprintf(status, len, "Docking at %s", location_name);
         break;
     case CS_ORBIT_DOCKED:
-        std::snprintf(status, len, "Docked at %s orbital", location_name);
+        std::snprintf(status, len, "Docked at %s", location_name);
         break;
     case CS_ORBIT_DOCK_WORK:
-        std::snprintf(status, len, "Working at %s orbital", location_name);
+        std::snprintf(status, len, "Working at %s", location_name);
         break;
     case CS_ORBIT_WORK:
-        std::snprintf(status, len, "Working in %s orbit", location_name);
+        std::snprintf(status, len, "Working in %s", location_name);
         break;
     case CS_ORBIT_LAUNCH:
-        std::snprintf(status, len, "Launching from %s orbital", location_name);
+        std::snprintf(status, len, "Launching from %s", location_name);
         break;
     case CS_DESCENDING:
-        std::snprintf(status, len, "Descending to %s", location_name);
+        std::snprintf(status, len, "Descending from %s", location_name);
         break;
     case CS_TRANSIT:
     {

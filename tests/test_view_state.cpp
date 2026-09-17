@@ -17,6 +17,8 @@
 #include "../include/state/orbital.h"
 #include "../include/state/shuttle.h"
 
+#include <string>
+
 namespace
 {
 
@@ -230,4 +232,59 @@ TEST_CASE("focused on nothing is representable")
     REQUIRE(earth != nullptr);
     vs.setLocationFocus(earth);
     CHECK(vs.getCurrentSystem() == earth->system);
+}
+
+TEST_CASE("status text does not repeat the noun in the location name")
+{
+    // statusText supplies the verb; the location name supplies the noun. When facilities
+    // and regions became locations the names gained "Orbit" / "Surface" / "Orbital", so
+    // any string still appending its own produced "Orbiting Earth Orbit".
+    Game *game = loadGame();
+    REQUIRE(game != nullptr);
+
+    Location *earth = game->locationByID(EARTH_ID);
+    REQUIRE(earth != nullptr);
+    Orbital *orbital = game->orbitalAt(earth);
+    ResourceFacility *station = game->resourceFacilityAt(earth);
+    REQUIRE(orbital != nullptr);
+    REQUIRE(station != nullptr);
+    REQUIRE(earth->orbit() != nullptr);
+    REQUIRE(earth->surface() != nullptr);
+
+    Shuttle *shuttle = earth->shuttle ? earth->shuttle : game->createShuttle(earth);
+    REQUIRE(shuttle != nullptr);
+
+    char buf[256];
+
+    struct Case
+    {
+        CraftState state;
+        Location *where;
+        const char *expected;
+    };
+
+    const Case cases[] = {
+        {CS_ORBIT, earth->orbit(), "In Earth Orbit"},
+        {CS_ORBIT_WORK, earth->orbit(), "Working in Earth Orbit"},
+        {CS_ORBIT_DOCKING, earth->orbit(), "Docking at Earth Orbit"},
+        {CS_ORBIT_DOCKED, orbital, "Docked at Earth Orbital"},
+        {CS_ORBIT_DOCK_WORK, orbital, "Working at Earth Orbital"},
+        {CS_ORBIT_LAUNCH, earth->orbit(), "Launching from Earth Orbit"},
+        {CS_DESCENDING, earth->orbit(), "Descending from Earth Orbit"},
+        {CS_SURFACE, earth->surface(), "On Earth Surface"},
+        {CS_SURFACE_WORK, earth->surface(), "Working on Earth Surface"},
+        {CS_SURFACE_LAUNCH, earth->surface(), "Launching from Earth Surface"},
+        {CS_ASCENDING, earth->surface(), "Ascending from Earth Surface"},
+        {CS_SURFACE_DOCKED, station, "Docked at Earth City"},
+        {CS_SURFACE_DOCK_WORK, station, "Working at Earth City"},
+    };
+
+    for (const Case &c : cases)
+    {
+        shuttle->location = c.where;
+        shuttle->state = c.state;
+        buf[0] = '\0';
+        shuttle->statusText(buf, sizeof buf);
+        CHECK(std::string(buf) == std::string(c.expected));
+    }
 }
