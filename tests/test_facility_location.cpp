@@ -336,38 +336,35 @@ TEST_CASE("a craft's location matches what it is doing")
         }
 
         // Counted by where it IS, not by state: with both endpoints docked the craft
-        // passes through CS_ORBIT and CS_SURFACE inside a single tick, so those states
-        // are never sampled even though the regions are genuinely occupied.
+        // passes through the regions inside a single tick, so a state sample would
+        // miss them even though the regions are genuinely occupied.
         if (s->location == earth->orbit() || s->location == earth->surface())
         {
             ++sawRegion;
         }
-
-        switch (s->state)
+        if (s->location->isFacility())
         {
-        case CS_ORBIT_DOCKED:
-        case CS_ORBIT_DOCK_WORK:
-            if (!s->location->isFacility() || !s->location->inOrbit()) { ++violations; }
-            else { ++sawDocked; }
-            break;
-        case CS_SURFACE_DOCKED:
-        case CS_SURFACE_DOCK_WORK:
-            if (!s->location->isFacility() || s->location->inOrbit()) { ++violations; }
-            else { ++sawDocked; }
-            break;
-        case CS_ORBIT:
-            if (s->location != earth->orbit()) { ++violations; }
-            break;
-        case CS_SURFACE:
-            if (s->location != earth->surface()) { ++violations; }
-            break;
-        case CS_ORBIT_LAUNCH:
-        case CS_SURFACE_LAUNCH:
-            // undocked, so out of the facility and back in its region
-            if (s->location->isFacility()) { ++violations; }
-            break;
-        default:
-            break; // ascending, descending: in between, claiming no region
+            ++sawDocked;
+        }
+
+        // `docked()` and `inOrbit()` are now DEFINED as location->isFacility() and
+        // location->inOrbit(), so cross-checking them against the state is a tautology
+        // and no longer worth asserting -- that is the point of the collapse. What is
+        // still worth asserting is that the craft only ever occupies a place a craft
+        // can be: a facility, or one of the two regions. Never the bare body.
+        const bool somewhereReal = s->location->isFacility() ||
+                                   s->location == earth->orbit() ||
+                                   s->location == earth->surface();
+        if (!somewhereReal)
+        {
+            ++violations;
+        }
+
+        // A craft mid-manoeuvre is never docked: launching steps out of the facility
+        // before the timer runs, and docking steps in only when it expires.
+        if (s->moving() && s->docked())
+        {
+            ++violations;
         }
     }
 
@@ -441,7 +438,7 @@ TEST_CASE("a craft is always somewhere")
     REQUIRE(docked != nullptr);
     IOS *adrift = game->createIOS(space);
     REQUIRE(adrift != nullptr);
-    adrift->state = CS_TRANSIT;
+    adrift->assignState(CS_TRANSIT, 0.0f, 0.0f);
 
     const int dockedId = docked->id;
     const int adriftId = adrift->id;

@@ -28,9 +28,22 @@ typedef enum
     CS_TRANSIT, // IP or IS transit - refine with type and speed
     CS_COUNT
 } CraftState;
+
+new:
+    CS_IDLE,       // at rest wherever location says: region or facility, orbit or surface
+    CS_WORKING,    // pods tick; docked = at a station, undocked = building one
+    CS_LAUNCHING,  // leaving a facility
+    CS_ASCENDING,  // surface region -> orbit region
+    CS_DESCENDING, // orbit region -> surface region
+    CS_DOCKING,    // approaching a facility
+    CS_TRANSIT,    // between bodies; location is the system's `space`
+    CS_COUNT
 */
+
 // this won't do - image depends on location properties e.g. station presence (could overlay)
 // or location type (star, planet, etc)
+// TODO
+/*
 Rectangle viewportImages[CS_COUNT] = {
     {1368, 280, 208, 120}, // docked
     {1368, 280, 208, 120}, // docked
@@ -47,6 +60,15 @@ Rectangle viewportImages[CS_COUNT] = {
     {1368, 152, 208, 120}, // orbit no station
     {1152, 408, 208, 120}, // transit
 };
+
+Want: docked image for docked at any facility, or working at any facility.
+orbit no station for location = orbit, location has no children
+orbit with station = same, with additional image of station
+launching -> storm doors
+transit -> own image
+ascending/descending -> orbit no station for now, no overlay of station image
+orbit for orbit region, surface for surface region, transit for transit, ascending/descending for those states. Could overlay a station image if docked at one.
+*/
 
 Rectangle pod_icon_coordinates[6] = {
     {810, 910, 96, 64},
@@ -126,33 +148,25 @@ void ShuttleView::input()
     if (IsKeyPressed(KEY_D))
     {
         // dock/undock
-        if (craft->state == CS_ORBIT_DOCKED)
+        if (craft->docked())
         {
-            craft->state = CS_ORBIT_LAUNCH;
-            craft->state_timer = CSTD_LAUNCH;
+            craft->launch();
         }
         else if (craft_can_dock)
         {
-            craft->state = CS_ORBIT_DOCKING;
-            craft->state_timer = CSTD_DOCK;
+            craft->dock();
         }
     }
+
     if (IsKeyPressed(KEY_A))
     {
-        // ascend / descend
-        switch (craft->state)
+        if (craft->inOrbit())
         {
-        case CS_ORBIT:
-            craft->state = CS_DESCENDING;
-            craft->state_timer = CSTD_DESCENT;
-            break;
-        case CS_SURFACE:
-        case CS_SURFACE_DOCKED:
-            craft->state = CS_SURFACE_LAUNCH;
-            craft->state_timer = CSTD_LAUNCH;
-            break;
-        default:
-            break;
+            craft->descend();
+        }
+        else
+        {
+            craft->ascend();
         }
     }
 
@@ -242,7 +256,7 @@ void ShuttleView::render()
     craft_can_dock = Game::getCurrent()->craftCanDock(craft);
 
     // render viewport
-    if (bodyTexture && (craft->state == CS_ORBIT))
+    if (bodyTexture && (craft->inOrbit() && !craft->docked()))
     {
         // test rendering 1/4 of a body, 256 x 256
         Rectangle source{128, 128, 128, 128};
@@ -260,9 +274,9 @@ void ShuttleView::render()
 
     if (backgroundTexture)
     {
-        if (craft->state != CS_ORBIT)
+        if (!(craft->inOrbit() && !craft->docked()))
         {
-            DrawTexturePro(*backgroundTexture, viewportImages[craft->state], viewportDest, (Vector2){0, 0}, 0.f, WHITE);
+            // TODO DrawTexturePro(*backgroundTexture, viewportImages[craft->state], viewportDest, (Vector2){0, 0}, 0.f, WHITE);
         }
     }
 
@@ -278,10 +292,10 @@ void ShuttleView::render()
             char dest_status[128];
             std::snprintf(dest_status, sizeof dest_status, "Destination: %s", craft->currentDestination().location->name);
             DrawText(dest_status, 320, 190, 20, YELLOW);
-            if (craft->state == CS_TRANSIT)
+            if (craft->inTransit())
             {
-                float progress = craft->total_state_timer > 0.0f ? craft->state_timer / craft->total_state_timer : 0.0f;
-                std::snprintf(dest_status, sizeof dest_status, "Progress: %.0f%%", (1.0f - progress) * 100.0f);
+                float progress = craft->stateProgress();
+                std::snprintf(dest_status, sizeof dest_status, "Progress: %.0f%%", progress * 100.0f);
                 DrawText(dest_status, 320, 220, 20, YELLOW);
             }
         }
@@ -356,26 +370,22 @@ void ShuttleView::render()
 
         if (craft_can_dock && (overlay.renderButton(dockButton, "", "Dock", WHITE)))
         {
-            craft->state = CS_ORBIT_DOCKING;
-            craft->state_timer = CSTD_DOCK;
+            craft->dock();
         }
-        if ((craft->state == CS_ORBIT_DOCKED) && (overlay.renderButton(dockButton, "", "Undock", WHITE)))
+        if ((craft->docked()) && (overlay.renderButton(dockButton, "", "Undock", WHITE)))
         {
-            craft->state = CS_ORBIT_LAUNCH;
-            craft->state_timer = CSTD_LAUNCH;
+            craft->launch();
         }
 
         // can descend IF in orbit and a shuttle
-        bool can_descend = (craft->state == CS_ORBIT) && (craft->type == CT_SHUTTLE);
+        bool can_descend = (craft->inOrbit()) && (!craft->docked()) && (craft->type == CT_SHUTTLE);
         if (can_descend && (overlay.renderButton(descendButton, "", "Descend to surface", WHITE)))
         {
-            craft->state = CS_DESCENDING;
-            craft->state_timer = CSTD_DESCENT;
+            craft->descend();
         }
-        if (((craft->state == CS_SURFACE) || (craft->state == CS_SURFACE_DOCKED)) && (overlay.renderButton(ascendButton, "", "Ascend to orbit", WHITE)))
+        if ((craft->type == CT_SHUTTLE) && (!craft->inOrbit()) && (overlay.renderButton(ascendButton, "", "Ascend to orbit", WHITE)))
         {
-            craft->state = CS_SURFACE_LAUNCH;
-            craft->state_timer = CSTD_LAUNCH;
+            craft->ascend();
         }
     }
     // autopilot config

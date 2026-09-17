@@ -12,26 +12,26 @@ void IOS::update(float delta)
         if (state_timer <= 0)
         {
             state_timer = 0.0f;
-            // done
-            switch (state)
+            // Capture before overwriting: the switch below needs the state that just
+            // EXPIRED, not the one we are moving to. Reading `state` after assigning
+            // CS_IDLE made every arm below unreachable.
+            const CraftState expiring = state;
+            state = CS_IDLE; // most states come to rest; the arms below adjust position
+            switch (expiring)
             {
-            case CS_ORBIT_WORK:
-                state = CS_ORBIT;
+            case CS_WORKING:
+                if (docked())
+                {
+                    onDockWorkComplete();
+                }
                 break;
-            case CS_ORBIT_LAUNCH:
-                state = CS_ORBIT;
+            case CS_LAUNCHING:
                 break;
-            case CS_ORBIT_DOCKING:
-                state = CS_ORBIT_DOCKED;
+            case CS_DOCKING:
                 onDocked();
                 Game::getCurrent()->onSpacecraftDocked(this);
                 break;
-            case CS_ORBIT_DOCK_WORK:
-                state = CS_ORBIT_DOCKED;
-                onDockWorkComplete();
-                break;
             case CS_TRANSIT:
-                state = CS_ORBIT;
                 arriveAtLocation();
                 Game::getCurrent()->onSpacecraftArrival(this);
                 break;

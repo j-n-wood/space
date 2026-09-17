@@ -77,20 +77,67 @@ Location *Craft::body() const
     return location ? location->body() : nullptr;
 }
 
+bool Craft::docked() const
+{
+    return location && location->isFacility();
+}
+
+bool Craft::inOrbit() const
+{
+    return location && location->inOrbit();
+}
+
 Craft &Craft::launch()
 {
-    if (state != CS_SURFACE_DOCKED && state != CS_ORBIT_DOCKED)
+    if (!location->isFacility())
     {
         return *this;
     }
 
-    state = (state == CS_SURFACE_DOCKED) ? CS_SURFACE_LAUNCH : CS_ORBIT_LAUNCH;
+    state = CS_LAUNCHING;
     state_timer = CSTD_LAUNCH;
 
     // Leaving a facility puts us back in the region it sits in.
     if (location && location->isFacility() && location->primary)
     {
         location = location->primary;
+    }
+    return *this;
+}
+
+Craft &Craft::dock()
+{
+    // Only start the approach; onDocked() steps into the facility when the timer runs
+    // out. Moving now would make docked() true for the whole manoeuvre, so the craft
+    // would report itself arrived before it was.
+    if (!docked() && inOrbit() && Game::getCurrent()->orbitalAt(location))
+    {
+        state = CS_DOCKING;
+        state_timer = CSTD_DOCK;
+    }
+    return *this;
+}
+
+Craft &Craft::ascend() // move from surface to orbit
+{
+    if (location && !location->inOrbit() && location->primary)
+    {
+        state = CS_ASCENDING;
+        state_timer = CSTD_ASCENT;
+    }
+    return *this;
+}
+
+Craft &Craft::descend() // move from orbit to surface
+{
+    // Position does not change here: the craft stays in the orbit region for the whole
+    // descent and enterRegion(false) puts it on the surface on arrival. Stepping to
+    // location->primary would park it on the bare body, which is not a place a craft
+    // can be -- neither docked() nor inOrbit() is true there.
+    if (!docked() && inOrbit())
+    {
+        state = CS_DESCENDING;
+        state_timer = CSTD_DESCENT;
     }
     return *this;
 }
@@ -161,7 +208,7 @@ void Craft::update(float delta)
     }
 
     // working states
-    if ((state == CS_SURFACE_DOCK_WORK) || (state == CS_ORBIT_DOCK_WORK))
+    if (state == CS_WORKING)
     {
         Game *game = Game::getCurrent();
         for (int pod_idx = 0; pod_idx < max_pods; ++pod_idx)
@@ -203,8 +250,8 @@ void Craft::onDocked()
     if (b)
     {
         Game *game = Game::getCurrent();
-        Facility *f = (state == CS_ORBIT_DOCKED) ? static_cast<Facility *>(game->orbitalAt(b))
-                                                 : static_cast<Facility *>(game->resourceFacilityAt(b));
+        Facility *f = inOrbit() ? static_cast<Facility *>(game->orbitalAt(b))
+                                : static_cast<Facility *>(game->resourceFacilityAt(b));
         if (f)
         {
             location = f;
@@ -236,41 +283,36 @@ const char *Craft::statusText(char *status, size_t len)
 
     switch (state)
     {
-    case CS_SURFACE: // surface no dock
-        std::snprintf(status, len, "On %s", location_name);
+    // You are *at* a station, *in* an orbit and *on* a surface. The preposition is the
+    // last thing the collapsed enum stopped carrying, so it comes from the place.
+    case CS_IDLE:
+        if (docked())
+        {
+            std::snprintf(status, len, "Docked at %s", location_name);
+        }
+        else
+        {
+            std::snprintf(status, len, inOrbit() ? "In %s" : "On %s", location_name);
+        }
         break;
-    case CS_SURFACE_DOCKED:
-        std::snprintf(status, len, "Docked at %s", location_name);
+    case CS_DOCKING:
+        std::snprintf(status, len, "Docking at %s", location_name);
         break;
-    case CS_SURFACE_WORK:
-        std::snprintf(status, len, "Working on %s", location_name);
+    case CS_WORKING:
+        if (docked())
+        {
+            std::snprintf(status, len, "Working at %s", location_name);
+        }
+        else
+        {
+            std::snprintf(status, len, inOrbit() ? "Working in %s" : "Working on %s", location_name);
+        }
         break;
-    case CS_SURFACE_DOCK_WORK:
-        std::snprintf(status, len, "Working at %s", location_name);
-        break;
-    case CS_SURFACE_LAUNCH:
+    case CS_LAUNCHING:
         std::snprintf(status, len, "Launching from %s", location_name);
         break;
     case CS_ASCENDING:
         std::snprintf(status, len, "Ascending from %s", location_name);
-        break;
-    case CS_ORBIT:
-        std::snprintf(status, len, "In %s", location_name);
-        break;
-    case CS_ORBIT_DOCKING:
-        std::snprintf(status, len, "Docking at %s", location_name);
-        break;
-    case CS_ORBIT_DOCKED:
-        std::snprintf(status, len, "Docked at %s", location_name);
-        break;
-    case CS_ORBIT_DOCK_WORK:
-        std::snprintf(status, len, "Working at %s", location_name);
-        break;
-    case CS_ORBIT_WORK:
-        std::snprintf(status, len, "Working in %s", location_name);
-        break;
-    case CS_ORBIT_LAUNCH:
-        std::snprintf(status, len, "Launching from %s", location_name);
         break;
     case CS_DESCENDING:
         std::snprintf(status, len, "Descending from %s", location_name);
@@ -300,7 +342,7 @@ Craft &Craft::engageDrive()
     if (destinations[destination_index].location)
     {
         // cannot engage drive if docked
-        if (state == CS_SURFACE_DOCKED || state == CS_ORBIT_DOCKED)
+        if (docked())
         {
             TraceLog(LOG_WARNING, "Cannot engage drive while docked");
             return *this;
@@ -374,7 +416,7 @@ bool Craft::engageAutopilot()
     }
 
     // launch if docked
-    if (state == CS_SURFACE_DOCKED || state == CS_ORBIT_DOCKED)
+    if (docked())
     {
         launch();
     }

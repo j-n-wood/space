@@ -117,31 +117,32 @@ void MasterControlView::renderIOS()
             // render it
             Rectangle target{x, y, 32 * 4, 16 * 4};
 
-            // map craft state to icon
-            const Rectangle *source = nullptr;
-            switch (ios->state)
+            // craft state not comprehensive by itself - have to know location as well
+            const Rectangle *source = &uiElementSources[UI_BUTTON_CRAFT_TRANSIT];
+
+            if (ios->docked())
             {
-            case CS_ORBIT:
-                source = &uiElementSources[UI_BUTTON_CRAFT_ORBIT];
-                break;
-            case CS_ORBIT_DOCKED:
                 source = &uiElementSources[UI_BUTTON_CRAFT_DOCKED];
-                break;
-            case CS_ORBIT_LAUNCH:
+            }
+            else if (ios->inTransit())
+            {
+                source = &uiElementSources[UI_BUTTON_CRAFT_TRANSIT];
+            }
+            else if (ios->isLaunching())
+            {
                 source = &uiElementSources[UI_BUTTON_CRAFT_LAUNCHING];
-                break;
-            case CS_ORBIT_WORK:
+            }
+            else if (ios->isWorking())
+            {
                 source = &uiElementSources[UI_BUTTON_CRAFT_MINING];
-                break;
-            case CS_ORBIT_DOCKING:
+            }
+            else if (ios->inOrbit())
+            {
+                source = &uiElementSources[UI_BUTTON_CRAFT_ORBIT];
+            }
+            else if (ios->isDocking())
+            {
                 source = &uiElementSources[UI_BUTTON_CRAFT_DOCKING];
-                break;
-            case CS_TRANSIT:
-                source = &uiElementSources[UI_BUTTON_CRAFT_TRANSIT];
-                break;
-            default:
-                source = &uiElementSources[UI_BUTTON_CRAFT_TRANSIT];
-                break;
             }
 
             DrawTexturePro(*texture_ui_buttons, *source, target, (Vector2){0, 0}, 0.f, WHITE);

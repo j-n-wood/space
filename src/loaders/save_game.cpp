@@ -755,12 +755,14 @@ int SaveGame::saveCraft(Craft *craft)
 
     int locationId = craft->location ? craft->location->id : 0;
 
+    auto currentState = craft->currentState();
+
     if (!craftQuery.bind(1, craft->id)
              .bind(2, craft->name)
              .bind(3, static_cast<int>(craft->type))
-             .bind(4, static_cast<int>(craft->state))
-             .bind(5, craft->state_timer)
-             .bind(6, craft->total_state_timer)
+             .bind(4, static_cast<int>(currentState.state))
+             .bind(5, currentState.state_timer)
+             .bind(6, currentState.total_state_timer)
              .bind(7, locationId)
              .bind(8, craft->fuel)
              .bind(9, craft->max_pods)

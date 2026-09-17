@@ -127,7 +127,7 @@ void Orrery::render()
     for (auto &craft : game->allIOS())
     {
         // need to find location index from pointer
-        if (craft->state == CS_TRANSIT)
+        if (craft->inTransit() && craft->currentDestination().location && craft->priorDestination().location)
         {
             // determine source and destination locations from craft endpoints
             auto &current_dest{craft->currentDestination()};
@@ -144,7 +144,7 @@ void Orrery::render()
                 DrawLineV(source_pos, dest_pos, (Color){64, 255, 192, 192});
 
                 // interpolate position by state timer
-                float progress = 1.0f - craft->state_timer / craft->total_state_timer;
+                float progress = craft->stateProgress();
                 Vector2 pos = {
                     source_pos.x + (dest_pos.x - source_pos.x) * progress,
                     source_pos.y + (dest_pos.y - source_pos.y) * progress};

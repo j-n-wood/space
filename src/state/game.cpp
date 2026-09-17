@@ -416,7 +416,7 @@ Shuttle *Game::createShuttle(Location *position)
         return nullptr;
     }
 
-    shuttles.emplace_back(std::make_unique<Shuttle>(CS_ORBIT_DOCKED, 1, position));
+    shuttles.emplace_back(std::make_unique<Shuttle>(CS_IDLE, 1, position));
     Shuttle *s = shuttles.back().get();
     s->id = ++craft_max_id;
     home->shuttle = s; // non-owning reference on the body
@@ -458,7 +458,6 @@ void Game::setDefaultRoute(Shuttle *shuttle, Facility *facility)
     // Start docked at the facility we were commissioned from -- and located there, or
     // state and position would disagree from the outset.
     const bool hereIsOrbit = facility->inOrbit();
-    shuttle->state = hereIsOrbit ? CS_ORBIT_DOCKED : CS_SURFACE_DOCKED;
     shuttle->location = facility;
 
     // A shuttle runs between the two sides of one body, so the obvious route is this
@@ -479,7 +478,7 @@ IOS *Game::createIOS(Location *location)
         return nullptr;
     }
 
-    ios.emplace_back(std::make_unique<IOS>(CS_ORBIT_DOCKED, 3, location));
+    ios.emplace_back(std::make_unique<IOS>(CS_IDLE, 3, location));
     auto i = ios.back().get();
     // Aim at the orbital if the body has one, otherwise its orbit region.
     Location *target = targetFor(location, true);
@@ -730,7 +729,7 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
         // must be in orbit, and no existing facility, or facility incomplete
         {
             Orbital *orbital = orbitalAt(craft->location);
-            if (craft->state == CS_ORBIT && (!orbital || !orbital->operational))
+            if (craft->inOrbit() && (!orbital || !orbital->operational))
             {
                 return true;
             }
@@ -740,7 +739,7 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
         // must be on surface, not docked, no facility at location or facility incomplete
         {
             ResourceFacility *rf = resourceFacilityAt(craft->location);
-            if (craft->state == CS_SURFACE && (!rf || !rf->operational))
+            if (craft->location && !craft->inOrbit() && (!rf || !rf->operational))
             {
                 return true;
             }
@@ -750,7 +749,7 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
     // AMA - must be in orbit, at location of type asteroids
     // bandaid - must be docked on surface, and have damaged facility
     case ItemType::Bandaid:
-        if (craft->state == CS_SURFACE_DOCKED)
+        if (craft->docked())
         {
             ResourceFacility *rf = resourceFacilityAt(craft->location);
             if (rf && rf->damage > 0)
@@ -825,7 +824,7 @@ bool Game::activatePod(Craft *craft, int pod_index)
     {
         ResourceFacility *rf = resourceFacilityAt(craft->location);
         // set craft status to working on surface, and time based on current damage
-        craft->setTimedState(CS_SURFACE_DOCK_WORK, 1.0 + rf->damage / BANDAID_REPAIR_RATE); // time to repair is based on damage level
+        craft->setTimedState(CS_WORKING, 1.0 + rf->damage / BANDAID_REPAIR_RATE); // time to repair is based on damage level
         TraceLog(LOG_INFO, "Started repairing facility at location %s, damage level %.1f", craft->location->name, rf->damage);
     }
     break;
@@ -862,7 +861,7 @@ bool Game::updateActivePod(Craft *craft, Pod &pod, float delta)
                     if (rf->damage == 0)
                     {
                         TraceLog(LOG_INFO, "Completed repairing facility at location %s", craft->location->name);
-                        craft->setState(CS_SURFACE_DOCKED); // back to docked state when repair complete
+                        craft->setState(CS_IDLE); // back to docked state when repair complete
                         return false;
                     }
                 }
@@ -982,7 +981,7 @@ bool Game::craftCanDock(Craft *craft) const
     // can dock if: in orbit, there is an orbital, it is complete
     // if of a different faction: can dock if not hostile. If hostile, can dock if no defenders (drones at orbital)
     bool can_dock = false;
-    if (craft->state == CS_ORBIT)
+    if (craft->inOrbit())
     {
         if (Orbital *o = orbitalAt(craft->location))
         {

@@ -85,7 +85,7 @@ void buildTestData(Game *game)
 	// test IOS 2 at luna
 	Location *luna = game->locationByID(5); // by id: children now include the regions too
 	IOS *ios2 = game->createIOS(luna);
-	ios2->state = CS_ORBIT; // there is no orbital here
+	ios2->enterRegion(true); // in orbit at Luna -- there is no orbital to dock at
 	ios2->drive = true;
 	ios2->fuel = 250;
 	ios2->setPodType(0, PT_TOOL);
@@ -115,7 +115,7 @@ void buildTestData(Game *game)
 	// test IOS 3 at Jupiter
 	Location *jupiter = game->locationByID(10);
 	IOS *ios3 = game->createIOS(jupiter);
-	ios3->state = CS_ORBIT;
+	ios3->enterRegion(true);
 	ios3->drive = true;
 	ios3->fuel = 250;
 	ios3->setPodType(0, PT_WEAPON);

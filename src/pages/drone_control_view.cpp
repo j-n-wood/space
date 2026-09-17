@@ -154,7 +154,7 @@ void DroneControlView::render_manage()
         DrawTexturePro(*docImageTexture, source_rect, itemImageTarget, (Vector2){0, 0}, 0.f, WHITE);
 
         // if at an orbital, can add/remove drones
-        if (craft->state == CS_ORBIT)
+        if (craft->inOrbit())
         {
             if (Orbital *o = game->orbitalAt(craft->location))
             { // check if at orbital, and if so show add/remove buttons

@@ -275,7 +275,7 @@ Craft *BayView::getSpacecraft()
             // Compare bodies: the facility hangs off its orbit region, while the craft
             // is still located at the body. Tightens to `ios->location == facility` once
             // craft locations become precise, which also disambiguates two orbitals.
-            if ((ios->body() == facility->body()) && (ios->state == CS_ORBIT_DOCKED))
+            if (ios->location == facility)
             {
                 return ios.get();
             }
@@ -294,10 +294,7 @@ Shuttle *BayView::getShuttle()
         if (shuttle)
         {
             // has a shuttle. Is it docked here?
-            const bool docked = facility->inOrbit() ? (shuttle->state == CS_ORBIT_DOCKED)
-                                                    : (shuttle->state == CS_SURFACE_DOCKED);
-
-            if (docked)
+            if (facility == shuttle->location)
             {
                 return shuttle;
             }

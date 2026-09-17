@@ -406,9 +406,7 @@ bool Loader::loadCraft()
         }
 
         std::snprintf(craft->name, sizeof craft->name, "%s", name);
-        craft->state = CraftState(state);
-        craft->state_timer = state_timer;
-        craft->total_state_timer = total_state_timer;
+        craft->assignState(CraftState(state), state_timer, total_state_timer);
         craft->fuel = fuel;
         craft->max_pods = max_pods;
         craft->drive = drive;

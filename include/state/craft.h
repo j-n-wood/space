@@ -8,20 +8,13 @@
 
 typedef enum
 {
-    CS_SURFACE, // surface no dock
-    CS_SURFACE_DOCKED,
-    CS_SURFACE_DOCK_WORK, // transient state while docked and working
-    CS_SURFACE_WORK,
-    CS_SURFACE_LAUNCH, // transient state leaving dock
-    CS_ASCENDING,
-    CS_ORBIT,
-    CS_ORBIT_DOCKING, // transient state entering dock
-    CS_ORBIT_DOCKED,
-    CS_ORBIT_DOCK_WORK, // transient state while docked and working
-    CS_ORBIT_WORK,
-    CS_ORBIT_LAUNCH, // transient state leaving dock
-    CS_DESCENDING,
-    CS_TRANSIT, // IP or IS transit - refine with type and speed
+    CS_IDLE,       // at rest wherever location says: region or facility, orbit or surface
+    CS_WORKING,    // pods tick; docked = at a station, undocked = building one
+    CS_LAUNCHING,  // leaving a facility
+    CS_ASCENDING,  // surface region -> orbit region
+    CS_DESCENDING, // orbit region -> surface region
+    CS_DOCKING,    // approaching a facility
+    CS_TRANSIT,    // between bodies; location is the system's `space`
     CS_COUNT
 } CraftState;
 
@@ -57,17 +50,26 @@ const int MAX_DESTINATIONS = 2;
 
 class Autopilot;
 
+class CurrentState
+{
+public:
+    CraftState state;
+    float state_timer;
+    float total_state_timer;
+};
+
 class Craft
 {
+protected:
+    CraftState state;
+    float state_timer;
+    float total_state_timer; // full value of state timer, used to calculate progress for UI
 public:
     int id;
     int faction_id;
 
     char name[NAME_MAX_LEN];
     CraftType type;
-    CraftState state;
-    float state_timer;
-    float total_state_timer; // full value of state timer, used to calculate progress for UI
 
     // crew
 
@@ -117,6 +119,30 @@ public:
         total_state_timer = 0.0f;
     }
 
+    // set state from persistence/tests
+    inline Craft &assignState(CraftState newState, float current, float duration)
+    {
+        state = newState;
+        state_timer = current;
+        total_state_timer = duration;
+        return *this;
+    }
+
+    // copy of state for persistence
+    inline CurrentState currentState() const
+    {
+        return {state, state_timer, total_state_timer};
+    }
+
+    inline float stateProgress() const
+    {
+        if (total_state_timer > 0.0f)
+        {
+            return 1.0f - (state_timer / total_state_timer);
+        }
+        return 1.0f;
+    }
+
     inline const Endpoint &currentDestination() const
     {
         return destinations[destination_index];
@@ -154,21 +180,52 @@ public:
     // it -- a step up the hierarchy. Out of line because it dereferences Location.
     Craft &launch();
 
+    Craft &dock(); // move from orbit to docked at a facility
+
+    Craft &ascend();  // move from surface to orbit
+    Craft &descend(); // move from orbit to surface
+
     // Move to this body's orbit or surface region: what ascending and descending
     // arrive at. A no-op if the body has no such region.
     void enterRegion(bool orbit);
 
+    // action related
+
+    // Where, straight from the hierarchy -- they ARE the craft's position, so they
+    // cannot contradict it. Out of line because they dereference Location, as launch()
+    // is for the same reason.
+    bool docked() const;
+    bool inOrbit() const;
+    inline bool inTransit() const { return state == CS_TRANSIT; }
+    inline bool isLaunching() const { return state == CS_LAUNCHING; }
+    inline bool isDocking() const { return state == CS_DOCKING; }
+    inline bool isWorking() const { return state == CS_WORKING; }
+
+    bool working() const { return state == CS_WORKING; }
+
+    bool moving() const
+    {
+        switch (state)
+        {
+        case CS_LAUNCHING:
+        case CS_ASCENDING:
+        case CS_DESCENDING:
+        case CS_DOCKING:
+        case CS_TRANSIT:
+            return true;
+        case CS_IDLE:
+        case CS_WORKING:
+        case CS_COUNT:
+            return false;
+        }
+        return false;
+    }
+
     inline Craft &work(float duration)
     {
-        if (state == CS_SURFACE_DOCKED)
+        if (state == CS_IDLE)
         {
-            state = CS_SURFACE_DOCK_WORK;
-            total_state_timer = duration;
-            state_timer = duration;
-        }
-        else if (state == CS_ORBIT_DOCKED)
-        {
-            state = CS_ORBIT_DOCK_WORK;
+            state = CS_WORKING;
             total_state_timer = duration;
             state_timer = duration;
         }

@@ -891,15 +891,12 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     REQUIRE(orb != nullptr);
 
     // --- Shuttle: docked, drive fitted, pods loaded, autopilot AS_ON, varied flow + cursors
-    // Based at the body. createShuttle places a craft AT the location given, so passing
-    // the orbital or its orbit region would put it there -- which is step 6, not yet.
-    Shuttle *shuttle = game->createShuttle(orb->body());
+    // Created AT the orbital, so "docked" is where it is rather than what a state says.
+    Shuttle *shuttle = game->createShuttle(orb);
     REQUIRE(shuttle != nullptr);
 
     std::snprintf(shuttle->name, sizeof shuttle->name, "Discovery");
-    shuttle->state = CS_ORBIT_DOCKED;
-    shuttle->state_timer = 0.0f;
-    shuttle->total_state_timer = 0.0f;
+    shuttle->assignState(CS_IDLE, 0.0f, 0.0f); // at rest; docked comes from location
     shuttle->fuel = 100;
     shuttle->max_pods = 2;
     shuttle->drive = true;
@@ -931,13 +928,14 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     shuttle->autopilot->cursors[0] = 5;
     shuttle->autopilot->cursors[1] = 12;
 
-    // --- IOS: terminal state, autopilot AS_COMPLETE
-    IOS *ios = game->createIOS(orb);
+    // --- IOS: caught MID-MANOEUVRE, autopilot AS_COMPLETE. The partial timer is the
+    // point: state_timer and total_state_timer differ, which is the one shape neither
+    // setState nor setTimedState can express and so the one assignState exists for.
+    IOS *ios = game->createIOS(static_cast<Location *>(orb));
     REQUIRE(ios != nullptr);
     std::snprintf(ios->name, sizeof ios->name, "IOS-Test");
-    ios->state = CS_ORBIT_DOCKED;
-    ios->state_timer = 1.5f;
-    ios->total_state_timer = 3.0f;
+    ios->location = orb->body()->orbit(); // approaching the orbital from the region
+    ios->assignState(CS_DOCKING, 1.5f, 3.0f);
     ios->fuel = 250;
     ios->drive = true;
     ios->autopilot->state = AS_COMPLETE;
@@ -962,24 +960,29 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     {
         CHECK_STREQ(ls->name, "Discovery");
         CHECK(ls->type == CT_SHUTTLE);
-        CHECK(ls->state == CS_ORBIT_DOCKED);
-        CHECK(ls->state_timer == doctest::Approx(0.0f));
-        CHECK(ls->total_state_timer == doctest::Approx(0.0f));
+        const CurrentState cs = ls->currentState();
+        CHECK(cs.state == CS_IDLE);
+        CHECK(cs.state_timer == doctest::Approx(0.0f));
+        CHECK(cs.total_state_timer == doctest::Approx(0.0f));
+        CHECK(ls->docked()); // and the docked half survives as the location
         CHECK(ls->fuel == 100);
         CHECK(ls->max_pods == 2);
         CHECK(ls->drive == true);
         CHECK(ls->destination_index == 1);
         REQUIRE(ls->location != nullptr);
-        CHECK_STREQ(ls->location->name, "Earth");
+        CHECK_STREQ(ls->location->name, "Earth Orbital"); // the exact place, not the body
     }
 
     SUBCASE("round-trips IOS fields")
     {
         CHECK_STREQ(li->name, "IOS-Test");
         CHECK(li->type == CT_IOS);
-        CHECK(li->state == CS_ORBIT_DOCKED);
-        CHECK(li->state_timer == doctest::Approx(1.5f));
-        CHECK(li->total_state_timer == doctest::Approx(3.0f));
+        const CurrentState cs = li->currentState();
+        CHECK(cs.state == CS_DOCKING);
+        CHECK(cs.state_timer == doctest::Approx(1.5f));
+        CHECK(cs.total_state_timer == doctest::Approx(3.0f));
+        CHECK(li->stateProgress() == doctest::Approx(0.5f)); // 1.5 of 3.0 remaining
+        CHECK_FALSE(li->docked());                           // still on approach
         CHECK(li->fuel == 250);
         CHECK(li->drive == true);
     }

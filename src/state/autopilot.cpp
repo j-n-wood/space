@@ -116,10 +116,20 @@ void Autopilot::update(Craft *craft, float delta)
         return;
     }
 
+    // Only ever act on a craft at rest. Without this the autopilot re-issues its
+    // command every tick of a manoeuvre -- descend() resetting state_timer each frame
+    // means the descent never completes and the craft hangs in orbit forever. The
+    // 14-state model got this free from `state != CS_ORBIT`; with position out of the
+    // enum it has to be asked directly.
+    if (craft->moving() || craft->isWorking())
+    {
+        return;
+    }
+
     // dock if arrived at orbit, and endpoint requires docking.
 
     // Note: IOS should not be set to have destination_state of CS_SURFACE_DOCKED
-    if (craft->state == CS_ORBIT)
+    if (craft->inOrbit() && !craft->docked())
     {
         auto &dest{craft->currentDestination()};
         // Same BODY means a local manoeuvre -- ascend, descend or dock. A different
@@ -137,8 +147,7 @@ void Autopilot::update(Craft *craft, float delta)
                 if (dest.location->isFacility())
                 {
                     TraceLog(LOG_INFO, "Autopilot: %s docking at destination orbit", craft->name);
-                    craft->state = CS_ORBIT_DOCKING;
-                    craft->state_timer = CSTD_DOCK;
+                    craft->dock();
                 }
                 else
                 {
@@ -148,8 +157,7 @@ void Autopilot::update(Craft *craft, float delta)
             else
             {
                 TraceLog(LOG_INFO, "Autopilot: %s descending to surface", craft->name);
-                craft->state = CS_DESCENDING;
-                craft->state_timer = CSTD_DESCENT;
+                craft->descend();
             }
         }
         else

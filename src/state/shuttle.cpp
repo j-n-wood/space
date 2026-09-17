@@ -17,27 +17,22 @@ void Shuttle::update(float delta)
         if (state_timer <= 0)
         {
             state_timer = 0.0f;
-            // done
-            switch (state)
+            // Capture before overwriting: the switch below needs the state that just
+            // EXPIRED, not the one we are moving to. Reading `state` after assigning
+            // CS_IDLE made every arm below unreachable.
+            const CraftState expiring = state;
+            state = CS_IDLE; // most states come to rest; the arms below adjust position
+            switch (expiring)
             {
-            case CS_SURFACE_WORK:
-                state = CS_SURFACE_DOCKED;
-                onDocked();
-                break;
-            case CS_SURFACE_DOCK_WORK:
-                state = CS_SURFACE_DOCKED;
-                onDockWorkComplete();
+            case CS_WORKING:
+                if (docked())
+                {
+                    onDockWorkComplete();
+                }
+                // onDocked(); // TODO - immediately dock if you completed a faciltity?
                 break;
             case CS_ASCENDING:
-                state = CS_ORBIT;
                 enterRegion(true); // reached orbit
-                break;
-            case CS_ORBIT_WORK:
-                state = CS_ORBIT;
-                break;
-            case CS_ORBIT_DOCK_WORK:
-                state = CS_ORBIT_DOCKED;
-                onDockWorkComplete();
                 break;
             case CS_DESCENDING:
                 // Reached the ground either way; onDocked steps into the station if
@@ -45,23 +40,10 @@ void Shuttle::update(float delta)
                 enterRegion(false);
                 if (Game::getCurrent()->resourceFacilityAt(location))
                 {
-                    state = CS_SURFACE_DOCKED;
                     onDocked();
                 }
-                else
-                {
-                    state = CS_SURFACE;
-                }
                 break;
-            case CS_SURFACE_LAUNCH:
-                state = CS_ASCENDING;
-                state_timer = CSTD_ASCENT; // variable?
-                break;
-            case CS_ORBIT_LAUNCH:
-                state = CS_ORBIT;
-                break;
-            case CS_ORBIT_DOCKING:
-                state = CS_ORBIT_DOCKED;
+            case CS_DOCKING:
                 onDocked();
                 break;
             default:

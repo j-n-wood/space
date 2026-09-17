@@ -44,6 +44,8 @@ TEST_CASE("a craft docked at a surface station reports that station")
     // first and falling back to resourceFacilityAt(). orbitalAt matches on body(), so a
     // craft docked on the ground at a body that ALSO has an orbital reported the
     // orbital. Earth is such a body, which is why it is the one used here.
+    // Note there is no craft state anywhere in this case: ViewState derives place, body
+    // and facility from `location` alone, so setting a state would prove nothing.
     Game *game = loadGame();
     REQUIRE(game != nullptr);
 
@@ -63,7 +65,6 @@ TEST_CASE("a craft docked at a surface station reports that station")
     SUBCASE("docked on the surface")
     {
         shuttle->location = station;
-        shuttle->state = CS_SURFACE_DOCKED;
         vs.setCraftFocus(shuttle);
 
         CHECK(vs.getCurrentPlace() == static_cast<Location *>(station));
@@ -74,7 +75,6 @@ TEST_CASE("a craft docked at a surface station reports that station")
     SUBCASE("docked at the orbital")
     {
         shuttle->location = orbital;
-        shuttle->state = CS_ORBIT_DOCKED;
         vs.setCraftFocus(shuttle);
 
         CHECK(vs.getCurrentPlace() == static_cast<Location *>(orbital));
@@ -87,7 +87,6 @@ TEST_CASE("a craft docked at a surface station reports that station")
         Location *orbitRegion = earth->orbit();
         REQUIRE(orbitRegion != nullptr);
         shuttle->location = orbitRegion;
-        shuttle->state = CS_ORBIT;
         vs.setCraftFocus(shuttle);
 
         CHECK(vs.getCurrentPlace() == orbitRegion);
@@ -162,7 +161,6 @@ TEST_CASE("the focus follows a craft with no resync")
     REQUIRE(vs.getCurrentPlace() == static_cast<Location *>(orbital));
 
     // undock -- straight to the region the facility sits in
-    shuttle->state = CS_ORBIT_DOCKED;
     shuttle->launch();
     CHECK(vs.getCurrentPlace() == earth->orbit());
     CHECK(vs.getCurrentBody() == earth);
@@ -234,11 +232,14 @@ TEST_CASE("focused on nothing is representable")
     CHECK(vs.getCurrentSystem() == earth->system);
 }
 
-TEST_CASE("status text does not repeat the noun in the location name")
+TEST_CASE("status text reads from the place, not from the state")
 {
-    // statusText supplies the verb; the location name supplies the noun. When facilities
-    // and regions became locations the names gained "Orbit" / "Surface" / "Orbital", so
-    // any string still appending its own produced "Orbiting Earth Orbit".
+    // statusText supplies the verb and preposition; the location name supplies the noun.
+    // Two things it has to get right, and both were broken at some point:
+    //   1. no doubling -- "Orbiting Earth Orbit" when the name already says "Orbit"
+    //   2. the right preposition -- *at* a station, *in* an orbit, *on* a surface.
+    // (2) matters more since the 7-state collapse: CS_IDLE and CS_WORKING each cover
+    // three places, so the only thing that can distinguish them is `location`.
     Game *game = loadGame();
     REQUIRE(game != nullptr);
 
@@ -264,27 +265,42 @@ TEST_CASE("status text does not repeat the noun in the location name")
     };
 
     const Case cases[] = {
-        {CS_ORBIT, earth->orbit(), "In Earth Orbit"},
-        {CS_ORBIT_WORK, earth->orbit(), "Working in Earth Orbit"},
-        {CS_ORBIT_DOCKING, earth->orbit(), "Docking at Earth Orbit"},
-        {CS_ORBIT_DOCKED, orbital, "Docked at Earth Orbital"},
-        {CS_ORBIT_DOCK_WORK, orbital, "Working at Earth Orbital"},
-        {CS_ORBIT_LAUNCH, earth->orbit(), "Launching from Earth Orbit"},
-        {CS_DESCENDING, earth->orbit(), "Descending from Earth Orbit"},
-        {CS_SURFACE, earth->surface(), "On Earth Surface"},
-        {CS_SURFACE_WORK, earth->surface(), "Working on Earth Surface"},
-        {CS_SURFACE_LAUNCH, earth->surface(), "Launching from Earth Surface"},
+        // CS_IDLE: one state, three readings, decided entirely by where it is
+        {CS_IDLE, static_cast<Location *>(orbital), "Docked at Earth Orbital"},
+        {CS_IDLE, static_cast<Location *>(station), "Docked at Earth City"},
+        {CS_IDLE, earth->orbit(), "In Earth Orbit"},
+        {CS_IDLE, earth->surface(), "On Earth Surface"},
+
+        // CS_WORKING: at a station is station work; in a region is building one
+        {CS_WORKING, static_cast<Location *>(orbital), "Working at Earth Orbital"},
+        {CS_WORKING, static_cast<Location *>(station), "Working at Earth City"},
+        {CS_WORKING, earth->orbit(), "Working in Earth Orbit"},
+        {CS_WORKING, earth->surface(), "Working on Earth Surface"},
+
+        // the manoeuvres name the place they are leaving or approaching
+        {CS_LAUNCHING, earth->orbit(), "Launching from Earth Orbit"},
+        {CS_LAUNCHING, earth->surface(), "Launching from Earth Surface"},
         {CS_ASCENDING, earth->surface(), "Ascending from Earth Surface"},
-        {CS_SURFACE_DOCKED, station, "Docked at Earth City"},
-        {CS_SURFACE_DOCK_WORK, station, "Working at Earth City"},
+        {CS_DESCENDING, earth->orbit(), "Descending from Earth Orbit"},
+        {CS_DOCKING, earth->orbit(), "Docking at Earth Orbit"},
     };
 
     for (const Case &c : cases)
     {
+        REQUIRE(c.where != nullptr);
         shuttle->location = c.where;
-        shuttle->state = c.state;
+        shuttle->assignState(c.state, 0.0f, 0.0f);
         buf[0] = '\0';
         shuttle->statusText(buf, sizeof buf);
         CHECK(std::string(buf) == std::string(c.expected));
     }
+
+    // CS_TRANSIT is the exception: it names the DESTINATION, because the craft itself
+    // is in the system's space location and "In transit to space" says nothing.
+    shuttle->location = earth->system->space;
+    shuttle->assignState(CS_TRANSIT, 1.0f, 2.0f);
+    shuttle->destinations[shuttle->destination_index] = Endpoint(orbital);
+    buf[0] = '\0';
+    shuttle->statusText(buf, sizeof buf);
+    CHECK(std::string(buf) == std::string("In transit to Earth Orbital"));
 }
