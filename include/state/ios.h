@@ -12,8 +12,6 @@ public:
     {
         type = CT_IOS;
     }
-
-    void update(float delta) override; // update by game time
 };
 
 typedef std::unique_ptr<IOS> IOSPtr;

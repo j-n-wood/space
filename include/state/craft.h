@@ -5,6 +5,9 @@
 #include "state/string_caps.h"
 #include "state/waypoint.h"
 #include "state/craft_type.h"
+// Safe because craft_action.h includes craft_type.h rather than this header -- which is
+// what that extraction was for. Gives Craft the capability enum and CraftActionResult.
+#include "state/craft_action.h"
 
 typedef enum
 {

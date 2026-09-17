@@ -118,7 +118,7 @@ Craft &Craft::dock()
 
 Craft &Craft::ascend() // move from surface to orbit, can initiate from any surface type
 {
-    if (!craftHasCapability(type, CC_ATMOSPHERIC))
+    if (!hasCapability(CC_ATMOSPHERIC))
     {
         return *this;
     }
@@ -137,7 +137,7 @@ Craft &Craft::ascend() // move from surface to orbit, can initiate from any surf
 
 Craft &Craft::descend() // move from orbit to surface, can only initiate from orbit
 {
-    if (!craftHasCapability(type, CC_ATMOSPHERIC))
+    if (!hasCapability(CC_ATMOSPHERIC))
     {
         return *this;
     }
@@ -211,6 +211,67 @@ void Craft::setPodType(const int index, const PodType pt)
 
 void Craft::update(float delta)
 {
+    // state transitions
+
+    // timed states
+    if (state_timer > 0.0f)
+    {
+        state_timer -= delta;
+        if (state_timer <= 0)
+        {
+            state_timer = 0.0f;
+            const CraftState expiring = state;
+            state = CS_IDLE; // most states come to rest; the arms below adjust position
+            switch (expiring)
+            {
+            case CS_WORKING:
+                if (docked())
+                {
+                    onDockWorkComplete();
+                }
+                // onDocked(); // TODO - immediately dock if you completed a faciltity?
+                break;
+            case CS_LAUNCHING:
+                // Leaving the ground is only the first phase of a climb -- a shuttle
+                // cannot sit in the surface region under power -- so launching there
+                // continues into ascent. Launching from an orbital is already done:
+                // it comes to rest in the orbit region. The 14-state model got this
+                // from CS_SURFACE_LAUNCH being a different value to CS_ORBIT_LAUNCH;
+                // with one CS_LAUNCHING the place has to say which it was.
+                if (!inOrbit())
+                {
+                    setTimedState(CS_ASCENDING, CSTD_ASCENT);
+                }
+                break;
+            case CS_ASCENDING:
+                enterRegion(true); // reached orbit
+                break;
+            case CS_DESCENDING:
+                // Reached the ground either way; onDocked steps into the station if
+                // there is one to dock at.
+                enterRegion(false);
+                if (Game::getCurrent()->resourceFacilityAt(location))
+                {
+                    onDocked();
+                }
+                break;
+            case CS_DOCKING:
+                onDocked();
+                if (hasCapability(CC_INTERPLANETARY)) // not triggered for shuttles ATM
+                {
+                    Game::getCurrent()->onSpacecraftDocked(this);
+                }
+                break;
+            case CS_TRANSIT:
+                arriveAtLocation();
+                Game::getCurrent()->onSpacecraftArrival(this);
+                break;
+            default:
+                break;
+            }
+        }
+    } // timed state
+
     // update autopilot if fitted
     if (drive)
     {
@@ -350,6 +411,16 @@ const char *Craft::statusText(char *status, size_t len)
 
 Craft &Craft::engageDrive()
 {
+    if (!hasCapability(CC_INTERPLANETARY))
+    {
+        TraceLog(LOG_WARNING, "Cannot engage drive on %s as it is not interplanetary capable", name);
+        return *this;
+    }
+    if (!drive)
+    {
+        TraceLog(LOG_WARNING, "Cannot engage drive on %s as it is not fitted", name);
+        return *this;
+    }
     if (destinations[destination_index].location)
     {
         // cannot engage drive if docked

@@ -177,7 +177,7 @@ void ShuttleView::input()
     auto &Overlay = Overlay::getInstance();
 
     // transparent buttons seem like overkill, reimplement
-    if ((craft->type != CT_SHUTTLE) && (craft->drive))
+    if ((craft->hasCapability(CC_INTERPLANETARY)) && (craft->drive))
     {
         auto &source{uiElementSources[UI_DRIVE_CONTROLS]};
         const Rectangle driveButton{1127, 640, source.width * 4, source.height * 2};
@@ -204,7 +204,7 @@ void ShuttleView::input()
     }
 
     // engines
-    if (IsKeyPressed(KEY_E))
+    if (IsKeyPressed(KEY_E) && (craft->hasCapability(CC_INTERPLANETARY)) && (craft->drive))
     {
         craft->engageDrive();
     }
