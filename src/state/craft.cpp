@@ -94,14 +94,12 @@ Craft &Craft::launch()
         return *this;
     }
 
-    state = CS_LAUNCHING;
-    state_timer = CSTD_LAUNCH;
+    setTimedState(CS_LAUNCHING, CSTD_LAUNCH);
 
     // Leaving a facility puts us back in the region it sits in.
-    if (location && location->isFacility() && location->primary)
-    {
-        location = location->primary;
-    }
+    // assume construction is correct
+    location = location->primary;
+
     return *this;
 }
 
@@ -110,34 +108,36 @@ Craft &Craft::dock()
     // Only start the approach; onDocked() steps into the facility when the timer runs
     // out. Moving now would make docked() true for the whole manoeuvre, so the craft
     // would report itself arrived before it was.
-    if (!docked() && inOrbit() && Game::getCurrent()->orbitalAt(location))
+    if (location->type == LOCATION_TYPE_ORBIT && Game::getCurrent()->orbitalAt(location))
     {
-        state = CS_DOCKING;
-        state_timer = CSTD_DOCK;
+        setTimedState(CS_DOCKING, CSTD_DOCK);
     }
     return *this;
 }
 
-Craft &Craft::ascend() // move from surface to orbit
+Craft &Craft::ascend() // move from surface to orbit, can initiate from any surface type
 {
-    if (location && !location->inOrbit() && location->primary)
+    if (location->isOnSurface()) // assume if there is a surface, there is a body
     {
-        state = CS_ASCENDING;
-        state_timer = CSTD_ASCENT;
+        // if at facility, instant-launch and appear on surface. Not docked now.
+        if (location->isFacility())
+        {
+            location = location->primary;
+        }
+        setTimedState(CS_ASCENDING, CSTD_ASCENT);
     }
     return *this;
 }
 
-Craft &Craft::descend() // move from orbit to surface
+Craft &Craft::descend() // move from orbit to surface, can only initiate from orbit
 {
     // Position does not change here: the craft stays in the orbit region for the whole
     // descent and enterRegion(false) puts it on the surface on arrival. Stepping to
     // location->primary would park it on the bare body, which is not a place a craft
     // can be -- neither docked() nor inOrbit() is true there.
-    if (!docked() && inOrbit())
+    if (location->type == LOCATION_TYPE_ORBIT) // assume if there is an orbit, there is a body
     {
-        state = CS_DESCENDING;
-        state_timer = CSTD_DESCENT;
+        setTimedState(CS_DESCENDING, CSTD_DESCENT);
     }
     return *this;
 }
@@ -354,11 +354,11 @@ Craft &Craft::engageDrive()
         // make up a transit time based on location distance
         Game *game = Game::getCurrent();
 
-        total_state_timer = game->transitTimeCalculator->calculateTransitTime(source, destination);
-        state_timer = total_state_timer;
-        TraceLog(LOG_INFO, "Engaging drive from %s to %s, transit time %.1f seconds", source ? source->name : "Space", destination->name, total_state_timer);
+        float transit_time = game->transitTimeCalculator->calculateTransitTime(source, destination);
 
-        state = CS_TRANSIT;
+        TraceLog(LOG_INFO, "Engaging drive from %s to %s, transit time %.1f seconds", source ? source->name : "Space", destination->name, transit_time);
+
+        setTimedState(CS_TRANSIT, transit_time);
         location = location->system->space; // space location for system
     }
     return *this;
@@ -369,6 +369,7 @@ Craft &Craft::disengageDrive()
     if (state == CS_TRANSIT)
     {
         TraceLog(LOG_INFO, "Disengaging drive");
+        // TODO
     }
     return *this;
 }

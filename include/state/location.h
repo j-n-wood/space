@@ -37,10 +37,10 @@ enum LocationType
     // facilities
     LOCATION_TYPE_ORBITAL,           // orbital station
     LOCATION_TYPE_RESOURCE_FACILITY, // surface resource station
-    // regions of a body -- orbit is the parent of that body's orbitals, surface of its
-    // surface facilities, so "in orbit" is an ancestor test rather than a set of types
-    LOCATION_TYPE_ORBIT,   // the space around a body: in orbit, no station
-    LOCATION_TYPE_SURFACE, // the ground: landed, no station
+                                     // regions of a body -- orbit is the parent of that body's orbitals, surface of its
+                                     // surface facilities, so "in orbit" is an ancestor test rather than a set of types
+    LOCATION_TYPE_ORBIT,             // the space around a body: in orbit, no station
+    LOCATION_TYPE_SURFACE,           // the ground: landed, no station
     LOCATION_TYPE_MAX
 };
 
@@ -57,6 +57,11 @@ inline bool locationIsBody(LocationType t)
 {
     return t == LOCATION_TYPE_STAR || t == LOCATION_TYPE_PLANET || t == LOCATION_TYPE_MOON ||
            t == LOCATION_TYPE_ASTEROID_BELT || t == LOCATION_TYPE_SPACE;
+}
+
+inline bool locationIsSurface(LocationType t)
+{
+    return t == LOCATION_TYPE_SURFACE || t == LOCATION_TYPE_RESOURCE_FACILITY || t == LOCATION_TYPE_EARTH_CITY;
 }
 
 class System; // forward declaration to avoid circular dependency
@@ -82,8 +87,8 @@ public:
     System *system; // the system this location is in, e.g. Sol
 
     // persistence IDs. Decide if this is mixing concerns, having it here makes save of state have consistent IDs.
-    int id;          // unique ID for this location, used for persistence
-    int primary_id;  // ID of primary body this location orbits. Persistence only; resolved to `primary` on load.
+    int id;         // unique ID for this location, used for persistence
+    int primary_id; // ID of primary body this location orbits. Persistence only; resolved to `primary` on load.
 
     Location *primary;                // body this one orbits, nullptr for a star or for space
     std::vector<Location *> children; // e.g. moons orbiting a planet. Not persisted; built from primary_id on load.
@@ -117,6 +122,7 @@ public:
 
     inline bool isFacility() const { return locationIsFacility(type); }
     inline bool isBody() const { return locationIsBody(type); }
+    inline bool isOnSurface() const { return locationIsSurface(type); }
 
     // The celestial body this location belongs to: itself if it is one, otherwise the
     // nearest ancestor that is. Walks up past facility, orbit and surface. Depth-capped,

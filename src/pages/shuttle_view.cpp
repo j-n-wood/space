@@ -256,7 +256,7 @@ void ShuttleView::render()
     craft_can_dock = Game::getCurrent()->craftCanDock(craft);
 
     // render viewport
-    if (bodyTexture && (craft->inOrbit() && !craft->docked()))
+    if (bodyTexture && (craft->location->type == LOCATION_TYPE_ORBIT))
     {
         // test rendering 1/4 of a body, 256 x 256
         Rectangle source{128, 128, 128, 128};
@@ -378,7 +378,7 @@ void ShuttleView::render()
         }
 
         // can descend IF in orbit and a shuttle
-        bool can_descend = (craft->inOrbit()) && (!craft->docked()) && (craft->type == CT_SHUTTLE);
+        bool can_descend = (craft->location->type == LOCATION_TYPE_ORBIT) && (craft->type == CT_SHUTTLE);
         if (can_descend && (overlay.renderButton(descendButton, "", "Descend to surface", WHITE)))
         {
             craft->descend();
