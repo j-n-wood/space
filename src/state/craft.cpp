@@ -4,6 +4,7 @@
 #include "state/game.h"
 #include "state/resources.h"
 #include "state/autopilot.h"
+#include "state/craft_action.h"
 
 const char *PodTypeName[PT_COUNT] = {
     "EMPTY",
@@ -117,6 +118,11 @@ Craft &Craft::dock()
 
 Craft &Craft::ascend() // move from surface to orbit, can initiate from any surface type
 {
+    if (!craftHasCapability(type, CC_ATMOSPHERIC))
+    {
+        return *this;
+    }
+
     if (location->isOnSurface()) // assume if there is a surface, there is a body
     {
         // if at facility, instant-launch and appear on surface. Not docked now.
@@ -131,6 +137,11 @@ Craft &Craft::ascend() // move from surface to orbit, can initiate from any surf
 
 Craft &Craft::descend() // move from orbit to surface, can only initiate from orbit
 {
+    if (!craftHasCapability(type, CC_ATMOSPHERIC))
+    {
+        return *this;
+    }
+
     // Position does not change here: the craft stays in the orbit region for the whole
     // descent and enterRegion(false) puts it on the surface on arrival. Stepping to
     // location->primary would park it on the bare body, which is not a place a craft

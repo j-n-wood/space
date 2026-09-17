@@ -2,6 +2,7 @@
 #include "state/game.h"
 #include "state/research_facility.h"
 #include "state/event_sink.h"
+#include "state/craft_action.h"
 
 #include <cstdio>
 #include <cmath>
@@ -1015,7 +1016,7 @@ void Game::onSpacecraftDocked(Craft *craft)
     // this can trigger game events
 
     // if docking location is hostile, trigger capture event
-    if (hostilesAt(craft->location, craft->faction_id))
+    if (hostilesAt(craft->location, craft->faction_id) && (craft->hasCapability(CC_BOARDING)))
     {
         // TODO: orbital self destruct
         // switch ownership of orbital to craft's faction

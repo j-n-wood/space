@@ -836,34 +836,81 @@ expressible: the image is a function of (activity, place), so it keys off `state
 
 ## Migration order
 
-`make && make tests && ./bin/Debug/tests` after each step; each reverts alone.
+**The order was inverted in practice: 6 and 7 went first.** That was the right call — the
+plan put "make it private" last so the compiler would produce the list of missed sites, and
+that is exactly how the collapse was driven. Doing it early meant every later step inherits a
+build that already fails at each stale site. What follows is the state as built.
 
-1. ~~**Add `craft_action.h` / `.cpp`**~~ — **done**, along with `craft_type.h`. Nothing
-   consumes them yet, which is correct for this step. **Still to do here: the predicates**
-   (`docked()`, `inOrbit()`, `working()`, `moving()`) against the current 14-value enum.
-   `docked()` and `inOrbit()` read `location` from the outset, so they are correct before
-   and after the collapse — which is what lets every later step be checked. `./reconf.sh`
-   — premake globs `src/**.cpp` at configure time.
-2. **Add `checkCapability` / `checkAction` / `perform` / verbs**; route `launch`, `work`,
-   `engageDrive` through them; `craftCanDock` → `checkCraftCanDock`. Existing callers keep
-   working; the only observable change is that `total_state_timer` becomes correct. Do
-   *not* move the countdown yet — it would double-tick against the subclass loops.
-3. **Move the countdown into `Craft::update`, delete `Shuttle::update` / `IOS::update`**,
-   adding the `CC_BOARDING` gate in `onSpacecraftDocked` in the same commit so shuttle
-   behaviour is unchanged. Highest-value step.
-4. **Autopilot onto the verbs**; `engageAutopilot` returns `CraftActionResult`; gate becomes
-   `autopilot->state >= AS_ON`. Own commit — the one real behaviour change.
-5. **`ShuttleView` control table + keyboard.** Play-test.
-6. **Make the state machine private (§3).** Deliberately last: the build now fails at every
-   site the earlier steps missed, so the compiler produces the list.
-7. **Collapse the enum to seven values.** Deliberately after the guards are private: by
-   this point every read goes through a predicate and every write through `setTimedState`,
-   so the collapse touches the enum, the expiry switch and `viewportImages` — not the call
-   sites. Renumbering the persisted column is safe only while `craft` rows are disposable,
-   so this step is also the deadline for that assumption.
-8. **Polish:** `bay_view` predicates, `architecture.md`.
+| Step | Status |
+|---|---|
+| 1. `craft_action.h` / `.cpp`, `craft_type.h`, predicates | **done** |
+| 2. `checkCapability` / `checkAction` / `perform`; `craftCanDock` → `checkCraftCanDock` | **not started** |
+| 3. Countdown into `Craft::update`; delete `Shuttle::update` / `IOS::update`; `CC_BOARDING` gate | **not started** |
+| 4. Autopilot onto the verbs | **partly** — it calls them, but `engageAutopilot` still returns `bool` and `Craft::update` still gates on `drive` |
+| 5. `ShuttleView` control table + keyboard | **not started** — per-key `if` blocks, though they now call verbs rather than writing state |
+| 6. Private state machine | **done** (`protected`, so subclasses still reach it) |
+| 7. Collapse the enum to seven values | **done** |
+| 8. Polish | `bay_view` done; `architecture.md` still lists the old enum |
 
----
+### What the inversion left undone
+
+**The capability tier is dead code.** `craftCapabilities` is defined in
+[craft_action.cpp](../../src/state/craft_action.cpp) and consumed by **nothing** — there is
+no `craftHasCapability` call anywhere. At the same time every `type == CT_SHUTTLE` guard was
+removed on the way through, so the rules that table exists to state are currently enforced
+nowhere:
+
+- A shuttle can engage its interplanetary drive. `KEY_E` calls `engageDrive()` unguarded
+  ([shuttle_view.cpp:202](../../src/pages/shuttle_view.cpp#L202)), and the autopilot calls it
+  for any endpoint at a different body — so a shuttle given a cross-body route will fly it.
+- An IOS can ascend or descend if it is ever on a surface; only position, not capability,
+  stops it.
+- `onSpacecraftDocked` captures hostile orbitals for **any** craft — the `CC_BOARDING` gate
+  that was to keep shuttle behaviour unchanged is not there.
+
+This is the real cost of taking 6/7 before 2. Nothing is *worse* than before — those guards
+were scattered `type ==` tests that the plan was replacing anyway — but the replacement has
+not landed, so the interval is genuinely unguarded.
+
+**Step 3 is now the highest-value remaining step**, and more so than when written.
+`Shuttle::update` and `IOS::update` still carry near-identical countdown loops, and the
+duplication has already cost: the `state = CS_IDLE` before `switch (state)` bug that made
+every timed transition dead was written **twice**, once in each copy, because they are
+copies. They have legitimately diverged now (the shuttle chains `CS_LAUNCHING` into
+`CS_ASCENDING`; the IOS cannot), so unifying means one switch whose arms are guarded by
+capability rather than by which subclass compiled it.
+
+### Remaining work, in order
+
+1. **Unify the countdown** into `Craft::update`; delete both subclass overrides. Gate the
+   surface arms on `CC_ATMOSPHERIC` and the transit arm on `CC_INTERPLANETARY`, which is the
+   first real consumer of the capability table.
+2. **Add the guard layer** (`checkCapability` / `checkAction` / `perform`) and move the
+   verbs' ad-hoc situation checks into it — `dock()` testing `location->type ==
+   LOCATION_TYPE_ORBIT` is the situation tier written inline.
+3. **`craftCanDock` → `checkCraftCanDock`** returning a reason rather than a bool.
+4. **Autopilot and `ShuttleView` onto `perform`**, so a refused action reports why instead of
+   silently no-opping. `engageAutopilot` returns `CraftActionResult`.
+5. **Polish:** `architecture.md:90-105` still lists the pre-collapse enum.
+
+### Open questions surfaced during implementation
+
+- **`ascend()` accepts a docked start** (`isOnSurface()` includes surface facilities) while
+  `dock()` and `descend()` require the bare region. So a craft can climb straight out of a
+  station without launching, and `docked()` stays true for the whole ascent — which
+  contradicts the `moving() && docked()` invariant asserted in
+  [test_facility_location.cpp](../../tests/test_facility_location.cpp). Either the shortcut
+  is intended and the test should stop asserting that, or `ascend()` should require
+  `LOCATION_TYPE_SURFACE`.
+- **Two redundant fixes for the lost ascent.** The launch→ascend chain lives both in the
+  shuttle expiry switch and in the autopilot's ascend branch; either alone is sufficient
+  (verified). Kept both: the expiry arm serves a manual launch, the autopilot branch serves a
+  route. Worth collapsing to one if step 3 unifies the expiry switch.
+- **`dock()` still writes `state` and `state_timer` raw**, leaving `total_state_timer` stale,
+  so `stateProgress()` misreads during an approach. The other three verbs use
+  `setTimedState`.
+- **`createShuttle` leaves `name` empty**, so autopilot log lines read "Autopilot:  ...".
+  `createIOS` names its craft `IOS-%04d`.
 
 ## Verification
 

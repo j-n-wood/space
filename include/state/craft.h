@@ -143,6 +143,11 @@ public:
         return 1.0f;
     }
 
+    inline bool hasCapability(CraftCapability cap) const
+    {
+        return craftHasCapability(type, cap);
+    }
+
     inline const Endpoint &currentDestination() const
     {
         return destinations[destination_index];

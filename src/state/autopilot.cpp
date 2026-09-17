@@ -2,6 +2,7 @@
 #include "state/craft.h"
 #include "state/game.h"
 #include "state/autopilot.h"
+#include "state/craft_action.h"
 
 const char *autopilotStateNames[AS_COUNT] = {
     "Disabled",
@@ -154,7 +155,7 @@ void Autopilot::update(Craft *craft, float delta)
     // a surface station sitting in the surface region with nothing to move it.
     if (dest.location->inOrbit())
     {
-        if (!craft->inOrbit())
+        if (craft->location->isOnSurface() && craft->hasCapability(CC_ATMOSPHERIC))
         {
             TraceLog(LOG_INFO, "Autopilot: %s ascending to orbit", craft->name);
             craft->ascend();
@@ -169,7 +170,7 @@ void Autopilot::update(Craft *craft, float delta)
             TraceLog(LOG_WARNING, "Autopilot: %s at destination orbit but no station to dock with", craft->name);
         }
     }
-    else if (craft->inOrbit())
+    else if (craft->inOrbit() && (dest.location->isOnSurface()) && (craft->hasCapability(CC_ATMOSPHERIC)))
     {
         TraceLog(LOG_INFO, "Autopilot: %s descending to surface", craft->name);
         craft->descend();

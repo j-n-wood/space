@@ -4,6 +4,7 @@
 #include "state/game.h"
 #include "state/location.h"
 #include "state/autopilot.h"
+#include "state/craft_action.h"
 
 // original images 208 x 120 -> 832 x 480
 Rectangle viewportDest = {300, 200, 832, 480};
@@ -157,7 +158,11 @@ void ShuttleView::input()
         }
     }
 
-    if (IsKeyPressed(KEY_A))
+    if (IsKeyPressed(KEY_A) && craft->hasCapability(CC_ATMOSPHERIC))
+    {
+        // toggle autopilot
+        craft->autopilot->state = (craft->autopilot->state == AS_ON) ? AS_OFF : AS_ON;
+    }
     {
         if (craft->inOrbit())
         {
@@ -385,12 +390,12 @@ void ShuttleView::render()
         }
 
         // can descend IF in orbit and a shuttle
-        bool can_descend = (craft->location->type == LOCATION_TYPE_ORBIT) && (craft->type == CT_SHUTTLE);
+        bool can_descend = (craft->location->type == LOCATION_TYPE_ORBIT) && craft->hasCapability(CC_ATMOSPHERIC);
         if (can_descend && (overlay.renderButton(descendButton, "", "Descend to surface", WHITE)))
         {
             craft->descend();
         }
-        if ((craft->type == CT_SHUTTLE) && (!craft->inOrbit()) && (overlay.renderButton(ascendButton, "", "Ascend to orbit", WHITE)))
+        if ((craft->hasCapability(CC_ATMOSPHERIC)) && (!craft->location->isOnSurface()) && (overlay.renderButton(ascendButton, "", "Ascend to orbit", WHITE)))
         {
             craft->ascend();
         }
