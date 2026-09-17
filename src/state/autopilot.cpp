@@ -122,7 +122,7 @@ void Autopilot::update(Craft *craft, float delta)
     // means the descent never completes and the craft hangs in orbit forever. The
     // 14-state model got this free from `state != CS_ORBIT`; with position out of the
     // enum it has to be asked directly.
-    if (craft->moving() || craft->isWorking())
+    if (craft->moving() || craft->working())
     {
         return;
     }

@@ -157,7 +157,7 @@ CraftActionResult Craft::canEngageDrive() const
 
 CraftActionResult Craft::canWork() const
 {
-    if (moving() || working())
+    if (state != CS_IDLE)
     {
         return CAC_BUSY;
     }

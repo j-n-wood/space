@@ -214,9 +214,7 @@ public:
     inline bool inTransit() const { return state == CS_TRANSIT; }
     inline bool isLaunching() const { return state == CS_LAUNCHING; }
     inline bool isDocking() const { return state == CS_DOCKING; }
-    inline bool isWorking() const { return state == CS_WORKING; }
-
-    bool working() const { return state == CS_WORKING; }
+    inline bool working() const { return state == CS_WORKING; }
 
     bool moving() const
     {
@@ -238,11 +236,9 @@ public:
 
     inline Craft &work(float duration)
     {
-        if (state == CS_IDLE)
+        if (canWork())
         {
-            state = CS_WORKING;
-            total_state_timer = duration;
-            state_timer = duration;
+            setTimedState(CS_WORKING, duration);
         }
         return *this;
     }
