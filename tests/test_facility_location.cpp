@@ -278,20 +278,44 @@ TEST_CASE("an autopilot shuttle advances past its first dock")
     REQUIRE(s->autopilot->state == AS_ON);
 
     const uint8_t startIndex = s->destination_index;
+    ResourceFacility *station = game->resourceFacilityAt(earth);
 
-    // Run the clock. A working cycle dock -> load -> undock -> cross -> dock takes a
-    // few seconds of game time; a stalled one never moves off its first endpoint.
+    // Run the clock and watch BOTH ends. Advancing once is not enough: a shuttle that
+    // reaches the surface station and then stalls there still advances its index on the
+    // way in, so checking only that hid a real stall -- launching from a surface dock
+    // left the craft in the surface region with nothing to make it climb.
     bool advanced = false;
-    for (int tick = 0; tick < 2000 && !advanced; ++tick)
+    bool dockedAtStation = false;
+    bool dockedAtOrbital = false;
+    bool returnedToOrbital = false; // docked at the orbital AFTER visiting the surface
+
+    for (int tick = 0; tick < 6000; ++tick)
     {
         game->update(0.05f);
+
         if (s->destination_index != startIndex)
         {
             advanced = true;
         }
+        if (s->location == static_cast<Location *>(station))
+        {
+            dockedAtStation = true;
+        }
+        if (s->location == static_cast<Location *>(orbital))
+        {
+            dockedAtOrbital = true;
+            if (dockedAtStation)
+            {
+                returnedToOrbital = true;
+                break; // a full round trip, both ends served
+            }
+        }
     }
 
     CHECK_MESSAGE(advanced, "autopilot never advanced past its first endpoint");
+    CHECK_MESSAGE(dockedAtStation, "autopilot never reached the surface station");
+    CHECK_MESSAGE(dockedAtOrbital, "autopilot never reached the orbital");
+    CHECK_MESSAGE(returnedToOrbital, "autopilot completed one leg but not a full cycle");
     CHECK(s->autopilot->state == AS_ON); // and did not disable itself on the way
 }
 

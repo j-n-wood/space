@@ -8,67 +8,61 @@
 // original images 208 x 120 -> 832 x 480
 Rectangle viewportDest = {300, 200, 832, 480};
 
-// source images for states
-/*
-typedef enum
+// Viewport art. A single state can no longer choose this: since the collapse, CS_IDLE
+// and CS_WORKING each cover docked, in-orbit and on-surface, so the PLACE decides for
+// those. The manoeuvres are the other way round -- they look the same wherever they
+// happen -- so the STATE decides for them. Hence the two halves of imageFor() below.
+namespace
 {
-    CS_SURFACE, // surface no dock
-    CS_SURFACE_DOCKED,
-    CS_SURFACE_DOCK_WORK, // transient state while docked and working
-    CS_SURFACE_WORK,
-    CS_SURFACE_LAUNCH, // transient state leaving dock
-    CS_ASCENDING,
-    CS_ORBIT,
-    CS_ORBIT_DOCKING, // transient state entering dock
-    CS_ORBIT_DOCKED,
-    CS_ORBIT_DOCK_WORK, // transient state while docked and working
-    CS_ORBIT_WORK,
-    CS_ORBIT_LAUNCH, // transient state leaving dock
-    CS_DESCENDING,
-    CS_TRANSIT, // IP or IS transit - refine with type and speed
-    CS_COUNT
-} CraftState;
+    const Rectangle VIEWPORT_DOCKED{1368, 280, 208, 120};
+    const Rectangle VIEWPORT_ORBIT{1368, 152, 208, 120}; // orbit, no station
+    const Rectangle VIEWPORT_STORM_DOORS{1152, 280, 208, 120};
+    const Rectangle VIEWPORT_TRANSIT{1152, 408, 208, 120};
 
-new:
-    CS_IDLE,       // at rest wherever location says: region or facility, orbit or surface
-    CS_WORKING,    // pods tick; docked = at a station, undocked = building one
-    CS_LAUNCHING,  // leaving a facility
-    CS_ASCENDING,  // surface region -> orbit region
-    CS_DESCENDING, // orbit region -> surface region
-    CS_DOCKING,    // approaching a facility
-    CS_TRANSIT,    // between bodies; location is the system's `space`
-    CS_COUNT
-*/
+    // The orbit region draws a rendered planet with an optional station overlay instead
+    // of flat art -- but only at rest. Mid-manoeuvre the flat image stays up, so the
+    // view does not flick to the planet while docking or descending, and so launching
+    // out of an orbital still shows its storm doors.
+    bool showsPlanetView(const Craft *craft)
+    {
+        return craft->location &&
+               craft->location->type == LOCATION_TYPE_ORBIT &&
+               !craft->moving();
+    }
 
-// this won't do - image depends on location properties e.g. station presence (could overlay)
-// or location type (star, planet, etc)
-// TODO
-/*
-Rectangle viewportImages[CS_COUNT] = {
-    {1368, 280, 208, 120}, // docked
-    {1368, 280, 208, 120}, // docked
-    {1368, 280, 208, 120}, // docked
-    {1368, 280, 208, 120}, // docked
-    {1368, 280, 208, 120}, // docked
-    {1152, 280, 208, 120}, // storm doors
-    {1368, 152, 208, 120}, // orbit no station
-    {1368, 152, 208, 120}, // orbit no station
-    {1368, 280, 208, 120}, // docked
-    {1368, 280, 208, 120}, // docked
-    {1368, 152, 208, 120}, // orbit no station
-    {1152, 280, 208, 120}, // storm doors
-    {1368, 152, 208, 120}, // orbit no station
-    {1152, 408, 208, 120}, // transit
-};
+    Rectangle viewportImageFor(const Craft *craft)
+    {
+        // Manoeuvres first: what the craft is doing outranks where it happens to be.
+        if (craft->inTransit())
+        {
+            return VIEWPORT_TRANSIT;
+        }
+        if (craft->isLaunching())
+        {
+            return VIEWPORT_STORM_DOORS;
+        }
+        if (craft->moving())
+        {
+            // ascending, descending or docking -- between two places rather than at
+            // either, so no station overlay is implied.
+            return VIEWPORT_ORBIT;
+        }
 
-Want: docked image for docked at any facility, or working at any facility.
-orbit no station for location = orbit, location has no children
-orbit with station = same, with additional image of station
-launching -> storm doors
-transit -> own image
-ascending/descending -> orbit no station for now, no overlay of station image
-orbit for orbit region, surface for surface region, transit for transit, ascending/descending for those states. Could overlay a station image if docked at one.
-*/
+        // At rest or working, so the place answers it. Docked is any facility, on
+        // either side of the body.
+        if (craft->docked())
+        {
+            return VIEWPORT_DOCKED;
+        }
+        if (craft->inOrbit())
+        {
+            return VIEWPORT_ORBIT;
+        }
+        // Surface region, undocked. No surface art in the atlas yet, so it borrows the
+        // docked image as the old per-state table did.
+        return VIEWPORT_DOCKED;
+    }
+}
 
 Rectangle pod_icon_coordinates[6] = {
     {810, 910, 96, 64},
@@ -145,6 +139,11 @@ void destinationSelectCancelled(void *state)
 
 void ShuttleView::input()
 {
+    if (!craft)
+    {
+        return; // see render(): no craft focused, nothing to command
+    }
+
     if (IsKeyPressed(KEY_D))
     {
         // dock/undock
@@ -252,32 +251,40 @@ void ShuttleView::render()
 {
     BasePage::render();
 
+    // activate() leaves craft null when nothing is focused and the body has no shuttle,
+    // and everything below dereferences it. The sidebar has already drawn, so an empty
+    // cockpit is the right result.
+    if (!craft)
+    {
+        return;
+    }
+
     // set common state
     craft_can_dock = Game::getCurrent()->craftCanDock(craft);
 
-    // render viewport
-    if (bodyTexture && (craft->location->type == LOCATION_TYPE_ORBIT))
+    // render viewport -- exactly one of these two, they are complements
+    if (showsPlanetView(craft))
     {
-        // test rendering 1/4 of a body, 256 x 256
-        Rectangle source{128, 128, 128, 128};
-        Rectangle dest{320, 200, 512, 512};
-        DrawTexturePro(*bodyTexture, source, dest, (Vector2){0, 0}, 0.f, WHITE);
+        if (bodyTexture)
+        {
+            // test rendering 1/4 of a body, 256 x 256
+            Rectangle source{128, 128, 128, 128};
+            Rectangle dest{320, 200, 512, 512};
+            DrawTexturePro(*bodyTexture, source, dest, (Vector2){0, 0}, 0.f, WHITE);
+        }
 
-        // orbital?
-        if (Game::getCurrent()->orbitalAt(craft->location))
+        // A station in this orbit is drawn over the planet rather than being a separate
+        // image, so a second orbital at the same body needs no new art.
+        if (backgroundTexture && Game::getCurrent()->orbitalAt(craft->location))
         {
             Rectangle ssource{1229, 179, 82, 72};
             Rectangle sdest{600, 460, 320, 280};
             DrawTexturePro(*backgroundTexture, ssource, sdest, (Vector2){0, 0}, 0.f, WHITE);
         }
     }
-
-    if (backgroundTexture)
+    else if (backgroundTexture)
     {
-        if (!(craft->inOrbit() && !craft->docked()))
-        {
-            // TODO DrawTexturePro(*backgroundTexture, viewportImages[craft->state], viewportDest, (Vector2){0, 0}, 0.f, WHITE);
-        }
+        DrawTexturePro(*backgroundTexture, viewportImageFor(craft), viewportDest, (Vector2){0, 0}, 0.f, WHITE);
     }
 
     char status[128];

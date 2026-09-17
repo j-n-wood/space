@@ -31,6 +31,18 @@ void Shuttle::update(float delta)
                 }
                 // onDocked(); // TODO - immediately dock if you completed a faciltity?
                 break;
+            case CS_LAUNCHING:
+                // Leaving the ground is only the first phase of a climb -- a shuttle
+                // cannot sit in the surface region under power -- so launching there
+                // continues into ascent. Launching from an orbital is already done:
+                // it comes to rest in the orbit region. The 14-state model got this
+                // from CS_SURFACE_LAUNCH being a different value to CS_ORBIT_LAUNCH;
+                // with one CS_LAUNCHING the place has to say which it was.
+                if (!inOrbit())
+                {
+                    setTimedState(CS_ASCENDING, CSTD_ASCENT);
+                }
+                break;
             case CS_ASCENDING:
                 enterRegion(true); // reached orbit
                 break;

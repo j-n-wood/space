@@ -126,44 +126,54 @@ void Autopilot::update(Craft *craft, float delta)
         return;
     }
 
-    // dock if arrived at orbit, and endpoint requires docking.
-
-    // Note: IOS should not be set to have destination_state of CS_SURFACE_DOCKED
-    if (craft->inOrbit() && !craft->docked())
+    // Docked is not ours to act on: onDocked starts the work, and onDockWorkComplete
+    // launches when it finishes. Anything else undocked is a leg to fly.
+    if (craft->docked())
     {
-        auto &dest{craft->currentDestination()};
-        // Same BODY means a local manoeuvre -- ascend, descend or dock. A different
-        // body is what makes a leg a transit. Comparing exact locations here would
-        // fire the interplanetary drive for a surface-to-orbit hop, since the craft
-        // sits in a region while the endpoint still names the body.
-        if (dest.location && craft->location &&
-            dest.location->body() == craft->location->body())
+        return;
+    }
+
+    auto &dest{craft->currentDestination()};
+    if (!dest.location || !craft->location)
+    {
+        return;
+    }
+
+    // Same BODY means a local manoeuvre -- ascend, descend or dock. A different body is
+    // what makes a leg a transit. Comparing exact locations here would fire the
+    // interplanetary drive for a surface-to-orbit hop, since the craft sits in a region
+    // while the endpoint names a facility.
+    if (dest.location->body() != craft->location->body())
+    {
+        craft->engageDrive();
+        return;
+    }
+
+    // Local. Both sides matter: where the destination is, and which side the craft is
+    // on now. Keying off the destination alone left a craft that had just launched from
+    // a surface station sitting in the surface region with nothing to move it.
+    if (dest.location->inOrbit())
+    {
+        if (!craft->inOrbit())
         {
-            // Where the target sits says what to do to reach it: something in orbit
-            // means dock, something on the ground means descend. No endpoint state to
-            // consult -- the location is the instruction.
-            if (dest.location->inOrbit())
-            {
-                if (dest.location->isFacility())
-                {
-                    TraceLog(LOG_INFO, "Autopilot: %s docking at destination orbit", craft->name);
-                    craft->dock();
-                }
-                else
-                {
-                    TraceLog(LOG_WARNING, "Autopilot: %s at destination orbit but no station to dock with", craft->name);
-                }
-            }
-            else
-            {
-                TraceLog(LOG_INFO, "Autopilot: %s descending to surface", craft->name);
-                craft->descend();
-            }
+            TraceLog(LOG_INFO, "Autopilot: %s ascending to orbit", craft->name);
+            craft->ascend();
+        }
+        else if (dest.location->isFacility())
+        {
+            TraceLog(LOG_INFO, "Autopilot: %s docking at destination orbit", craft->name);
+            craft->dock();
         }
         else
         {
-            // location is different. start transit
-            craft->engageDrive();
+            TraceLog(LOG_WARNING, "Autopilot: %s at destination orbit but no station to dock with", craft->name);
         }
     }
+    else if (craft->inOrbit())
+    {
+        TraceLog(LOG_INFO, "Autopilot: %s descending to surface", craft->name);
+        craft->descend();
+    }
+    // else: already on the surface side. Descent docks on arrival if there is a station,
+    // so there is nothing further to command from here.
 }
