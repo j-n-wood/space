@@ -4,6 +4,7 @@
 #include <memory>
 #include "state/string_caps.h"
 #include "state/waypoint.h"
+#include "state/craft_type.h"
 
 typedef enum
 {
@@ -29,14 +30,6 @@ const float CSTD_ASCENT = 4.0f;
 const float CSTD_DESCENT = 2.0f;
 const float CSTD_LAUNCH = 0.3f;
 const float CSTD_DOCK = 0.3f;
-
-typedef enum
-{
-    CT_SHUTTLE,
-    CT_IOS,
-    CT_SCG,
-    CT_COUNT
-} CraftType;
 
 typedef enum
 {

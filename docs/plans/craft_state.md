@@ -1,5 +1,12 @@
 # Craft state model refactor
 
+> Follows [orbit_as_location.md](orbit_as_location.md), which has landed. That change made
+> `craft->location` name an exact place, which takes two of `CraftState`'s three dimensions
+> out of the enum entirely — see [§2](#2-what-orbit-as-location-does-to-the-enum). The
+> capability / fitment / situation tiers and the single guarded mutator are unchanged from
+> the original plan; the state list, the predicates and the expiry switch are re-derived
+> against the current model.
+
 ## Context
 
 `CraftState` (14 values) is currently driven from four places that each re-implement the
@@ -11,7 +18,7 @@ disagree with each other. Callers write `state = X; state_timer = Y;` directly, 
 `total_state_timer` stale.
 
 **Goal:** one timed-transition mechanism, and one permission check asked the same way by the
-player, the autopilot and the game logic.
+player, the autopilot and the game logic — over a state enum that holds each fact once.
 
 ### The model
 
@@ -21,10 +28,10 @@ Three questions are conflated today into scattered `type == CT_SHUTTLE`, `if (dr
 | Tier | Question | Varies with | Example refusal |
 |---|---|---|---|
 | **Capability** | Is this hull *designed* to do it? | `CraftType`, permanent | a shuttle can never make an interplanetary transit |
-| **Fitment** | Is the equipment *installed*? | per craft, changes in the bay | no drive fitted → cannot dock, undock, ascend, descend |
+| **Fitment** | Is the equipment *installed*? | per craft, changes in the bay | no drive fitted → cannot dock, launch, ascend, descend |
 | **Situation** | Is it allowed *right now*? | state + world | not in orbit; orbital incomplete; defended by drones |
 
-`drive` is the engine, so every manoeuvre needs it — not just transit. `CC_TRANSIT` is
+`drive` is the engine, so every manoeuvre needs it — not just transit. `CC_INTERPLANETARY` is
 separately whether the hull is *rated* to cross interplanetary space. A shuttle therefore
 legitimately carries a drive (it needs engines to ascend and descend) while never being able
 to transit.
@@ -35,273 +42,138 @@ through the guards — it drives logging, and leaves the door open. See [Deferre
 
 ---
 
-## 1. `include/state/craft_action.h` (new)
+## 1. `craft_action.h` / `.cpp` — **implemented**
 
-Free of `game.h`, so it is unit-testable without a `Game`.
+See [include/state/craft_action.h](../../include/state/craft_action.h) and
+[src/state/craft_action.cpp](../../src/state/craft_action.cpp). Free of `game.h`, so it is
+unit-testable without a `Game`.
 
-```cpp
-#pragma once
+`CraftType` lives in its own [craft_type.h](../../include/state/craft_type.h), included by
+both `craft.h` and `craft_action.h`. That is what keeps the two independent: `craft_action.h`
+needs only `CraftType` and `CT_COUNT`, so it does not include `craft.h`, and step 2 can add
+`perform()` plus the inline verb wrappers to `Craft` — which need the complete
+`CraftActionResult` — without a cycle. Verified by compiling both include orders.
 
-#include <cstdint>
-#include "state/craft.h"
+Three deliberate departures from the original sketch:
 
-// ---------------------------------------------------------------- actions
-// What someone is asking the craft to do. Runtime only, never persisted.
-enum CraftAction : uint8_t
-{
-    CA_NONE,
-    CA_DOCK,
-    CA_UNDOCK,
-    CA_DESCEND,
-    CA_ASCEND,
-    CA_ENGAGE_DRIVE,
-    CA_WORK,
-    CA_CANCEL_WORK,
-    CA_COUNT
-};
-extern const char *craftActionNames[CA_COUNT];
+- **`CA_UNDOCK` became `CA_LAUNCH`** — "leave the current location", which covers undocking from
+  an orbital and lifting off a surface station with one action. `CA_DISENGAGE_DRIVE` was
+  added to pair with `CA_ENGAGE_DRIVE`.
+- **Capabilities describe the flight envelope, not the manoeuvre list**:
+  `CC_ATMOSPHERIC` / `CC_INTERPLANETARY` / `CC_INTERSTELLAR` / `CC_BOARDING`. There is no
+  `CC_DOCK_ORBIT`: every hull can dock, so docking is capability-free and gated only by the
+  situation tier. `CC_INTERSTELLAR` is forward-looking, held by `CT_SCG` alone.
 
-// ------------------------------------------------------------ capability
-// What this hull is DESIGNED to do. Per CraftType, permanent.
-enum CraftCapability : uint16_t
-{
-    CC_NONE       = 0,
-    CC_DOCK_ORBIT = 1 << 0, // can mate with an orbital
-    CC_SURFACE    = 1 << 1, // rated for ascent / descent / landing
-    CC_TRANSIT    = 1 << 2, // rated for interplanetary transit
-    CC_CAPTURE    = 1 << 3, // docking at a hostile orbital captures it
-};
+| | `CT_SHUTTLE` | `CT_IOS` | `CT_SCG` |
+|---|---|---|---|
+| `CC_ATMOSPHERIC` | yes | — | — |
+| `CC_INTERPLANETARY` | — | yes | yes |
+| `CC_INTERSTELLAR` | — | — | yes |
+| `CC_BOARDING` | — | yes | yes |
 
-// Shuttle: surface <-> orbit at one location. IOS/SCG: orbit-to-orbit, may capture.
-extern const uint16_t craftCapabilities[CT_COUNT];
+So a shuttle cannot engage its drive (no `CC_INTERPLANETARY`) and an IOS can neither descend
+nor ascend (no `CC_ATMOSPHERIC`) — both refusals now come from one table.
 
-inline bool craftHasCapability(CraftType t, uint16_t bits)
-{
-    return (craftCapabilities[t] & bits) == bits;
-}
-
-// -------------------------------------------------------------- fitment
-// Equipment an action needs FITTED on this particular craft. `drive` is the
-// engine, so every manoeuvre needs it. Only the work actions, which happen with
-// the craft already made fast, do not.
-extern const bool actionNeedsDrive[CA_COUNT];
-
-// --------------------------------------------------------------- result
-// The outcome of REQUESTING an action. CAC_UNKNOWN is 0 so a value-initialised
-// or memset result reads as "refused, no reason recorded" -- it fails safe and
-// is never returned deliberately.
-enum CraftActionCode : uint8_t
-{
-    CAC_UNKNOWN = 0,
-    CAC_OK,                 // accepted -- the manoeuvre has STARTED, not finished
-    CAC_NOT_CAPABLE,        // capability
-    CAC_NO_DRIVE,           // fitment
-    CAC_NO_SUPPLY_POD,      // fitment (autopilot)
-    CAC_WRONG_STATE,        // situation
-    CAC_BUSY,
-    CAC_NO_ORBITAL,
-    CAC_ORBITAL_INCOMPLETE,
-    CAC_DEFENDED,
-    CAC_NO_DESTINATION,
-    CAC_ROUTE_UNREACHABLE,
-    CAC_COUNT
-};
-extern const char *craftActionCodeText[CAC_COUNT]; // "No drive fitted", ...
-
-// What every request returns. The explicit operator bool is the point: a caller
-// writes `if (craft->dock())` and cannot get the polarity wrong, and cannot
-// silently assign or compare it to an int either.
-class CraftActionResult
-{
-    CraftActionCode code_{CAC_UNKNOWN};
-
-public:
-    constexpr CraftActionResult() = default;
-    constexpr CraftActionResult(CraftActionCode c) : code_{c} {} // implicit: `return CAC_NO_DRIVE;`
-
-    constexpr explicit operator bool() const { return code_ == CAC_OK; }
-    constexpr CraftActionCode code() const { return code_; }
-    const char *text() const { return craftActionCodeText[code_]; }
-
-    friend constexpr bool operator==(CraftActionResult a, CraftActionResult b)
-    {
-        return a.code_ == b.code_;
-    }
-};
-```
+**Open: array sizing.** `craftActionNames`, `craftCapabilities` and `craftActionCodeText`
+are declared `[CA_COUNT]` / `[CT_COUNT]` / `[CAC_COUNT]` and initialised positionally, so a
+short initialiser list zero-fills the tail rather than failing — adding an enum value without
+its string gives `text()` a `nullptr`. Sizing from the initialiser and asserting the length
+turns that into a compile error:
 
 ```cpp
-// src/state/craft_action.cpp
-
-#include "state/craft_action.h"
-
-const char *craftActionNames[CA_COUNT] = {
-    "None", "Dock", "Undock", "Descend", "Ascend",
-    "Engage drive", "Work", "Cancel work"};
-
-const uint16_t craftCapabilities[CT_COUNT] = {
-    /* CT_SHUTTLE */ CC_DOCK_ORBIT | CC_SURFACE,
-    /* CT_IOS     */ CC_DOCK_ORBIT | CC_TRANSIT | CC_CAPTURE,
-    /* CT_SCG     */ CC_DOCK_ORBIT | CC_TRANSIT | CC_CAPTURE,
-};
-
-const bool actionNeedsDrive[CA_COUNT] = {
-    /* CA_NONE         */ false,
-    /* CA_DOCK         */ true,
-    /* CA_UNDOCK       */ true,
-    /* CA_DESCEND      */ true,
-    /* CA_ASCEND       */ true,
-    /* CA_ENGAGE_DRIVE */ true,
-    /* CA_WORK         */ false,
-    /* CA_CANCEL_WORK  */ false,
-};
-
-const char *craftActionCodeText[CAC_COUNT] = {
-    "Unknown",
-    "OK",
-    "Not capable",
-    "No drive fitted",
-    "No supply pod fitted",
-    "Not possible from here",
-    "Manoeuvre in progress",
-    "No orbital station here",
-    "Orbital station incomplete",
-    "Defended by drones",
-    "No destination set",
-    "Route not flyable by this craft",
-};
+const char *craftActionNames[] = { ... };
+static_assert(sizeof craftActionNames / sizeof *craftActionNames == CA_COUNT, "...");
 ```
+
+All three are complete today (9 / 3 / 12), so this guards the next edit rather than fixing a
+break.
+
+**`actionNeedsDrive` is deliberately not implemented yet**, to be judged during
+implementation since nearly every action needs a drive. Consequence to keep in view:
+`CAC_NO_DRIVE` is unreachable until it exists, so the fitment tier is currently a no-op. If
+it does turn out to be "everything except `CA_NONE`, `CA_WORK`, `CA_CANCEL_WORK`", it wants
+to be a predicate rather than a parallel table — a table indexed by action is a second thing
+to keep in step with the enum.
 
 **Newly enforced.** Three rules previously held only by being awkward to violate:
 
-- An IOS cannot descend, therefore cannot ascend — both need `CC_SURFACE`. Ascent was never
+- An IOS cannot descend, therefore cannot ascend — both need `CC_ATMOSPHERIC`. Ascent was never
   checked anywhere before.
 - A shuttle cannot ascend or descend without a drive.
-- Docking and undocking need a drive.
+- Docking and launching need a drive.
 
-`CA_UNDOCK` needing a drive means a craft whose drive is removed or damaged is stranded at
+`CA_LAUNCH` needing a drive means a craft whose drive is removed or damaged is stranded at
 its station. That is the intended reading, and the hook for damaged drives later.
 
 ---
 
-## 2. State predicates (`craft.h` / `craft.cpp`)
+## 2. What orbit-as-location does to the enum
 
-`CraftState`'s 14 values are a product of position × docked × activity. Rather than repeat
-`state == CS_X || state == CS_Y` at each site, name the dimensions:
+`CraftState`'s 14 values are a product of **position × docked × activity**. Two of those
+three are now properties of `craft->location`, which since
+[orbit_as_location.md](orbit_as_location.md) names an exact place rather than a body:
+
+| Question | Was | Now |
+|---|---|---|
+| Which side of the body? | `CS_SURFACE*` vs `CS_ORBIT*` | `location->inOrbit()` |
+| Docked? | the `*_DOCKED` / `*_DOCK_WORK` arms | `location->isFacility()` |
+| Doing what? | folded into the same 14 values | **all `CraftState` is left carrying** |
+
+So the enum collapses to seven — activity alone:
 
 ```cpp
-    // Which half of the Endpoint triple the craft is currently at.
-    // SLOC_COUNT means "between" -- ascending, descending, in transit.
-    SublocationType sublocation() const;
-
-    bool docked() const;   // made fast to a facility
-    bool working() const;  // pods tick in this state
-    bool moving() const;   // drive is running; no new command is accepted
+enum CraftState : uint8_t
+{
+    CS_IDLE,       // at rest wherever location says: region or facility, orbit or surface
+    CS_WORKING,    // pods tick; docked = at a station, undocked = building one
+    CS_LAUNCHING,  // leaving a facility
+    CS_ASCENDING,  // surface region -> orbit region
+    CS_DESCENDING, // orbit region -> surface region
+    CS_DOCKING,    // approaching a facility
+    CS_TRANSIT,    // between bodies; location is the system's `space`
+    CS_COUNT
+};
 ```
 
-Each is an exhaustive `switch` **with no `default:`** — verified on this toolchain that
-clang emits `-Wswitch` by default (premake sets no extra warning level), so a 15th
-`CraftState` produces a compiler warning at every predicate that has not considered it. A
-lookup table would instead give a silent zero for the missing row.
+| Today | Becomes | Position now read from |
+|---|---|---|
+| `CS_SURFACE`, `CS_ORBIT` | `CS_IDLE` | the region it is in |
+| `CS_SURFACE_DOCKED`, `CS_ORBIT_DOCKED` | `CS_IDLE` | the facility it is in |
+| `CS_SURFACE_WORK`, `CS_ORBIT_WORK` | `CS_WORKING` | the region — **building** |
+| `CS_SURFACE_DOCK_WORK`, `CS_ORBIT_DOCK_WORK` | `CS_WORKING` | the facility — working at a station |
+| `CS_SURFACE_LAUNCH`, `CS_ORBIT_LAUNCH` | `CS_LAUNCHING` | the region, after `launch()` steps out |
+| `CS_ASCENDING`, `CS_DESCENDING`, `CS_ORBIT_DOCKING`, `CS_TRANSIT` | unchanged in meaning | — |
+
+**This removes a class of bug rather than just shortening a list.** Under 14 values, state
+and location were two independent records of the same fact and could disagree — `state ==
+CS_ORBIT_DOCKED` while `location` was a bare region was representable, and step 6 of the
+orbit work produced exactly that twice. Deriving both from `location` makes the
+disagreement unrepresentable.
+
+### Predicates (`craft.h` / `craft.cpp`)
+
+Two of the four stop being switches over the enum:
 
 ```cpp
-// src/state/craft.cpp
+// Where, straight from the hierarchy. No enum arm to forget, and they cannot
+// contradict the craft's actual position because they ARE its actual position.
+bool Craft::docked()  const { return location && location->isFacility(); }
+bool Craft::inOrbit() const { return location && location->inOrbit(); }
 
-SublocationType Craft::sublocation() const
-{
-    switch (state_)
-    {
-    case CS_SURFACE:
-    case CS_SURFACE_DOCKED:
-    case CS_SURFACE_DOCK_WORK:
-    case CS_SURFACE_WORK:
-    case CS_SURFACE_LAUNCH:
-        return SLOC_SURFACE;
-    case CS_ORBIT:
-    case CS_ORBIT_DOCKING:
-    case CS_ORBIT_DOCKED:
-    case CS_ORBIT_DOCK_WORK:
-    case CS_ORBIT_WORK:
-    case CS_ORBIT_LAUNCH:
-        return SLOC_ORBIT;
-    case CS_ASCENDING:
-    case CS_DESCENDING:
-    case CS_TRANSIT:
-    case CS_COUNT:
-        return SLOC_COUNT; // between
-    }
-    return SLOC_COUNT;
-}
-
-bool Craft::docked() const
-{
-    switch (state_)
-    {
-    case CS_SURFACE_DOCKED:
-    case CS_SURFACE_DOCK_WORK:
-    case CS_ORBIT_DOCKED:
-    case CS_ORBIT_DOCK_WORK:
-        return true;
-    case CS_SURFACE:
-    case CS_SURFACE_WORK:
-    case CS_SURFACE_LAUNCH:
-    case CS_ASCENDING:
-    case CS_ORBIT:
-    case CS_ORBIT_DOCKING:
-    case CS_ORBIT_WORK:
-    case CS_ORBIT_LAUNCH:
-    case CS_DESCENDING:
-    case CS_TRANSIT:
-    case CS_COUNT:
-        return false;
-    }
-    return false;
-}
-
-bool Craft::working() const
-{
-    switch (state_)
-    {
-    case CS_SURFACE_DOCK_WORK:
-    case CS_SURFACE_WORK:
-    case CS_ORBIT_DOCK_WORK:
-    case CS_ORBIT_WORK:
-        return true;
-    case CS_SURFACE:
-    case CS_SURFACE_DOCKED:
-    case CS_SURFACE_LAUNCH:
-    case CS_ASCENDING:
-    case CS_ORBIT:
-    case CS_ORBIT_DOCKING:
-    case CS_ORBIT_DOCKED:
-    case CS_ORBIT_LAUNCH:
-    case CS_DESCENDING:
-    case CS_TRANSIT:
-    case CS_COUNT:
-        return false;
-    }
-    return false;
-}
+bool Craft::working() const { return state_ == CS_WORKING; }
 
 bool Craft::moving() const
 {
     switch (state_)
     {
-    case CS_SURFACE_LAUNCH:
+    case CS_LAUNCHING:
     case CS_ASCENDING:
-    case CS_ORBIT_DOCKING:
-    case CS_ORBIT_LAUNCH:
     case CS_DESCENDING:
+    case CS_DOCKING:
     case CS_TRANSIT:
         return true;
-    case CS_SURFACE:
-    case CS_SURFACE_DOCKED:
-    case CS_SURFACE_DOCK_WORK:
-    case CS_SURFACE_WORK:
-    case CS_ORBIT:
-    case CS_ORBIT_DOCKED:
-    case CS_ORBIT_DOCK_WORK:
-    case CS_ORBIT_WORK:
+    case CS_IDLE:
+    case CS_WORKING:
     case CS_COUNT:
         return false;
     }
@@ -309,23 +181,56 @@ bool Craft::moving() const
 }
 ```
 
-`atEndpoint()` then collapses to a direct comparison against the triple
-[`Endpoint`](../../include/state/waypoint.h) already holds:
+`moving()` stays an exhaustive `switch` **with no `default:`** — clang emits `-Wswitch` by
+default on this toolchain (verified; premake sets no extra warning level), so an eighth
+`CraftState` warns here rather than silently reading false. A lookup table would give a
+silent zero for the missing row.
+
+`atEndpoint()` is already a location compare in the code
+([craft.cpp](../../src/state/craft.cpp#L112)) and needs nothing from this plan:
 
 ```cpp
-    inline bool atEndpoint() const
-    {
-        const Endpoint &d = currentDestination();
-        return d.location == location
-            && d.sublocation == sublocation()
-            && d.docked == docked();
-    }
+    // Both sides name a precise location, so orbit, surface and docked are all
+    // implied by which one it is.
+    if (dest.location == location) { return true; }
+    // One tolerance: sent to a region, ended up docked at a station inside it.
+    return location->isFacility() && location->primary == dest.location;
 ```
 
-Two deliberate semantics: `working()` includes `CS_SURFACE_WORK` / `CS_ORBIT_WORK`, so pods
-tick in the working-but-not-docked case (building in orbit) — a widening of
-[craft.cpp:106](../../src/state/craft.cpp#L106), safe because neither state is reachable
-today. And `moving()` means the drive is running, which is *why* commands are refused.
+`moving()` means the drive is running, which is *why* commands are refused. `working()`
+covers building as well as station work — see below, which is the requirement it exists to
+meet rather than a harmless generalisation.
+
+### Building states: what `CS_WORKING` undocked means
+
+The four working states become one, and the distinction between them is read from where the
+craft is. That is not a loss of information — it is the same fact, held once:
+
+| `location` is | `CS_WORKING` means | Pod |
+|---|---|---|
+| a facility | working at an existing station | `Bandaid` (repair) |
+| an orbit region | **building the orbital** | `Of_Frame` |
+| a surface region | **building the resource facility** | `R_Frame` |
+
+**The old `CS_SURFACE_WORK` / `CS_ORBIT_WORK` were unimplemented, not dead.** Nothing in
+`src/` assigns them today, but they are where facility construction and pod activation
+belong, and building is precisely the case with nothing to dock at: `Of_Frame` *creates* the
+orbital, so the craft is necessarily in the bare orbit region while it works. Since orbit
+and surface became locations that is literal — `craft->location` is the region, and the new
+facility appears as a child of it.
+
+Two gaps to close when this is implemented:
+
+- [`Game::activatePod`](../../src/state/game.cpp#L786) applies a whole construction increment
+  instantly and sets no state at all. It should start a timed `CS_WORKING`, exactly as its
+  `Bandaid` branch already starts a timed `CS_SURFACE_DOCK_WORK`.
+- [`Craft::update`](../../src/state/craft.cpp#L164) ticks pods only for the two `*_DOCK_WORK`
+  states, so `Game::updateActivePod` is unreachable while building. That condition becomes
+  `working()`.
+
+Expiry needs no branch per side: `CS_WORKING` returns to `CS_IDLE` wherever the craft
+already is, and `onDockWorkComplete()` fires only `if (docked())`. `statusText` covers both
+("Working in Earth Orbit", "Working at Earth Orbital").
 
 ---
 
@@ -335,7 +240,7 @@ today. And `moving()` means the drive is running, which is *why* commands are re
 class Craft
 {
     // The state machine. Nothing outside Craft may assign these.
-    CraftState state_{CS_ORBIT_DOCKED};
+    CraftState state_{CS_IDLE};
     float      state_timer_{0.0f};
     float      total_state_timer_{0.0f};   // both were uninitialised in the ctor
 
@@ -388,7 +293,7 @@ public:
 
     // Readable call sites; thin wrappers, no independent logic.
     inline CraftActionResult dock()        { return perform(CA_DOCK); }
-    inline CraftActionResult undock()      { return perform(CA_UNDOCK); }
+    inline CraftActionResult launch()      { return perform(CA_LAUNCH); }
     inline CraftActionResult descend()     { return perform(CA_DESCEND); }
     inline CraftActionResult ascend()      { return perform(CA_ASCEND); }
     inline CraftActionResult work(float d) { return perform(CA_WORK, d); }
@@ -396,8 +301,8 @@ public:
     CraftActionResult engageAutopilot();
     void disengageAutopilot();
 
-    SublocationType sublocation() const;
-    bool docked() const;
+    bool docked() const;   // location->isFacility()
+    bool inOrbit() const;  // location->inOrbit()
     bool working() const;
     bool moving() const;
 
@@ -414,16 +319,16 @@ returned is always the most specific:
 ```cpp
 CraftActionResult Craft::checkCapability(CraftAction action) const
 {
-    // CA_ASCEND needs CC_SURFACE just as CA_DESCEND does: a craft that cannot come
-    // down has no business going up. CA_UNDOCK is CC_NONE -- it serves both the
+    // CA_ASCEND needs CC_ATMOSPHERIC just as CA_DESCEND does: a craft that cannot come
+    // down has no business going up. CA_LAUNCH is CC_NONE -- it serves both the
     // orbital and the surface dock, and the state tier requires you to be in one.
     static const uint16_t needs[CA_COUNT] = {
         /* CA_NONE         */ CC_NONE,
-        /* CA_DOCK         */ CC_DOCK_ORBIT,
-        /* CA_UNDOCK       */ CC_NONE,
-        /* CA_DESCEND      */ CC_SURFACE,
-        /* CA_ASCEND       */ CC_SURFACE,
-        /* CA_ENGAGE_DRIVE */ CC_TRANSIT,
+        /* CA_DOCK         */ CC_NONE, // every hull docks; the situation tier gates it
+        /* CA_LAUNCH       */ CC_NONE,
+        /* CA_DESCEND      */ CC_ATMOSPHERIC,
+        /* CA_ASCEND       */ CC_ATMOSPHERIC,
+        /* CA_ENGAGE_DRIVE */ CC_INTERPLANETARY,
         /* CA_WORK         */ CC_NONE,
         /* CA_CANCEL_WORK  */ CC_NONE,
     };
@@ -447,17 +352,20 @@ CraftActionResult Craft::checkAction(CraftAction action) const
     switch (action)
     {
     case CA_DOCK:
-        if (state_ != CS_ORBIT) { return CAC_WRONG_STATE; }
+        // in orbit, not already inside something
+        if (docked() || !inOrbit()) { return CAC_WRONG_STATE; }
         return Game::getCurrent()->checkCraftCanDock(this);
 
-    case CA_UNDOCK:
+    case CA_LAUNCH:
+        // Must be attached to something to leave it. Leaving the ground when NOT
+        // docked is CA_ASCEND -- see the note below on where the two meet.
         return docked() ? CAC_OK : CAC_WRONG_STATE;
 
     case CA_DESCEND:
-        return (state_ == CS_ORBIT) ? CAC_OK : CAC_WRONG_STATE;
+        return (inOrbit() && !docked()) ? CAC_OK : CAC_WRONG_STATE;
 
     case CA_ASCEND:
-        return (sublocation() == SLOC_SURFACE) ? CAC_OK : CAC_WRONG_STATE;
+        return (!inOrbit() && !docked()) ? CAC_OK : CAC_WRONG_STATE;
 
     case CA_ENGAGE_DRIVE:
     {
@@ -469,7 +377,9 @@ CraftActionResult Craft::checkAction(CraftAction action) const
     }
 
     case CA_WORK:
-        return docked() ? CAC_OK : CAC_WRONG_STATE;
+        // Docked = work at the station; undocked in a region = build one.
+        // Both are CS_WORKING; only CS_TRANSIT has nowhere to work.
+        return (state_ == CS_TRANSIT) ? CAC_WRONG_STATE : CAC_OK;
 
     case CA_CANCEL_WORK:
         return working() ? CAC_OK : CAC_WRONG_STATE;
@@ -489,27 +399,29 @@ CraftActionResult Craft::perform(CraftAction action, float duration)
     switch (action)
     {
     case CA_DOCK:
-        setTimedState(CS_ORBIT_DOCKING, CSTD_DOCK);
+        setTimedState(CS_DOCKING, CSTD_DOCK);
         break;
-    case CA_UNDOCK:
-        setTimedState(sublocation() == SLOC_ORBIT ? CS_ORBIT_LAUNCH : CS_SURFACE_LAUNCH,
-                      CSTD_LAUNCH);
+    case CA_LAUNCH:
+        // One state for both sides: location->primary is the region either way.
+        location = location->primary;
+        setTimedState(CS_LAUNCHING, CSTD_LAUNCH);
         break;
     case CA_DESCEND:
         setTimedState(CS_DESCENDING, CSTD_DESCENT);
         break;
     case CA_ASCEND:
-        setTimedState(CS_SURFACE_LAUNCH, CSTD_LAUNCH);
+        setTimedState(CS_LAUNCHING, CSTD_LAUNCH);
         break;
     case CA_ENGAGE_DRIVE:
         if (!beginTransit()) { return CAC_ROUTE_UNREACHABLE; }
         break;
     case CA_WORK:
-        setTimedState(sublocation() == SLOC_ORBIT ? CS_ORBIT_DOCK_WORK : CS_SURFACE_DOCK_WORK,
-                      duration > 0.0f ? duration : 1.0f);
+        setTimedState(CS_WORKING, duration > 0.0f ? duration : 1.0f);
         break;
     case CA_CANCEL_WORK:
-        setTimedState(sublocation() == SLOC_ORBIT ? CS_ORBIT_DOCKED : CS_SURFACE_DOCKED);
+        // Abandoning a build leaves the craft where it is -- in the region it was
+        // building in, not docked at a station that may not exist yet.
+        setTimedState(CS_IDLE);
         break;
     case CA_NONE:
     case CA_COUNT:
@@ -518,6 +430,19 @@ CraftActionResult Craft::perform(CraftAction action, float duration)
     return CAC_OK;
 }
 
+```
+
+**Open question: where `CA_LAUNCH` and `CA_ASCEND` meet.** `CA_LAUNCH` as guarded above
+requires `docked()`, so from a surface *station* it undocks into the surface region and the
+expiry switch then carries it to `CS_ASCENDING` — one press, two phases, which is what the
+old `CS_SURFACE_LAUNCH → CS_ASCENDING` pair already did. But a craft sitting in a bare
+surface region with no station is not docked, so only `CA_ASCEND` applies to it. Two actions
+therefore reach orbit depending on whether a station is present, and the UI would need both
+bound to the same control. The alternative is to let `CA_LAUNCH` mean "leave whatever you
+are in, including the ground" and drop `CA_ASCEND` entirely, since `CS_LAUNCHING` already
+picks its successor from `inOrbit()`. Worth settling before §6 wires the control table.
+
+```cpp
 bool Craft::beginTransit()
 {
     Location *destination = currentDestination().location;
@@ -601,60 +526,46 @@ void Craft::onStateTimerExpired()
 
     switch (state_)
     {
-    case CS_SURFACE_LAUNCH:
-        setTimedState(CS_ASCENDING, CSTD_ASCENT);
+    case CS_LAUNCHING:
+        // Which way out is a property of where we are, not of a separate state:
+        // undocking in orbit leaves you in orbit; leaving the ground means climbing.
+        if (inOrbit()) { setTimedState(CS_IDLE); }
+        else           { setTimedState(CS_ASCENDING, CSTD_ASCENT); }
         break;
 
     case CS_ASCENDING:
-    case CS_ORBIT_LAUNCH:
-    case CS_ORBIT_WORK:
-        setTimedState(CS_ORBIT);
+        enterRegion(true);
+        setTimedState(CS_IDLE);
         break;
 
-    case CS_SURFACE_WORK:
-        // worked OUTSIDE a dock, so it ends on the surface, not docked
-        setTimedState(CS_SURFACE);
+    case CS_DESCENDING:
+        // Reached the ground either way; onDocked steps into the station if there
+        // is one to dock at, leaving location to say whether we are docked.
+        enterRegion(false);
+        setTimedState(CS_IDLE);
+        if (game->resourceFacilityAt(location)) { onDocked(); }
         break;
 
-    case CS_SURFACE_DOCK_WORK:
-        setTimedState(CS_SURFACE_DOCKED);
-        onDockWorkComplete();
-        break;
-
-    case CS_ORBIT_DOCK_WORK:
-        setTimedState(CS_ORBIT_DOCKED);
-        onDockWorkComplete();
-        break;
-
-    case CS_ORBIT_DOCKING:
-        setTimedState(CS_ORBIT_DOCKED);
+    case CS_DOCKING:
+        setTimedState(CS_IDLE);
         onDocked();
         game->onSpacecraftDocked(this);   // was IOS-only
         break;
 
-    case CS_DESCENDING:
-        if (game->resourceFacilityAt(location))
-        {
-            setTimedState(CS_SURFACE_DOCKED);
-            onDocked();
-        }
-        else
-        {
-            setTimedState(CS_SURFACE);
-        }
+    case CS_WORKING:
+        // Back to rest wherever we are. Docked means it was station work; a region
+        // means it was construction, and the new facility is now a child of it.
+        setTimedState(CS_IDLE);
+        if (docked()) { onDockWorkComplete(); }
         break;
 
     case CS_TRANSIT:                      // was IOS-only; a shuttle hung here forever
-        setTimedState(CS_ORBIT);
+        setTimedState(CS_IDLE);
         arriveAtLocation();
         game->onSpacecraftArrival(this);
         break;
 
-    // stable states: a timer should not have been running
-    case CS_SURFACE:
-    case CS_SURFACE_DOCKED:
-    case CS_ORBIT:
-    case CS_ORBIT_DOCKED:
+    case CS_IDLE:                         // a timer should not have been running
     case CS_COUNT:
         break;
     }
@@ -664,12 +575,12 @@ void Craft::onStateTimerExpired()
 Unifying the two switches is safe because capabilities make the extra arms unreachable per
 type: a shuttle cannot enter `CS_TRANSIT`, an IOS cannot enter the surface states.
 `onSpacecraftDocked` now fires for every craft; `Game::onSpacecraftDocked` gates the capture
-itself on `CC_CAPTURE`, so shuttle behaviour is unchanged and the rule lives in one place:
+itself on `CC_BOARDING`, so shuttle behaviour is unchanged and the rule lives in one place:
 
 ```cpp
 void Game::onSpacecraftDocked(Craft *craft)
 {
-    if (!craftHasCapability(craft->type, CC_CAPTURE))    { return; }
+    if (!craftHasCapability(craft->type, CC_BOARDING))    { return; }
     if (!hostilesAt(craft->location, craft->faction_id)) { return; }
 
     if (Orbital *orbital = orbitalAt(craft->location))
@@ -688,12 +599,16 @@ Stops writing `craft->state`; asks the same question the buttons ask.
 ```cpp
 void Autopilot::update(Craft *craft, float delta)
 {
-    if (state < AS_ON)               { return; }
-    if (craft->state() != CS_ORBIT)  { return; }
+    if (state < AS_ON)                    { return; }
+    if (craft->state() != CS_IDLE)        { return; }
+    if (craft->docked())                  { return; }   // work or undock drives the next step
 
     const Endpoint &dest = craft->currentDestination();
+    if (!dest.location || craft->atEndpoint()) { return; }
 
-    if (dest.location != craft->location)
+    // The endpoint is a location, so it IS the instruction. Different body means
+    // transit; same body means the side it names says ascend, descend or dock.
+    if (dest.location->body() != craft->body())
     {
         CraftActionResult r = craft->perform(CA_ENGAGE_DRIVE);
         if (!r)
@@ -702,25 +617,27 @@ void Autopilot::update(Craft *craft, float delta)
             state = AS_OFF;
         }
     }
-    else if (dest.sublocation == SLOC_ORBIT && dest.docked)
+    else if (dest.location->inOrbit())
     {
-        if (!craft->dock())
+        // A facility means dock with it; a bare orbit region means just be there.
+        if (!craft->inOrbit())            { craft->ascend(); }
+        else if (dest.location->isFacility() && !craft->dock())
         {
-            // covers non-operational and drone-defended, not just "no station".
-            // Previously this only cleared `docked` when there was no station at
-            // all, so it retried forever against a defended one.
-            craft->destinations[craft->destination_index].docked = false;
+            // covers non-operational and drone-defended, not just "no station":
+            // retrying forever against a defended orbital was the old failure.
+            TraceLog(LOG_WARNING, "Autopilot: %s cannot dock, holding in orbit", craft->name);
+            state = AS_OFF;
         }
     }
-    else if (dest.sublocation == SLOC_SURFACE && dest.docked)
+    else
     {
-        craft->descend();   // gains the CC_SURFACE guard the mouse path had as `type ==`
+        craft->descend();   // gains the CC_ATMOSPHERIC guard the mouse path had as `type ==`
     }
 }
 
 void Autopilot::onDockWorkComplete(Craft *craft)
 {
-    craft->undock();
+    craft->launch();
 }
 ```
 
@@ -737,17 +654,20 @@ uint32_t Craft::requiredActionsForRoute() const
     const Endpoint &b = destinations[1];
     if (!a.location || !b.location) { return needed; }
 
-    if (a.location != b.location) { needed |= 1u << CA_ENGAGE_DRIVE; }
+    // A route is interplanetary if its ends sit at different bodies -- a property
+    // of the route, not of the craft type.
+    if (a.location->body() != b.location->body()) { needed |= 1u << CA_ENGAGE_DRIVE; }
 
     for (const Endpoint &e : destinations)
     {
-        if (e.sublocation == SLOC_SURFACE)
+        if (!e.location) { continue; }
+        if (!e.location->inOrbit())
         {
             needed |= (1u << CA_DESCEND) | (1u << CA_ASCEND);
         }
-        if (e.docked)
+        if (e.location->isFacility())
         {
-            needed |= (1u << CA_DOCK) | (1u << CA_UNDOCK);
+            needed |= (1u << CA_DOCK) | (1u << CA_LAUNCH);
         }
     }
     return needed;
@@ -773,11 +693,19 @@ CraftActionResult Craft::engageAutopilot()
         if (!r) { return r; }
     }
 
+    // The autopilot moves cargo, so it wants to dock at both ends: upgrade any
+    // endpoint naming a bare region to the station inside it, if there is one.
+    // Already implemented in Craft::engageAutopilot.
+    Game *game = Game::getCurrent();
     for (int i = 0; i < MAX_DESTINATIONS; ++i)
     {
-        if (destinations[i].location) { destinations[i].docked = true; }
+        Location *t = destinations[i].location;
+        if (t && !t->isFacility())
+        {
+            destinations[i].location = game->targetFor(t, t->inOrbit());
+        }
     }
-    if (docked()) { undock(); }
+    if (docked()) { launch(); }
 
     autopilot->state = AS_ON;
     return CAC_OK;
@@ -806,7 +734,7 @@ static const struct
     const char *tip;
 } craftControls[] = {
     {CA_DOCK,    {561, 838, 72, 52}, "Dock"},
-    {CA_UNDOCK,  {561, 838, 72, 52}, "Undock"},   // same hotspot; states are exclusive
+    {CA_LAUNCH,  {561, 838, 72, 52}, "Launch"},   // same hotspot; states are exclusive
     {CA_DESCEND, {642, 831, 76, 57}, "Descend to surface"},
     {CA_ASCEND,  {722, 832, 76, 49}, "Ascend to orbit"},
 };
@@ -825,7 +753,7 @@ static const struct
 
 // ShuttleView::input()
 static const struct { int key; CraftAction actions[2]; } craftKeys[] = {
-    {KEY_D, {CA_UNDOCK, CA_DOCK}},      // guards are mutually exclusive
+    {KEY_D, {CA_LAUNCH, CA_DOCK}},      // guards are mutually exclusive
     {KEY_A, {CA_ASCEND, CA_DESCEND}},
     {KEY_E, {CA_ENGAGE_DRIVE, CA_NONE}},
 };
@@ -879,22 +807,30 @@ null while both dereference it unconditionally.
 | [include/state/craft.h](../../include/state/craft.h), [src/state/craft.cpp](../../src/state/craft.cpp) | §2, §3, §4; private `state_`/timers; `setState` removed; `engageDrive` → `beginTransit` |
 | [include/state/shuttle.h](../../include/state/shuttle.h), [include/state/ios.h](../../include/state/ios.h) | drop the `update` overrides |
 | [src/state/shuttle.cpp](../../src/state/shuttle.cpp), [src/state/ios.cpp](../../src/state/ios.cpp) | delete both `update` bodies |
-| [include/state/game.h](../../include/state/game.h), [src/state/game.cpp](../../src/state/game.cpp) | `craftCanDock` → `checkCraftCanDock`; `onSpacecraftDocked` gates on `CC_CAPTURE`; `activatePod` / `updateActivePod` use `perform(CA_WORK)` / `perform(CA_CANCEL_WORK)` |
+| [include/state/game.h](../../include/state/game.h), [src/state/game.cpp](../../src/state/game.cpp) | `craftCanDock` → `checkCraftCanDock`; `onSpacecraftDocked` gates on `CC_BOARDING`; `activatePod` / `updateActivePod` use `perform(CA_WORK)` / `perform(CA_CANCEL_WORK)` |
 | [src/state/autopilot.cpp](../../src/state/autopilot.cpp) | §5 |
 | [include/pages/shuttle_view.h](../../include/pages/shuttle_view.h), [src/pages/shuttle_view.cpp](../../src/pages/shuttle_view.cpp) | §6; delete `craft_can_dock`; `progress()` at :283 |
-| [src/pages/bay_view.cpp](../../src/pages/bay_view.cpp) | docked tests → `docked() && sublocation() == facility->sublocation` |
+| [src/pages/bay_view.cpp](../../src/pages/bay_view.cpp) | docked tests → `craft->location == facility`, exact rather than by body |
 | [src/orrery.cpp](../../src/orrery.cpp) | :155 → `craft->progress()` (absorbs the divide-by-zero guard) |
 | [src/loaders/loader.cpp](../../src/loaders/loader.cpp) | direct writes → one `restoreState(...)` call |
 | [src/loaders/save_game.cpp](../../src/loaders/save_game.cpp) | reads → `state()` / `stateTimer()` |
 | [src/main.cpp](../../src/main.cpp), [src/pages/master_control.cpp](../../src/pages/master_control.cpp), [src/pages/drone_control_view.cpp](../../src/pages/drone_control_view.cpp), [tests/test_db.cpp](../../tests/test_db.cpp) | mechanical `->state` → `->state()`; scaffold writes → `restoreState` |
 | [architecture.md](../../architecture.md) | :90-105 lists a stale 12-value enum |
 
-**Unchanged:** the SQLite schema and `CraftState` ordering (`CS_COUNT` stays 14, nothing
-reordered, so existing saves load identically); `overlay.h/.cpp`, `ui_elements.h`,
-`autopilot_view.cpp`.
+**`CraftState` is renumbered**, 14 values to 7. The SQLite column is unchanged in *shape*,
+but its values change meaning, so saves do not survive. That is free today:
+`resources/initial.db` has **no `craft` rows** (verified), every scaffold craft is built by
+`main.cpp`, and saved games remain discardable — the standing assumption throughout this
+work. Migrating later would not be.
 
-Add `static_assert(CS_COUNT == 14, ...)` beside the enum, and one in `shuttle_view.cpp` for
-the 14-element positional `viewportImages` array, which would silently desync today.
+Add `static_assert(CS_COUNT == 7, ...)` beside the enum.
+[`viewportImages`](../../src/pages/shuttle_view.cpp#L34) is a 14-element positional array
+indexed by state; its own comment already says *"this won't do - image depends on location
+properties e.g. station presence... or location type"*. That is now exactly right and
+expressible: the image is a function of (activity, place), so it keys off `state()` plus
+`docked()` / `inOrbit()` rather than one flattened enum.
+
+**Unchanged:** `overlay.h/.cpp`, `ui_elements.h`, `autopilot_view.cpp`.
 
 ---
 
@@ -902,21 +838,30 @@ the 14-element positional `viewportImages` array, which would silently desync to
 
 `make && make tests && ./bin/Debug/tests` after each step; each reverts alone.
 
-1. **Add `craft_action.h` / `.cpp`, the predicates, and the static_asserts.** Nothing
-   consumes them yet. `./reconf.sh` — premake globs `src/**.cpp` at configure time.
+1. ~~**Add `craft_action.h` / `.cpp`**~~ — **done**, along with `craft_type.h`. Nothing
+   consumes them yet, which is correct for this step. **Still to do here: the predicates**
+   (`docked()`, `inOrbit()`, `working()`, `moving()`) against the current 14-value enum.
+   `docked()` and `inOrbit()` read `location` from the outset, so they are correct before
+   and after the collapse — which is what lets every later step be checked. `./reconf.sh`
+   — premake globs `src/**.cpp` at configure time.
 2. **Add `checkCapability` / `checkAction` / `perform` / verbs**; route `launch`, `work`,
    `engageDrive` through them; `craftCanDock` → `checkCraftCanDock`. Existing callers keep
    working; the only observable change is that `total_state_timer` becomes correct. Do
    *not* move the countdown yet — it would double-tick against the subclass loops.
 3. **Move the countdown into `Craft::update`, delete `Shuttle::update` / `IOS::update`**,
-   adding the `CC_CAPTURE` gate in `onSpacecraftDocked` in the same commit so shuttle
+   adding the `CC_BOARDING` gate in `onSpacecraftDocked` in the same commit so shuttle
    behaviour is unchanged. Highest-value step.
 4. **Autopilot onto the verbs**; `engageAutopilot` returns `CraftActionResult`; gate becomes
    `autopilot->state >= AS_ON`. Own commit — the one real behaviour change.
 5. **`ShuttleView` control table + keyboard.** Play-test.
 6. **Make the state machine private (§3).** Deliberately last: the build now fails at every
    site the earlier steps missed, so the compiler produces the list.
-7. **Polish:** `bay_view` predicates, `architecture.md`.
+7. **Collapse the enum to seven values.** Deliberately after the guards are private: by
+   this point every read goes through a predicate and every write through `setTimedState`,
+   so the collapse touches the enum, the expiry switch and `viewportImages` — not the call
+   sites. Renumbering the persisted column is safe only while `craft` rows are disposable,
+   so this step is also the deadline for that assumption.
+8. **Polish:** `bay_view` predicates, `architecture.md`.
 
 ---
 
@@ -937,27 +882,34 @@ fixture in four lines. The "for every `CraftState`" sweeps place a craft with
    `CraftActionResult r; CHECK(!r); CHECK(r == CAC_UNKNOWN);`
 2. **Predicate invariants.** `moving()` is true exactly for the states an expiry transition
    leads out of; `moving()` and `docked()` never overlap (they would deadlock undocking);
-   from `CS_ORBIT_DOCK_WORK` every action is `CAC_BUSY` except `CA_CANCEL_WORK`.
-   `progress()` is in `[0,1]` and is `0` in every untimed state.
-3. **Capability tier.** `shuttle->checkAction(CA_ENGAGE_DRIVE) == CAC_NOT_CAPABLE` from all
-   14 states, and no command sequence reaches `CS_TRANSIT`. An IOS refuses both
-   `CA_DESCEND` and `CA_ASCEND`.
+   from `CS_WORKING` every action is `CAC_BUSY` except `CA_CANCEL_WORK`. `progress()` is in
+   `[0,1]` and `0` in every untimed state. And the invariant the collapse buys: for every
+   reachable craft, `docked() == location->isFacility()` — assert it, because it is now a
+   tautology and should stay one.
+3. **Capability tier.** `shuttle->checkAction(CA_ENGAGE_DRIVE) == CAC_NOT_CAPABLE` from
+   every state × place combination, and no command sequence reaches `CS_TRANSIT`. An IOS
+   refuses both `CA_DESCEND` and `CA_ASCEND`.
 4. **Fitment tier.** With `drive == false`, from states that would otherwise permit them,
-   `CA_DOCK` / `CA_UNDOCK` / `CA_ASCEND` / `CA_DESCEND` all return `CAC_NO_DRIVE` (not
+   `CA_DOCK` / `CA_LAUNCH` / `CA_ASCEND` / `CA_DESCEND` all return `CAC_NO_DRIVE` (not
    `CAC_WRONG_STATE` — tier order matters); `CA_WORK` is still accepted while docked;
    `engageAutopilot()` returns `CAC_NO_DRIVE` and leaves `autopilot->state` alone. Setting
    `drive = true` permits all four.
 5. **Situation tier.** No orbital → `CAC_NO_ORBITAL`; not operational →
    `CAC_ORBITAL_INCOMPLETE`; hostile with drones → `CAC_DEFENDED`; hostile with none →
    `CAC_OK`.
-6. **Round trip.** `CS_SURFACE_DOCKED` → `ascend()` → `CS_SURFACE_LAUNCH` → `CS_ASCENDING`
-   (timer `CSTD_ASCENT`) → `CS_ORBIT`; then `descend()` → `CS_SURFACE_DOCKED` with a
-   `ResourceFacility` present, `CS_SURFACE` without.
+6. **Round trip**, asserting *both* halves at each step — the state and the location,
+   since they are now one fact held in one place. Docked at a surface station →
+   `launch()` → `CS_LAUNCHING` at the surface region → `CS_ASCENDING` (timer `CSTD_ASCENT`)
+   → `CS_IDLE` at the orbit region; then `descend()` → `CS_IDLE` at the station with a
+   `ResourceFacility` present, at the bare surface region without. This is the existing
+   "a craft's location matches what it is doing" case in
+   [test_facility_location.cpp](../../tests/test_facility_location.cpp), extended.
 7. **Capture.** An IOS docking at a hostile undefended orbital flips `faction_id`; a shuttle
    in the same setup does not.
-8. **Autopilot.** At destination with a non-operational orbital, one tick leaves `CS_ORBIT`
-   and clears `dest.docked` rather than retrying forever. A shuttle with endpoints at
-   different locations fails `engageAutopilot()` with `CAC_NOT_CAPABLE`.
+8. **Autopilot.** At destination with a non-operational orbital, one tick disengages rather
+   than retrying forever. A shuttle with endpoints at two different *bodies* fails
+   `engageAutopilot()` with `CAC_NOT_CAPABLE`; between two facilities at one body it never
+   engages its drive.
 9. **Save/load.** Existing round-trip cases in `test_db.cpp` pass untouched — they are the
    enum-ordering regression suite. Add one writing `state_timer = 1.5, total = 0` directly
    into the DB and asserting `restoreState` repairs the total.
@@ -1003,16 +955,18 @@ rather than a bug.
   `GuiDisable()`; and [`UITransparentButtonState`](../../include/assets/ui_elements.h#L164)
   needs `*_COLOR_DISABLED = 0x00000000`, or a disabled cockpit hotspot paints raygui's dark
   box over the artwork.
-- **Decompose `CraftState` to match `Endpoint`.** The 14 values are a product of position ×
-  docked × activity, and [`Endpoint`](../../include/state/waypoint.h) already models exactly
-  that as `{location, sublocation, docked}` — so a craft's destination is decomposed while
-  its current position is one overloaded enum, and `atEndpoint()` exists only to bridge them.
-  Fields would make combinations like "working, in orbit, not docked" expressible without a
-  state per case, but `craft.state` is a persisted int column, `viewportImages[CS_COUNT]` is
-  indexed positionally by it, and a field model needs its own rules against invalid
-  combinations that the single enum gives free. §2's predicates are the cheap step: they name
-  the dimensions and put every consumer behind those names, so the decomposition later
-  becomes a change of implementation rather than of every call site.
+- **~~Decompose `CraftState` to match `Endpoint`.~~ Promoted into [§2](#2-what-orbit-as-location-does-to-the-enum),
+  and answered differently than this predicted.** The reasoning was right — 14 values are a
+  product of position × docked × activity, and `Endpoint` modelled that explicitly while the
+  craft's own position was one overloaded enum. The predicted fix was to give `Craft`
+  matching *fields*, and the objection was that fields need their own rules against invalid
+  combinations that a single enum gives free.
+  Orbit-as-location dissolved both. The second and third dimensions did not become fields on
+  `Craft`; they became the craft's `location`, which is a real place in a hierarchy. Nothing
+  can hold an invalid combination because there is only one record of it, and `Endpoint`
+  collapsed to a bare `Location *` from the same direction. The lesson worth keeping: the
+  duplication was a symptom of a missing *domain* concept, not of a missing struct.
+
 - **A `StateTimer` value type.** `state_timer_` and `total_state_timer_` now have one writer
   whose whole job is keeping them in step; a ~12-line type (`set()` writes both, `tick()`
   absorbs the countdown, `progress()` moves onto it) would make desync unrepresentable
