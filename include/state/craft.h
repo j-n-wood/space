@@ -245,5 +245,4 @@ public:
 
     // transition events
     virtual void onDocked();
-    virtual void onDockWorkComplete();
 };

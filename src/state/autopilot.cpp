@@ -11,7 +11,7 @@ const char *autopilotStateNames[AS_COUNT] = {
     "Complete",
 };
 
-Autopilot::Autopilot() : state{AS_OFF}, flow{}, ready{false}
+Autopilot::Autopilot() : state{AS_OFF}, flow{}
 {
     for (int i = 0; i < MAX_DESTINATIONS; ++i)
     {
@@ -101,14 +101,8 @@ void Autopilot::onDocked(Craft *craft)
         }
 
         // mark craft as working
-        ready = false;
         craft->work(1.0f);
     } // at dest
-}
-
-void Autopilot::onDockWorkComplete(Craft *craft)
-{
-    ready = true;
 }
 
 void Autopilot::update(Craft *craft, float delta)
@@ -130,13 +124,14 @@ void Autopilot::update(Craft *craft, float delta)
 
     if (craft->docked())
     {
-        // ready to go?
-        if (ready)
-        {
-            // try to launch. If fails, will keep retrying
-            craft->launch();
-        }
-        // still working or stopped
+        // Docked and not working -- the check above already sent a working craft home --
+        // so whatever we stopped here for is finished. Loading is the only thing that
+        // holds us, and it holds us by being CS_WORKING.
+        //
+        // Launching from here rather than from an onDockWorkComplete() callback is the
+        // point: if launch() is refused (no drive fitted yet, say) the next tick simply
+        // tries again. A callback fires once and the craft would sit there forever.
+        craft->launch();
         return;
     }
 

@@ -400,11 +400,10 @@ void Craft::update(float delta)
             switch (expiring)
             {
             case CS_WORKING:
-                if (docked())
-                {
-                    onDockWorkComplete();
-                }
-                // onDocked(); // TODO - immediately dock if you completed a faciltity?
+                // Nothing to signal. Coming to rest IS the signal: a docked, idle craft
+                // is one whose work is finished, which the autopilot reads directly on
+                // its next update rather than being told once by a callback.
+                // TODO - immediately dock if a facility was just built here?
                 break;
             case CS_LAUNCHING:
                 // Leaving the ground is only the first phase of a climb -- a shuttle
@@ -509,15 +508,6 @@ void Craft::onDocked()
     {
         autopilot->onDocked(this); // called before advancing endpoint, current dest = where we are now
         nextEndpoint();
-    }
-}
-
-void Craft::onDockWorkComplete()
-{
-    // pass onto autopilot to update its state if working, e.g. to advance supply flow
-    if (autopilot->state >= AS_ON)
-    {
-        autopilot->onDockWorkComplete(this);
     }
 }
 
@@ -654,13 +644,16 @@ CraftActionResult Craft::engageAutopilot()
         }
     }
 
-    // if already docked, may need to start working immediately, e.g. if the endpoint is a supply station
+    // Engaged first: Autopilot::onDocked ignores anything below AS_ON, so loading the
+    // pods before this line would silently do nothing.
+    autopilot->state = AS_ON;
+
+    // Already docked, so the arrival that would normally trigger loading has been and
+    // gone. Do it now; update() launches once the work it starts is finished.
     if (docked())
     {
         autopilot->onDocked(this);
     }
-
-    autopilot->state = AS_ON;
     return CAC_OK;
 }
 

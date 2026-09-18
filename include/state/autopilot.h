@@ -43,7 +43,6 @@ public:
     AutopilotState state;
     int flow[ResourceType::Count];
     uint8_t cursors[2]; // one cursor per endpoint, used for selecting next resource to transfer
-    bool ready;         // done at current location
 
     Autopilot();
     ~Autopilot();
@@ -72,6 +71,8 @@ public:
 
     void update(Craft *craft, float delta);
 
+    // Arrival is genuinely edge-triggered: the pods are loaded once, on the transition.
+    // Departure is not -- see update(), which launches whenever the craft is docked and
+    // idle, so a refused launch is retried rather than lost.
     void onDocked(Craft *craft);
-    void onDockWorkComplete(Craft *craft);
 };
