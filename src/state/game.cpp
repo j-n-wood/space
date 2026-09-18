@@ -421,6 +421,8 @@ Shuttle *Game::createShuttle(Location *position)
     Shuttle *s = shuttles.back().get();
     s->id = ++craft_max_id;
     home->shuttle = s; // non-owning reference on the body
+    // set default name
+    std::snprintf(s->name, sizeof s->name, "%s Shuttle", home->name);
     return s;
 }
 

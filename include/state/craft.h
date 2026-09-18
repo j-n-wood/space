@@ -180,6 +180,7 @@ public:
     CraftActionResult canDescend() const;
     CraftActionResult canEngageDrive() const;
     CraftActionResult canWork() const;
+    CraftActionResult canEngageAutopilot() const;
 
     Craft &engageDrive();
 
@@ -187,9 +188,8 @@ public:
 
     void setDestination(const uint8_t index, Location *loc);
 
-    bool engageAutopilot();
-
-    void disengageAutopilot();
+    CraftActionResult engageAutopilot();
+    CraftActionResult disengageAutopilot();
 
     // Undock. Moves the craft out of the facility and back into the region containing
     // it -- a step up the hierarchy. Out of line because it dereferences Location.

@@ -164,11 +164,60 @@ CraftActionResult Craft::canWork() const
     return CAC_OK;
 }
 
+CraftActionResult Craft::canEngageAutopilot() const
+{
+    bool has_supply_pod{false};
+    for (int pod_idx = 0; pod_idx < max_pods; ++pod_idx)
+    {
+        if (pods[pod_idx].type == PT_SUPPLY)
+        {
+            has_supply_pod = true;
+            break;
+        }
+    }
+    if (!has_supply_pod)
+    {
+        return CAC_NO_SUPPLY_POD;
+    }
+
+    auto &dest{currentDestination()};
+    if (!dest.location)
+    {
+        return CAC_NO_DESTINATION;
+    }
+
+    // check for all bodies = current body if NOT interplanetary
+    if (!hasCapability(CC_INTERPLANETARY))
+    {
+        // iterate destinations and check if any are not the same body as current
+        for (int i = 0; i < MAX_DESTINATIONS; ++i)
+        {
+            auto &d{destinations[i]};
+            if (d.location && d.location->body() != body())
+            {
+                return CAC_ROUTE_UNREACHABLE;
+            }
+        }
+    }
+
+    if (moving() || working())
+    {
+        return CAC_BUSY;
+    }
+
+    return CAC_OK;
+}
+
 CraftActionResult Craft::canDock() const
 {
     if (moving() || working())
     {
         return CAC_BUSY;
+    }
+
+    if (!drive)
+    {
+        return CAC_NO_DRIVE;
     }
 
     bool can_dock = false;
@@ -584,21 +633,13 @@ void Craft::setDestination(const uint8_t index, Location *loc)
     destinations[index].location = game->targetFor(loc, true);
 }
 
-bool Craft::engageAutopilot()
+CraftActionResult Craft::engageAutopilot()
 {
-    bool has_supply_pod{false};
-    for (int pod_idx = 0; pod_idx < max_pods; ++pod_idx)
+    auto canEngage = canEngageAutopilot();
+    if (!canEngage)
     {
-        if (pods[pod_idx].type == PT_SUPPLY)
-        {
-            has_supply_pod = true;
-            break;
-        }
-    }
-    if (!has_supply_pod)
-    {
-        TraceLog(LOG_DEBUG, "Autopilot: Cannot engage autopilot on %s as no supply pod fitted", name);
-        return false;
+        TraceLog(LOG_WARNING, "Cannot engage autopilot on %s : %s", name, canEngage.text());
+        return canEngage;
     }
 
     // The autopilot moves cargo, so it wants to dock at both ends. Upgrade any endpoint
@@ -620,10 +661,11 @@ bool Craft::engageAutopilot()
     }
 
     autopilot->state = AS_ON;
-    return true;
+    return CAC_OK;
 }
 
-void Craft::disengageAutopilot()
+CraftActionResult Craft::disengageAutopilot()
 {
     autopilot->state = AS_OFF;
+    return CAC_OK;
 }
