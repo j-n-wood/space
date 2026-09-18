@@ -144,7 +144,7 @@ void Autopilot::update(Craft *craft, float delta)
     // what makes a leg a transit. Comparing exact locations here would fire the
     // interplanetary drive for a surface-to-orbit hop, since the craft sits in a region
     // while the endpoint names a facility.
-    if (dest.location->body() != craft->location->body())
+    if ((dest.location->body() != craft->location->body()) && (craft->canEngageDrive()))
     {
         craft->engageDrive();
         return;
@@ -155,22 +155,29 @@ void Autopilot::update(Craft *craft, float delta)
     // a surface station sitting in the surface region with nothing to move it.
     if (dest.location->inOrbit())
     {
-        if (craft->location->isOnSurface() && craft->hasCapability(CC_ATMOSPHERIC))
+        if (craft->canAscend())
         {
             TraceLog(LOG_INFO, "Autopilot: %s ascending to orbit", craft->name);
             craft->ascend();
         }
         else if (dest.location->isFacility())
         {
-            TraceLog(LOG_INFO, "Autopilot: %s docking at destination orbit", craft->name);
-            craft->dock();
+            if (craft->canDock())
+            {
+                TraceLog(LOG_INFO, "Autopilot: %s docking at destination orbit", craft->name);
+                craft->dock();
+            }
+            else
+            {
+                // TODO - wait? Abort?
+            }
         }
         else
         {
             TraceLog(LOG_WARNING, "Autopilot: %s at destination orbit but no station to dock with", craft->name);
         }
     }
-    else if (craft->inOrbit() && (dest.location->isOnSurface()) && (craft->hasCapability(CC_ATMOSPHERIC)))
+    else if ((dest.location->isOnSurface()) && (craft->canDescend()))
     {
         TraceLog(LOG_INFO, "Autopilot: %s descending to surface", craft->name);
         craft->descend();

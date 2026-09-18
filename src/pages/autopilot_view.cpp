@@ -41,13 +41,24 @@ void AutopilotView::render()
     auto &overlay{Overlay::getInstance()};
     // toggle button text depending on state
     const char *button_text = (autopilot->state == AS_OFF) ? "Enable Autopilot" : "Disable Autopilot";
-    if (overlay.renderButton((Rectangle){640, 80, 150, 30}, button_text, "Enable or disable the autopilot system", autopilotColors[autopilot->state]))
+    const char *button_tooltip = (autopilot->state == AS_OFF) ? "Enable the autopilot system" : "Disable the autopilot system";
+    Color button_color = autopilotColors[autopilot->state];
+    if (autopilot->state == AS_OFF)
     {
-        if (autopilot->state == AS_OFF)
+        auto can_engage = craft->canEngageAutopilot();
+        if (!can_engage)
+        {
+            button_tooltip = can_engage.text();
+            button_color = RED;
+        }
+        if (overlay.renderButton((Rectangle){640, 80, 150, 30}, button_text, button_tooltip, button_color) && can_engage)
         {
             craft->engageAutopilot();
         }
-        else if (autopilot->state == AS_ON)
+    }
+    else if ((autopilot->state == AS_ON) || (autopilot->state == AS_COMPLETE))
+    {
+        if (overlay.renderButton((Rectangle){640, 80, 150, 30}, button_text, button_tooltip, button_color))
         {
             craft->disengageAutopilot();
         }
