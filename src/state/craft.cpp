@@ -180,6 +180,11 @@ CraftActionResult Craft::canEngageAutopilot() const
         return CAC_NO_SUPPLY_POD;
     }
 
+    if (!drive)
+    {
+        return CAC_NO_DRIVE;
+    }
+
     auto &dest{currentDestination()};
     if (!dest.location)
     {
