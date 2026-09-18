@@ -43,6 +43,7 @@ public:
     AutopilotState state;
     int flow[ResourceType::Count];
     uint8_t cursors[2]; // one cursor per endpoint, used for selecting next resource to transfer
+    bool ready;         // done at current location
 
     Autopilot();
     ~Autopilot();

@@ -654,10 +654,10 @@ CraftActionResult Craft::engageAutopilot()
         }
     }
 
-    // launch if docked
+    // if already docked, may need to start working immediately, e.g. if the endpoint is a supply station
     if (docked())
     {
-        launch();
+        autopilot->onDocked(this);
     }
 
     autopilot->state = AS_ON;

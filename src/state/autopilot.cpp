@@ -11,7 +11,7 @@ const char *autopilotStateNames[AS_COUNT] = {
     "Complete",
 };
 
-Autopilot::Autopilot() : state{AS_OFF}, flow{}
+Autopilot::Autopilot() : state{AS_OFF}, flow{}, ready{false}
 {
     for (int i = 0; i < MAX_DESTINATIONS; ++i)
     {
@@ -101,13 +101,14 @@ void Autopilot::onDocked(Craft *craft)
         }
 
         // mark craft as working
+        ready = false;
         craft->work(1.0f);
     } // at dest
 }
 
 void Autopilot::onDockWorkComplete(Craft *craft)
 {
-    craft->launch();
+    ready = true;
 }
 
 void Autopilot::update(Craft *craft, float delta)
@@ -127,10 +128,15 @@ void Autopilot::update(Craft *craft, float delta)
         return;
     }
 
-    // Docked is not ours to act on: onDocked starts the work, and onDockWorkComplete
-    // launches when it finishes. Anything else undocked is a leg to fly.
     if (craft->docked())
     {
+        // ready to go?
+        if (ready)
+        {
+            // try to launch. If fails, will keep retrying
+            craft->launch();
+        }
+        // still working or stopped
         return;
     }
 
