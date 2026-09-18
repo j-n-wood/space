@@ -654,10 +654,13 @@ CraftActionResult Craft::engageAutopilot()
     autopilot->state = AS_ON;
 
     // Already docked, so the arrival that would normally trigger loading has been and
-    // gone. Do it now; update() launches once the work it starts is finished.
+    // gone. Replay it -- but through onDocked(), not Autopilot::onDocked directly, so it
+    // keeps the atEndpoint() guard. Without that the autopilot loads from whichever
+    // endpoint destination_index happens to name, which need not be the station the
+    // craft is actually sitting in. update() launches once the work it starts finishes.
     if (docked())
     {
-        autopilot->onDocked(this);
+        onDocked();
     }
     return CAC_OK;
 }
