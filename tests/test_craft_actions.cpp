@@ -363,3 +363,50 @@ TEST_CASE("engaging while docked somewhere off-route loads nothing")
     REQUIRE(bool(s->engageAutopilot()));
     CHECK_MESSAGE(s->pods[0].amount == 0, "loaded from a station the craft was not at");
 }
+
+TEST_CASE("only the pod being worked has an effect")
+{
+    // CS_WORKING is shared: the autopilot uses it for cargo loading, with active_pod_index
+    // at -1. Ticking every pod meant a Bandaid aboard repaired a facility nobody activated
+    // it on -- and since updateActivePod can now end the work by shortening the timer, it
+    // would also cut the unrelated cargo load short.
+    //
+    // An IOS docked at the orbital is the sharp case: resourceFacilityAt resolves through
+    // body(), so the Bandaid would reach the SURFACE station from orbit.
+    Fixture f;
+    REQUIRE(f.valid());
+
+    f.station->damage = 50.0f;
+    f.orbital->stores.resources[ResourceType::Iron] = 500;
+
+    IOS *ios = f.game->createIOS(static_cast<Location *>(f.orbital));
+    REQUIRE(ios != nullptr);
+    REQUIRE(ios->max_pods > 1);
+    ios->drive = true;
+    ios->location = f.orbital;
+    ios->assignState(CS_IDLE, 0.0f, 0.0f);
+    REQUIRE(ios->docked());
+
+    ios->setPodType(0, PT_SUPPLY); // what the autopilot will load into
+    ios->setPodType(1, PT_TOOL);   // a Bandaid that is NOT being worked
+    ios->pods[1].contentType = ItemType::Bandaid;
+    ios->pods[1].amount = 1;
+
+    ios->destinations[0] = Endpoint(f.orbital);
+    ios->destinations[1] = Endpoint(f.orbital);
+    ios->destination_index = 0;
+    ios->autopilot->flow[ResourceType::Iron] = RF_LOAD_AT_SOURCE;
+
+    const float damageBefore = f.station->damage;
+    REQUIRE(bool(ios->engageAutopilot()));
+    REQUIRE(ios->working());            // loading
+    CHECK(ios->active_pod_index == -1); // ...which is not pod work
+
+    for (int tick = 0; tick < 40 && ios->working(); ++tick)
+    {
+        f.game->update(0.05f);
+    }
+
+    CHECK_MESSAGE(f.station->damage == doctest::Approx(damageBefore),
+                  "an unworked Bandaid repaired a facility during cargo loading");
+}

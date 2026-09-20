@@ -251,7 +251,7 @@ bool Loader::loadItems()
             }
             else
             {
-                TraceLog(LOG_ERROR, "Invalid item ID", item_id);
+                TraceLog(LOG_ERROR, "Invalid item ID %d for build requirement", item_id);
             }
         }
     }
@@ -276,7 +276,7 @@ bool Loader::loadItems()
             }
             else
             {
-                TraceLog(LOG_ERROR, "Invalid item ID for work parameters", item_id);
+                TraceLog(LOG_ERROR, "Invalid item ID %d for work parameters", item_id);
             }
         }
     }

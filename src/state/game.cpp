@@ -758,7 +758,7 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
     // AMA - must be in orbit, at location of type asteroids
     // bandaid - must be docked on surface, and have damaged facility
     case ItemType::Bandaid:
-        if (craft->docked())
+        if (craft->location->type == LOCATION_TYPE_RESOURCE_FACILITY)
         {
             ResourceFacility *rf = resourceFacilityAt(craft->location);
             if (rf && rf->damage > 0)
@@ -972,10 +972,15 @@ void Game::onSpacecraftDocked(Craft *craft)
 
 void Game::onWorkComplete(Craft *craft)
 {
+    // Its one caller guards this, but keep the precondition local: a -1 index is autopilot
+    // cargo loading, which has no pod effect, and indexing on it reads before the array.
+    if (!craft || craft->active_pod_index < 0)
+    {
+        return;
+    }
+
     Pod &pod{craft->pods[craft->active_pod_index]};
     const Item &item{items[pod.contentType]};
-
-    char buffer[256]; // message buffer. Copied by logsink
 
     switch (item.id)
     {

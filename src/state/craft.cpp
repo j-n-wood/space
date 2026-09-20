@@ -473,16 +473,10 @@ void Craft::update(float delta)
     // update autopilot if fitted
     autopilot->update(this, delta);
 
-    // working states
-    if (state == CS_WORKING)
+    // Continuous effect for the pod being worked, and only that one.
+    if (state == CS_WORKING && active_pod_index > -1 && !isPodEmpty(active_pod_index))
     {
-        for (int pod_idx = 0; pod_idx < max_pods; ++pod_idx)
-        {
-            if (!isPodEmpty(pod_idx))
-            {
-                game->updateActivePod(this, pods[pod_idx], delta);
-            }
-        }
+        game->updateActivePod(this, pods[active_pod_index], delta);
     }
 }
 
