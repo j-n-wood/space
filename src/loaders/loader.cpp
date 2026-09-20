@@ -256,6 +256,31 @@ bool Loader::loadItems()
         }
     }
 
+    {
+        SQLiteQuery query(this, "SELECT item_id, work_time, consumption, abort_consumes, auto_continue FROM item_work");
+        while (query.next())
+        {
+            int item_id = sqlite3_column_int(query, 0);
+            float work_time = (float)sqlite3_column_double(query, 1);
+            int consumption = sqlite3_column_int(query, 2);
+            bool abort_consumes = sqlite3_column_int(query, 3) > 0;
+            bool auto_continue = sqlite3_column_int(query, 4) > 0;
+
+            if (item_id < n_items)
+            {
+                game->items[item_id].does_work = true;
+                game->items[item_id].work_parameters.work_time = work_time;
+                game->items[item_id].work_parameters.consumption = consumption;
+                game->items[item_id].work_parameters.abort_consumes = abort_consumes;
+                game->items[item_id].work_parameters.auto_continue = auto_continue;
+            }
+            else
+            {
+                TraceLog(LOG_ERROR, "Invalid item ID for work parameters", item_id);
+            }
+        }
+    }
+
     return true;
 }
 

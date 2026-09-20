@@ -81,47 +81,37 @@ To consider: asteriod belt. For presentation, what radial coordinate to use? Dis
 * create a sublocation property for sector (same sort of thing but continuous)
 * also add actual bodies for major asteriods (Ceres, Juno, ...)
 
-Sub-locations can be handled as a state with a transition time.
+Sub-locations are not states. Orbit and surface are **locations** in their own right --
+children of the body, and parents of the facilities that sit in them -- so where a craft is
+lives in `craft->location`, not in its state enum. See
+[docs/plans/orbit_as_location.md](docs/plans/orbit_as_location.md).
 
-Enum the lot - then every time we add a state, have to alter enum.
-Many duplicates for surface/orbit for shuttles - matters? Makes it easier
-to track shuttle ascent/descent.
+That leaves `CraftState` carrying activity alone, seven values rather than the fourteen an
+enum-the-lot approach needed:
 
 ```c++
 enum {
-    CS_SURFACE,  // surface no dock
-    CS_SURFACE_DOCKED,
-    CS_SURFACE_WORK,
-    CS_SURFACE_LAUNCH, // transient state leaving dock
-    CS_ASCENDING,
-    CS_ORBIT,
-    CS_ORBIT_DOCKING, // transient state entering dock
-    CS_ORBIT_DOCKED,
-    CS_ORBIT_WORK,
-    CS_ORBIT_LAUNCH, // transient state leaving dock
-    CS_DESCENDING,
-    CS_TRANSIT, // IP or IS transit - refine with type and speed
+    CS_IDLE,       // at rest wherever location says: region or facility, orbit or surface
+    CS_WORKING,    // pods tick; docked = at a station, undocked = building one
+    CS_LAUNCHING,  // leaving a facility
+    CS_ASCENDING,  // surface region -> orbit region
+    CS_DESCENDING, // orbit region -> surface region
+    CS_DOCKING,    // approaching a facility
+    CS_TRANSIT,    // between bodies; location is the system's `space`
     CS_COUNT
 } CraftState;
-
-class Location {
-public:
-    System*         system; // needed?
-    std::string     name;
-    LocationType    type;   // star, planet, moon, asteroids...
-};
 ```
 
-Or make state classes, more powerful but overkill?
+The surface/orbit duplication the enum used to carry is answered by asking the location:
+`docked()` is `location->isFacility()` and `inOrbit()` is an ancestor test. Because both
+derive from one field, state and position cannot contradict each other.
 
-```c++
-class CraftState {
-public:
-    const char* name;
-    
-    // don't really want to have UI elements referenced here, suggests enum approach
-};
-```
+What a craft may *do* is a separate question from what it is doing, asked through
+`canDock()` / `canLaunch()` / `canAscend()` / `canDescend()` / `canEngageDrive()` /
+`canWork()` / `canEngageAutopilot()`. Each returns a `CraftActionResult` giving the reason,
+checked in tiers -- capability (the hull), fitment (the equipment), situation (right now) --
+so the UI, the autopilot and the game logic all ask the same question and get the same
+answer. See [docs/plans/craft_state.md](docs/plans/craft_state.md).
 
 Currently each location is a body and can have orbital, surface facilities,
 EC facilities. Only one orbital or SF, but could allow for more and more

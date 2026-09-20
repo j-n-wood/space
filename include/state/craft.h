@@ -83,7 +83,8 @@ public:
     // parts and cargo
     uint8_t max_pods;
     Pod pods[6];
-    bool drive; // fitted
+    int8_t active_pod_index; // a pod that is working, -1 -> none
+    bool drive;              // fitted
 
     // current location if any
     Location *location;
@@ -104,7 +105,7 @@ public:
 
     bool isPodEmpty(const int index);
     void setPodType(const int index, const PodType pt);
-    virtual void update(float delta);
+    void update(float delta);
 
     const char *statusText(char *status, size_t len);
 

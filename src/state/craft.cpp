@@ -64,7 +64,7 @@ const char *Pod::description(char *dest, size_t len)
     return dest;
 }
 
-Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : id{0}, faction_id{0}, state{cs}, state_timer{0.0f}, max_pods{mp}, drive{false}, location{loc}, destination_index{0}, autopilot{std::make_unique<Autopilot>()}
+Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : id{0}, faction_id{0}, state{cs}, state_timer{0.0f}, max_pods{mp}, active_pod_index{-1}, drive{false}, location{loc}, destination_index{0}, autopilot{std::make_unique<Autopilot>()}
 {
     name[0] = '\0';
 };
@@ -392,6 +392,7 @@ void Craft::setPodType(const int index, const PodType pt)
 void Craft::update(float delta)
 {
     // state transitions
+    Game *game = Game::getCurrent();
 
     // timed states
     if (state_timer > 0.0f)
@@ -405,11 +406,29 @@ void Craft::update(float delta)
             switch (expiring)
             {
             case CS_WORKING:
-                // Nothing to signal. Coming to rest IS the signal: a docked, idle craft
-                // is one whose work is finished, which the autopilot reads directly on
-                // its next update rather than being told once by a callback.
-                // TODO - immediately dock if a facility was just built here?
-                break;
+            {
+                // work timer is complete
+
+                // if active pod?
+                if (active_pod_index > -1)
+                {
+                    game->onWorkComplete(this);
+
+                    // consume pod contents if appropriate
+                    Pod &pod{pods[active_pod_index]};
+                    const Item &item{game->items[pod.contentType]};
+
+                    pod.amount = std::max(0, pod.amount - item.work_parameters.consumption);
+
+                    // update craft state
+                    setState(CS_IDLE);
+                    active_pod_index = -1; // reset active pod
+
+                    // can work auto-continue? //TODO
+                }
+                // else other 'work' such as cargo loading
+            }
+            break;
             case CS_LAUNCHING:
                 // Leaving the ground is only the first phase of a climb -- a shuttle
                 // cannot sit in the surface region under power -- so launching there
@@ -436,9 +455,9 @@ void Craft::update(float delta)
                 break;
             case CS_DOCKING:
                 onDocked();
-                if (hasCapability(CC_INTERPLANETARY)) // not triggered for shuttles ATM
+                if (hasCapability(CC_INTERPLANETARY))
                 {
-                    Game::getCurrent()->onSpacecraftDocked(this);
+                    Game::getCurrent()->onSpacecraftDocked(this); // on SPACECRAFT docked, so must be interplanetary
                 }
                 break;
             case CS_TRANSIT:
@@ -452,16 +471,11 @@ void Craft::update(float delta)
     } // timed state
 
     // update autopilot if fitted
-    if (drive)
-    {
-        // update autopilot logic here
-        autopilot->update(this, delta);
-    }
+    autopilot->update(this, delta);
 
     // working states
     if (state == CS_WORKING)
     {
-        Game *game = Game::getCurrent();
         for (int pod_idx = 0; pod_idx < max_pods; ++pod_idx)
         {
             if (!isPodEmpty(pod_idx))

@@ -50,6 +50,15 @@ public:
     explicit BuildRequirement(ResourceType rt, int am) : resource{rt}, amount{am} {};
 };
 
+class WorkParameters
+{
+public:
+    float work_time{0.0f};
+    int consumption{0};
+    bool abort_consumes{false};
+    bool auto_continue{false};
+};
+
 // Item definitions
 class Item
 {
@@ -67,6 +76,8 @@ public:
     int production_image_index;
     int pod_capacity; // how many units can fit in a pod
     std::vector<BuildRequirement> requirements;
+    bool does_work;
+    WorkParameters work_parameters;
 
-    Item() : id{0}, name{""}, description{""}, pod_type{0}, researched{false}, tech_level{0}, orbital{false}, mass{0}, production_time{0}, doc_image_index{-1}, production_image_index{-1}, pod_capacity{0} {}
+    Item() : id{0}, name{""}, description{""}, pod_type{0}, researched{false}, tech_level{0}, orbital{false}, mass{0}, production_time{0}, doc_image_index{-1}, production_image_index{-1}, pod_capacity{0}, does_work{false}, work_parameters{WorkParameters{}} {}
 };

@@ -726,6 +726,12 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
     }
     // switch on content type of tool pod to check specific activation requirements
     const Item &item{items[pod.contentType]};
+
+    if (!item.does_work)
+    {
+        return false;
+    }
+
     switch (item.id)
     {
     case ItemType::Of_Frame:
@@ -781,60 +787,20 @@ bool Game::activatePod(Craft *craft, int pod_index)
     Pod &pod{craft->pods[pod_index]};
     const Item &item{items[pod.contentType]};
 
-    char buffer[256]; // message buffer. Copied by logsink
+    // mark pod as active and set craft state to working
 
-    switch (item.id)
-    {
-    case ItemType::Of_Frame:
-    {
-        // if no orbital at location, create one.
-        Orbital *orbital = orbitalAt(craft->location);
-        if (!orbital)
-        {
-            orbital = createOrbital(craft->location);
-        }
-        if (++orbital->construction_progress >= 8)
-        {
-            TraceLog(LOG_INFO, "Orbital construction complete at location %s", craft->location->name);
-            orbital->operational = true;
-        }
-        raiseOrbitalConstructionEvent(orbital);
-        // remove pod content
-        pod.amount = 0;
-    }
-    break;
-    case ItemType::R_Frame:
+    float work_time = item.work_parameters.work_time;
+    if (pod.contentType == ItemType::Bandaid)
     {
         ResourceFacility *rf = resourceFacilityAt(craft->location);
-        if (!rf)
+        if (rf)
         {
-            rf = createResourceFacility(craft->location);
+            work_time = 1.0 + rf->damage / BANDAID_REPAIR_RATE; // time to repair is based on damage level
         }
-        if (++rf->construction_progress >= 2)
-        {
-            TraceLog(LOG_INFO, "Resource facility construction complete at location %s", craft->location->name);
-            rf->operational = true;
-        }
-        raiseResourceFacilityConstructionEvent(rf);
-        // remove pod content
-        pod.amount = 0;
     }
-    break;
-    // grapple - must be in orbit, and have something to take/release
-    // AMA - must be in orbit, at location of type asteroids
-    // bandaid - bust be docked on surface, and have damaged facility
-    case ItemType::Bandaid:
-    {
-        ResourceFacility *rf = resourceFacilityAt(craft->location);
-        // set craft status to working on surface, and time based on current damage
-        craft->setTimedState(CS_WORKING, 1.0 + rf->damage / BANDAID_REPAIR_RATE); // time to repair is based on damage level
-        TraceLog(LOG_INFO, "Started repairing facility at location %s, damage level %.1f", craft->location->name, rf->damage);
-    }
-    break;
-    default:
-        TraceLog(LOG_ERROR, "Attempting to activate unsupported item %d in activatePod", item.id);
-        return false;
-    }
+
+    craft->active_pod_index = pod_index;
+    craft->setTimedState(CS_WORKING, work_time);
 
     return true;
 }
@@ -864,7 +830,8 @@ bool Game::updateActivePod(Craft *craft, Pod &pod, float delta)
                     if (rf->damage == 0)
                     {
                         TraceLog(LOG_INFO, "Completed repairing facility at location %s", craft->location->name);
-                        craft->setState(CS_IDLE); // back to docked state when repair complete
+                        // set work timer to tiny s.t. update triggers work complete
+                        craft->setTimedState(CS_WORKING, 0.001f);
                         return false;
                     }
                 }
@@ -988,7 +955,7 @@ void Game::onSpacecraftArrival(Craft *craft)
 void Game::onSpacecraftDocked(Craft *craft)
 {
     // craft->onDocked() already called
-    // this can trigger game events
+    // this can trigger game events that do not relate to 'boarding' e.g. trade.
 
     // if docking location is hostile, trigger capture event
     if (hostilesAt(craft->location, craft->faction_id) && (craft->hasCapability(CC_BOARDING)))
@@ -1001,6 +968,67 @@ void Game::onSpacecraftDocked(Craft *craft)
             onCaptureOrbital(orbital, craft->faction_id);
         }
     }
+}
+
+void Game::onWorkComplete(Craft *craft)
+{
+    Pod &pod{craft->pods[craft->active_pod_index]};
+    const Item &item{items[pod.contentType]};
+
+    char buffer[256]; // message buffer. Copied by logsink
+
+    switch (item.id)
+    {
+    case ItemType::Of_Frame:
+    {
+        // if no orbital at location, create one.
+        Orbital *orbital = orbitalAt(craft->location);
+        if (!orbital)
+        {
+            orbital = createOrbital(craft->location);
+        }
+        if (++orbital->construction_progress >= 8)
+        {
+            TraceLog(LOG_INFO, "Orbital construction complete at location %s", craft->location->name);
+            orbital->operational = true;
+        }
+        raiseOrbitalConstructionEvent(orbital);
+        // remove pod content
+        pod.amount = 0;
+    }
+    break;
+    case ItemType::R_Frame:
+    {
+        ResourceFacility *rf = resourceFacilityAt(craft->location);
+        if (!rf)
+        {
+            rf = createResourceFacility(craft->location);
+        }
+        if (++rf->construction_progress >= 2)
+        {
+            TraceLog(LOG_INFO, "Resource facility construction complete at location %s", craft->location->name);
+            rf->operational = true;
+        }
+        raiseResourceFacilityConstructionEvent(rf);
+        // remove pod content
+        pod.amount = 0;
+    }
+    break;
+    // grapple - must be in orbit, and have something to take/release
+    // AMA - must be in orbit, at location of type asteroids
+    // bandaid - bust be docked on surface, and have damaged facility
+    case ItemType::Bandaid:
+    {
+        // handled in updateActivePod, which sets work time to 0 when complete, so this is just a notification
+    }
+    break;
+    default:
+        TraceLog(LOG_ERROR, "Completed work for unknown item ID %d ", item.id);
+    }
+}
+
+void Game::onWorkCancelled(Craft *craft)
+{
 }
 
 void Game::onCaptureOrbital(Orbital *orbital, int new_faction_id)

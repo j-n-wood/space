@@ -126,51 +126,50 @@ duplicated logic. Level 2 is what makes the reasons visible, and is where
 
 ---
 
-## What needs to be done
+## Status: delivered
 
-1. **Add the `canX()` methods** and move each verb's inline guards into them, in tier order.
-   Verbs become `if (!canX()) return *this;` plus the effect. No UI change yet, so this step
-   is behaviour-preserving and testable on its own.
+All five steps are in, and the three UI bugs the plan existed to fix are gone.
 
-2. **`Game::craftCanDock` → `checkCraftCanDock`** returning `CraftActionResult`
-   (`CAC_NO_ORBITAL` / `CAC_ORBITAL_INCOMPLETE` / `CAC_DEFENDED`), called from `canDock()` as
-   its situation tier. Fixes the already-docked case by construction, since `canDock()` also
-   requires the bare orbit region.
+- `canX()` for dock, launch, ascend, descend, engage-drive, work and engage-autopilot; every
+  verb reduces to `if (canX())` plus the effect.
+- `Game::craftCanDock` absorbed into `canDock()`, which reports `CAC_NO_ORBITAL` /
+  `CAC_ORBITAL_INCOMPLETE` / `CAC_DEFENDED` rather than a bool.
+- `ShuttleView` mouse and keyboard both ask the guards; the remaining `hasCapability` calls
+  there are for *display* (which drive panel to draw), not permission.
+- `engageAutopilot` / `disengageAutopilot` return `CraftActionResult`, and the autopilot
+  button shows the refusal reason as its tooltip rather than vanishing.
+- `Autopilot::update` asks the same guards — no raw capability tests remain in it.
 
-3. **Point `ShuttleView` at the `canX()` methods** — twelve call sites across `render()` and
-   `input()` ([shuttle_view.cpp:153-209](../../src/pages/shuttle_view.cpp#L153) and
-   [:383-401](../../src/pages/shuttle_view.cpp#L383)). Mouse and keyboard currently ask
-   differently; both become the same call. This is where the three bugs above disappear.
-   Consider a control table (`{action, rect, tooltip}`) so the two paths cannot drift again.
+Two things fell out that were not in the original shape:
 
-4. **`engageAutopilot` returns `CraftActionResult`** rather than `bool`, so
-   [autopilot_view.cpp:48](../../src/pages/autopilot_view.cpp#L48) can report why engaging
-   failed. `CAC_NO_SUPPLY_POD` exists for this.
+- **Departure is level-triggered.** The autopilot launches from `update()` whenever the craft
+  is docked and idle, so a refused launch is retried next tick. It used to fire once from an
+  `onDockWorkComplete()` callback, which stranded any craft that could not go at that
+  instant. Both that callback and the `ready` flag it needed are gone: `update()` already
+  returns early on `working()`, so "docked and not working" *is* "work here is finished", and
+  `CraftState` is persisted where a flag would have needed its own column.
+- **`engageAutopilot` replays arrival through `Craft::onDocked()`**, not
+  `Autopilot::onDocked()` directly, so engaging at a station keeps the `atEndpoint()` guard.
+  Calling the autopilot's hook raw loaded pods from whichever endpoint `destination_index`
+  named, which need not be the station the craft was sitting in.
 
-5. **Autopilot asks the same questions.** [autopilot.cpp](../../src/state/autopilot.cpp)
-   repeats capability checks the verbs now make; replace with `canX()` so a refused leg can
-   disable the autopilot with a logged reason instead of retrying.
+### Still open
 
-### Smaller items, still open
-
-- **`dock()` writes `state` and `state_timer` raw**, leaving `total_state_timer` stale, so
-  `stateProgress()` misreads for the whole approach. The other verbs use `setTimedState`.
-- **`onSpacecraftDocked` is gated twice**: `CC_INTERPLANETARY` at
-  [craft.cpp:260](../../src/state/craft.cpp#L260) and `CC_BOARDING` inside
-  [game.cpp:1019](../../src/state/game.cpp#L1019). Identical today, different in meaning —
-  drop the outer one.
-- **`Craft::update` gates the autopilot on `drive`.** With fitment checked at engagement, the
-  gate becomes `autopilot->state >= AS_ON`.
-- **`Craft::update` is still `virtual`** with no overrides left.
-- **`createShuttle` leaves `name` empty**, so autopilot log lines read "Autopilot:  ...".
-- **`architecture.md:90-105`** still lists the pre-collapse enum.
-
----
+- **`CAC_BUSY` is never asserted directly.** The verb/guard equivalence sweep in
+  `tests/test_craft_actions.cpp` uses idle craft only, so the busy tier is exercised
+  incidentally by the cycle tests rather than pinned.
+- **`disengageAutopilot` and `AS_COMPLETE` are untested.** `AS_DISABLED` is still never
+  assigned anywhere, and `AS_COMPLETE` is treated as engaged by `state < AS_ON`.
+- **Construction has no completion hook** — now its own plan, see
+  [facility_construction.md](facility_construction.md). Removing `onDockWorkComplete` took the
+  seam where a finished *build* would notify, and the `CS_WORKING` arm of the expiry switch
+  carries the TODO marking the spot. A build finishing is a genuine one-shot event, unlike a
+  departure, so it wants the hook rather than a condition re-tested each tick.
 
 ## Verification
 
-`make && make tests && ./bin/Debug/tests` — 52 cases / 7319 assertions is the current
-baseline. Add to `tests/test_craft_state.cpp` (**needs `./reconf.sh`** — premake globs at
+`make && make tests && ./bin/Debug/tests` — 61 cases / 7411 assertions is the current
+baseline. Covered by `tests/test_craft_actions.cpp` (**needs `./reconf.sh`** — premake globs at
 configure time):
 
 1. **Verb and guard agree.** For every craft type × place × state:
@@ -183,7 +182,14 @@ configure time):
    docked.
 4. **Fail-safe default.** `CraftActionResult r; CHECK(!r); CHECK(r == CAC_UNKNOWN);`
 
-**Play-test** after step 3: dock, undock, ascend and descend on a shuttle and an IOS, by
-mouse *and* keyboard, with and without an orbital present. An IOS should offer neither ascend
-nor descend; a shuttle should never offer the drive. Confirm the Ascend button now appears on
-the ground rather than in orbit.
+5. **A blocked launch is retried.** A docked craft loses its drive, sits, gets one fitted,
+   and departs — with nothing re-notifying the autopilot. This is what replaced the
+   `ready` flag.
+6. **Loading obeys `atEndpoint()`.** Engaging while docked at the current endpoint loads the
+   pods; engaging while docked somewhere off-route loads nothing.
+
+**Play-test, still outstanding.** Dock, undock, ascend and descend on a shuttle and an IOS,
+by mouse *and* keyboard, with and without an orbital present. An IOS should offer neither
+ascend nor descend; a shuttle should never offer the drive. The Ascend button should appear
+on the ground rather than in orbit, Dock and Undock should never draw together, and the
+autopilot panel should stay engaged rather than switching itself off.

@@ -239,6 +239,8 @@ public:
     void onSpacecraftArrival(Craft *craft);
     void onSpacecraftDocked(Craft *craft);
     void onCaptureOrbital(Orbital *orbital, int faction_id);
+    void onWorkComplete(Craft *craft);
+    void onWorkCancelled(Craft *craft);
 
     // console input
     bool processConsoleCommand(const char *command, Location *l, Facility *f);
