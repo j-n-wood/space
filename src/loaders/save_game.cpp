@@ -157,6 +157,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS factions ( id INT, name TEXT, hostile INT );"
         "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, pod_type int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);"
         "CREATE TABLE IF NOT EXISTS item_build_requirements ( item_id int, resource_id int, amount int);"
+        "CREATE TABLE IF NOT EXISTS item_work ( item_id int, work_time numeric, consumption int, abort_consumes int, auto_continue int);"
         "CREATE TABLE IF NOT EXISTS research_topics ( id int, name text, description text, required_time float, progress float, available int);"
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_items ( topic_id int, item_id int);"
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_topics ( topic_id int, unlocks_topic_id int);"
@@ -637,6 +638,28 @@ int SaveGame::saveItems(Game *game)
             {
                 return -16;
             }
+        }
+    }
+
+    {
+        // Sparse by design: a row exists only for cargo that can be worked, so presence is
+        // what `does_work` reads back. Items are written by position above, so use the same
+        // index here rather than item.id.
+        SQLiteQuery workQ(loader, "INSERT INTO item_work (item_id, work_time, consumption, abort_consumes, auto_continue) VALUES (?, ?, ?, ?, ?)");
+        int work_idx{0};
+        for (auto &item : game->items)
+        {
+            if (item.does_work)
+            {
+                const WorkParameters &w{item.work_parameters};
+                sqlite3_reset(workQ.stmt);
+                sqlite3_clear_bindings(workQ.stmt);
+                if (!workQ.bind(1, work_idx).bind(2, w.work_time).bind(3, w.consumption).bind(4, w.abort_consumes).bind(5, w.auto_continue).step("SaveGame: Failed to save item work"))
+                {
+                    return -17;
+                }
+            }
+            ++work_idx;
         }
     }
     return 0;

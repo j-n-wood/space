@@ -1245,3 +1245,61 @@ TEST_CASE("atEndpoint compares locations")
         CHECK_FALSE(shuttle->atEndpoint());
     }
 }
+
+TEST_CASE("SaveGame round-trips item work definitions")
+{
+    // The table is sparse on purpose: a row exists only for cargo that can be worked, so
+    // `does_work` reads presence rather than a zero sentinel. A save that dropped the rows
+    // would silently give every working item a zero work_time -- which sets a CS_WORKING
+    // timer of 0 that never expires, leaving the craft working forever.
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+    REQUIRE(game->items.size() > ItemType::R_Frame);
+
+    int definedBefore = 0;
+    for (const auto &item : game->items)
+    {
+        if (item.does_work)
+        {
+            ++definedBefore;
+            const bool hasDuration = item.work_parameters.work_time > 0.0f;
+            CHECK_MESSAGE(hasDuration, "work row with no duration: " << item.name);
+        }
+    }
+    CHECK(definedBefore > 0);
+
+    const WorkParameters frame = game->items[ItemType::Of_Frame].work_parameters;
+    REQUIRE(game->items[ItemType::Of_Frame].does_work);
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Game loaded;
+    Loader loader(SAVE_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(loaded.initialise(&loader));
+
+    REQUIRE(loaded.items.size() == game->items.size());
+
+    int definedAfter = 0;
+    for (const auto &item : loaded.items)
+    {
+        if (item.does_work)
+        {
+            ++definedAfter;
+        }
+    }
+    CHECK(definedAfter == definedBefore); // sparseness survives: no rows gained or lost
+
+    const Item &reloaded = loaded.items[ItemType::Of_Frame];
+    CHECK(reloaded.does_work);
+    CHECK(reloaded.work_parameters.work_time == doctest::Approx(frame.work_time));
+    CHECK(reloaded.work_parameters.consumption == frame.consumption);
+    CHECK(reloaded.work_parameters.abort_consumes == frame.abort_consumes);
+    CHECK(reloaded.work_parameters.auto_continue == frame.auto_continue);
+
+    // and an item with no row stays without one
+    CHECK_FALSE(loaded.items[ItemType::S_Chassis].does_work);
+
+    removeSaveFile();
+}
