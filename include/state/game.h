@@ -240,6 +240,7 @@ public:
 
     void onSpacecraftArrival(Craft *craft);
     void onSpacecraftDocked(Craft *craft);
+    void onSpacecraftLeaveBody(Craft *craft);
     void onCaptureOrbital(Orbital *orbital, int faction_id);
     void onWorkComplete(Craft *craft);
     void onWorkCancelled(Craft *craft);

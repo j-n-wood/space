@@ -970,6 +970,13 @@ void Game::onSpacecraftDocked(Craft *craft)
     }
 }
 
+void Game::onSpacecraftLeaveBody(Craft *craft)
+{
+    // this can trigger game events
+
+    // also clean up any transient state about that location e.g. scan targets
+}
+
 void Game::onWorkComplete(Craft *craft)
 {
     // Its one caller guards this, but keep the precondition local: a -1 index is autopilot

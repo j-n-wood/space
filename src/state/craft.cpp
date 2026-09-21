@@ -596,6 +596,9 @@ const char *Craft::statusText(char *status, size_t len)
         }
     }
     break;
+    case CS_SCANNING:
+        std::snprintf(status, len, "Scanning %s", location_name);
+        break;
     default:
         break;
     }

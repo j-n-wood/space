@@ -18,6 +18,7 @@ typedef enum
     CS_DESCENDING, // orbit region -> surface region
     CS_DOCKING,    // approaching a facility
     CS_TRANSIT,    // between bodies; location is the system's `space`
+    CS_SCANNING,   // scanning a location for objects
     CS_COUNT
 } CraftState;
 
@@ -229,6 +230,7 @@ public:
             return true;
         case CS_IDLE:
         case CS_WORKING:
+        case CS_SCANNING:
         case CS_COUNT:
             return false;
         }
