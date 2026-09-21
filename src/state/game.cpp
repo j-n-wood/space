@@ -992,7 +992,7 @@ void Game::onWorkComplete(Craft *craft)
         {
             orbital = createOrbital(craft->location);
         }
-        if (++orbital->construction_progress >= 8)
+        if (++orbital->construction_progress >= REQUIRED_ORBITAL_FRAMES)
         {
             TraceLog(LOG_INFO, "Orbital construction complete at location %s", craft->location->name);
             orbital->operational = true;
@@ -1009,7 +1009,7 @@ void Game::onWorkComplete(Craft *craft)
         {
             rf = createResourceFacility(craft->location);
         }
-        if (++rf->construction_progress >= 2)
+        if (++rf->construction_progress >= REQUIRED_RESOURCE_FACILITY_FRAMES)
         {
             TraceLog(LOG_INFO, "Resource facility construction complete at location %s", craft->location->name);
             rf->operational = true;

@@ -1,338 +1,176 @@
 # Pod work: construction on the clock
 
 > Follows [craft_state.md](craft_state.md), which put the craft's activity behind
-> `CS_WORKING` and its permissions behind `canX()` guards. Activating a pod is the one
-> activity that never joined.
+> `CS_WORKING` and its permissions behind `canX()` guards. Activating a pod was the one
+> activity that never joined; most of it has since.
 
 ## Purpose
 
 - **Deploying a section takes game time.** Activating a pod puts the craft into `CS_WORKING`;
   the effect lands when the timer expires, not on the click.
-- **What a pod does is three questions about its cargo** — how long the work takes, what
-  finishing it does, and what abandoning it costs. All three switch on the item type.
-- **A pod-load deploys as one run.** When work finishes, the next pod carrying the same cargo
-  starts automatically, so a craft with three frames needs one click.
-- **Completion is visible to the game.** The construction event carries progress and whether
-  this section completed the facility, so a sink can drive faction response — and a shuttle
-  that finishes a surface station ends up docked inside it.
+- **Interrupted work produces nothing.** The effect is applied at the end, so an abort simply
+  never reaches it — only the cargo has to be settled.
+- **A pod-load deploys as one run.** When a section finishes, the next pod carrying the same
+  cargo starts by itself, so a craft with three frames needs one click.
+- **The parameters are data, the effects are code.** Timings, consumption and chaining come
+  from `item_work` in the database; what deploying a frame actually *does* stays a switch on
+  item type, because expressing it as data would need an action vocabulary that still has
+  code behind every entry.
 
-## Current behaviour
+## Delivered
 
-[`Game::activatePod`](../../src/state/game.cpp#L772) applies construction in full, inside the
-click:
+**Work parameters are data.** `item_work` is a sparse linked table — a row exists only for
+cargo that can be worked, so presence *is* the predicate and nothing reads a zero as absence.
+Loaded beside `item_build_requirements` in
+[`Loader::loadItems`](../../src/loaders/loader.cpp#L260) and written back in
+[`SaveGame`](../../src/loaders/save_game.cpp#L648), so a save carries the definitions as it
+already does for item build costs.
+
+| item | work_time | consumption | abort_consumes | auto_continue |
+|---|---|---|---|---|
+| `Of_Frame` | 20 | 1 | 1 | 1 |
+| `R_Frame` | 30 | 1 | 1 | 1 |
+| `Bandaid` | 1 | 0 | 0 | 0 |
+
+`Bandaid`'s duration is the one computed case: `activatePod` adds
+`damage / BANDAID_REPAIR_RATE` to the tabulated base, so the table supplies the fixed
+overhead and the code the variable part.
+
+**Work has a subject.** `Craft::active_pod_index` names the pod driving the current
+`CS_WORKING`, or `-1`. That matters because the autopilot uses the same state for loading
+cargo — `-1` is what separates the two, and what the expired timer checks before applying
+anything.
+
+**One completion path.** Everything finishes through the `CS_WORKING` arm of the expiry
+switch in [`Craft::update`](../../src/state/craft.cpp#L408): it calls `Game::onWorkComplete`,
+consumes `work_parameters.consumption`, clears `active_pod_index`, and chains if
+`auto_continue`. `updateActivePod` no longer ends work itself — a finished repair shortens the
+timer to `0.001f` instead, so it comes back through the same arm. Only the active pod is
+ticked; ticking all of them meant a Bandaid aboard repaired a facility nobody activated it on.
+
+**Chaining stops by itself.** Nothing checks for completion: `canActivatePod` already refuses
+once a facility is operational, so the chain ends and leftover cargo is kept. Covered by
+*"construction chains across pods and stops when the facility is done"* in
+[tests/test_craft_actions.cpp](../../tests/test_craft_actions.cpp).
+
+## Remaining
+
+### 1. Abort
+
+`CA_CANCEL_WORK` is in the action enum, `abort_consumes` is in the table and loaded, and
+[`Game::onWorkCancelled`](../../src/state/game.cpp#L1035) is an empty stub. What is missing is
+the verb, its guard, and a control:
 
 ```cpp
-case ItemType::Of_Frame:
+CraftActionResult Game::canAbortWork(Craft *craft) const
 {
-    Orbital *orbital = orbitalAt(craft->location);
-    if (!orbital) { orbital = createOrbital(craft->location); }
-    if (++orbital->construction_progress >= 8) { orbital->operational = true; }
-    raiseOrbitalConstructionEvent(orbital);
-    pod.amount = 0;
-}
-```
-
-- **No elapsed time.** The original game showed slow UI progress without advancing the clock;
-  here there is neither.
-- **The event cannot say what happened.** It fires identically for a section and for the one
-  that completes the facility, so the only sink
-  ([shuttle_view.cpp:430](../../src/pages/shuttle_view.cpp#L430)) reaches into
-  `orbital->operational` to tell them apart, and repeats the literal `8` to compute a
-  percentage.
-- **`8` and `2` are literals.** The requirement is fixed by design for now, but it should be
-  named.
-
-`pod.amount = 0` is **correct**: `pod_capacity` is 1 for every activatable tool item
-(verified — OF Frame, R Frame, Bandaid, Grapple and AMA are all 1; Derrick's 8 is not
-construction cargo). A decrement is the generalisation if a capacity ever rises, not a fix.
-
-`Bandaid` is the one item already on the clock: `activatePod` sets a timed `CS_WORKING` and
-`updateActivePod` ticks the repair. It shows the shape, and also the thing to avoid — it ends
-the work *itself* by setting `CS_IDLE` mid-tick, so there are two ways for work to finish.
-
-## Design
-
-### Work needs a subject
-
-`CS_WORKING` says the craft is working; it cannot say what at, and the autopilot already uses
-the same state for loading cargo. So the craft carries the pod driving the work:
-
-```cpp
-// craft.h
-int8_t active_pod{-1};   // pod driving the current CS_WORKING, or -1 for none
-```
-
-`-1` separates autopilot loading from pod work, and it is what an expired timer looks up to
-decide whether anything should happen. Persisted, so a craft saved mid-deployment resumes.
-
-A pod index rather than a work-type enum: the cargo already names the activity. That holds
-until one payload can do more than one thing — an asteroid mining attachment might — and a
-work type can be added then, against a case that exists.
-
-### Three switches on item type
-
-What a pod does as work is defined by three functions, each switching on the cargo:
-
-```cpp
-// game.cpp
-float Game::workDurationFor(const Craft *craft, const Pod &pod) const;
-void  Game::completeWork(Craft *craft);   // timer expired: apply the effect
-void  Game::abortWork(Craft *craft);      // abandoned: settle the cost
-```
-
-**Duration** is a sparse table with a default, since most items want a flat time and only a
-few compute one:
-
-```cpp
-namespace
-{
-    struct PodWorkTime { ItemType item; float seconds; };
-
-    // Sparse on purpose: anything not listed gets the default. Distinct from
-    // Item::production_time, which is how long a factory takes to BUILD the item.
-    const PodWorkTime podWorkTimes[] = {
-        {ItemType::Of_Frame, 20.0f},
-        {ItemType::R_Frame, 30.0f},
-    };
-    const float DEFAULT_POD_WORK_TIME = 5.0f;
+    return craft->working() ? CAC_OK : CAC_WRONG_STATE;
 }
 
-float Game::workDurationFor(const Craft *craft, const Pod &pod) const
+void Game::onWorkCancelled(Craft *craft)
 {
-    const ItemType item = static_cast<ItemType>(pod.contentType);
-    if (item == ItemType::Bandaid)
+    if (craft->active_pod_index >= 0)
     {
-        // computed, not tabulated: a worse-damaged station takes longer
-        ResourceFacility *rf = resourceFacilityAt(craft->location);
-        return 1.0f + (rf ? rf->damage / BANDAID_REPAIR_RATE : 0.0f);
-    }
-    for (const PodWorkTime &w : podWorkTimes)
-    {
-        if (w.item == item) { return w.seconds; }
-    }
-    return DEFAULT_POD_WORK_TIME;
-}
-```
-
-**Completion** applies the effect and decides what happens next:
-
-```cpp
-void Game::completeWork(Craft *craft)
-{
-    if (craft->active_pod < 0) { return; }   // autopilot loading -- nothing to apply
-
-    Pod &pod = craft->pods[craft->active_pod];
-    const ItemType item = static_cast<ItemType>(pod.contentType);
-
-    switch (item)
-    {
-    case ItemType::Of_Frame:
-    case ItemType::R_Frame:
-    {
-        Facility *f = deploySection(craft, item);   // creates the facility if needed
-        pod.amount = 0;                             // capacity is 1: the frame is spent
-        if (f && f->operational)
+        Pod &pod{craft->pods[craft->active_pod_index]};
+        const Item &item{items[pod.contentType]};
+        if (item.work_parameters.abort_consumes)
         {
-            onFacilityComplete(craft, f);
-            break;                                  // finished: do not chain
-        }
-        // Activate all: carry on with the next pod of the same cargo, so a pod-load is
-        // one run rather than one click per section. Default because there is no UI for
-        // choosing otherwise, and it is the common case.
-        activateNextMatching(craft, item);
-        break;
-    }
-    case ItemType::Bandaid:
-        // updateActivePod has been reducing damage all along; expiry just ends it
-        break;
-    default:
-        break;
-    }
-
-    if (!craft->working()) { craft->active_pod = -1; }
-}
-```
-
-**Abort** settles the cost, which is also per item:
-
-```cpp
-void Game::abortWork(Craft *craft)
-{
-    if (craft->active_pod >= 0)
-    {
-        Pod &pod = craft->pods[craft->active_pod];
-        switch (static_cast<ItemType>(pod.contentType))
-        {
-        case ItemType::Of_Frame:
-        case ItemType::R_Frame:
-            // A part-deployed frame is scrap. Abandoning construction loses it, so an
-            // abort is a real decision rather than a free undo.
-            pod.amount = 0;
-            break;
-        case ItemType::Bandaid:
-            // Repair applies continuously, so the work done is already banked and the
-            // remaining charge is still usable.
-            break;
-        default:
-            break;
+            // A part-deployed frame is scrap, so abandoning is a real decision rather than
+            // a free undo. A Bandaid keeps its charge: the repair so far is already banked.
+            pod.amount = std::max(0, pod.amount - item.work_parameters.consumption);
         }
     }
     craft->setState(CS_IDLE);
-    craft->active_pod = -1;
+    craft->active_pod_index = -1;
 }
 ```
 
-Because the effect is applied only in `completeWork`, an abort cannot leave a facility half
-changed — the only thing to settle is the cargo.
+Because the effect only ever lands in `onWorkComplete`, there is no half-applied facility to
+unwind. The motivating case is a craft attacked mid-build; nothing calls it automatically yet,
+so the verb lands first and the caller follows.
 
-### The cycle
+### 2. Named section requirements
 
-```cpp
-// activation starts work; it no longer changes the world
-CraftActionResult Game::activatePod(Craft *craft, int pod_index)
-{
-    CraftActionResult can = canActivatePod(craft, pod_index);
-    if (!can) { return can; }
-
-    craft->active_pod = static_cast<int8_t>(pod_index);
-    craft->work(workDurationFor(craft, craft->pods[pod_index]));
-    return CAC_OK;
-}
-```
-
-Completion moves into the `CS_WORKING` arm of the expiry switch, which currently carries the
-TODO this plan closes:
-
-```cpp
-// craft.cpp, Craft::update expiry switch
-case CS_WORKING:
-    Game::getCurrent()->completeWork(this);
-    break;
-```
-
-### The event says what happened
-
-The sink already has to distinguish a section from a completion, and currently does it by
-reading `orbital->operational` and dividing by a literal `8`. Put both in the payload:
-
-```cpp
-// event_sink.h -- one signature for both facility kinds; the sink can check type
-virtual void onFacilityConstruction(Facility *facility, uint8_t progress, uint8_t required,
-                                    bool complete);
-```
-
-`progress` and `required` give the percentage without the sink knowing the requirement;
-`complete` is the hook faction response hangs off. The two existing raise functions collapse
-into one.
-
-```cpp
-void Game::onFacilityComplete(Craft *craft, Facility *facility)
-{
-    // A surface station is built around the craft, so it ends up inside it. An orbital is
-    // not: the craft is floating in the orbit region, and closing with the station is a
-    // manoeuvre it still has to fly.
-    if (!facility->inOrbit() && craft->type == CT_SHUTTLE)
-    {
-        craft->onDocked();
-    }
-}
-```
-
-### Guards
-
-`canActivatePod` returns a reason and gains the busy check it lacks today:
-
-```cpp
-CraftActionResult Game::canActivatePod(Craft *craft, int pod_index) const
-{
-    if (craft->moving() || craft->working()) { return CAC_BUSY; }
-    // ... existing per-item position and facility checks, returning CAC_WRONG_STATE
-}
-```
-
-That stops a click landing while the autopilot is loading, and lets the pod icon show why it
-is inert. `CA_CANCEL_WORK` is already in the action enum and unused — `canAbortWork(craft)`
-is `working() ? CAC_OK : CAC_WRONG_STATE`.
-
-### Constants
-
-The requirement is fixed by design, so name it rather than repeating it:
+`8` and `2` are still literals in `onWorkComplete`, and `8` is repeated in the progress
+readout at [shuttle_view.cpp:442](../../src/pages/shuttle_view.cpp#L442) as `* 100 / 8`. The
+requirement is fixed by design, so name it:
 
 ```cpp
 static const uint8_t SECTIONS_REQUIRED = 8;   // Orbital
 static const uint8_t SECTIONS_REQUIRED = 2;   // ResourceFacility
 ```
 
-## Data
+### 3. Dock the shuttle in a surface station it just finished
 
-- `craft.active_pod INT`, defaulting to `-1`. Saves are still disposable, so this is free now.
-- No facility schema change: `construction_progress` and `operational` already persist.
+Game logic rather than a notification, so it goes inline where the facility completes:
 
-## Files
+```cpp
+if (++rf->construction_progress >= ResourceFacility::SECTIONS_REQUIRED)
+{
+    rf->operational = true;
+    // A surface station is built around the craft, so it ends up inside it. An orbital is
+    // not: the craft is floating in the orbit region, and closing with the station is a
+    // manoeuvre it still has to fly -- so this is for surface facilities only.
+    if (craft->type == CT_SHUTTLE) { craft->onDocked(); }
+}
+```
 
-| File | Change |
-|---|---|
-| [include/state/craft.h](../../include/state/craft.h) / [craft.cpp](../../src/state/craft.cpp) | `active_pod`; the `CS_WORKING` expiry arm calls `completeWork` |
-| [include/state/game.h](../../include/state/game.h) / [game.cpp](../../src/state/game.cpp) | `activatePod` starts work only; `workDurationFor`, `completeWork`, `abortWork`, `deploySection`, `activateNextMatching`, `onFacilityComplete`; `canActivatePod` / `canAbortWork` return results |
-| [include/state/event_sink.h](../../include/state/event_sink.h) | `onFacilityConstruction` replaces the two per-kind events |
-| [include/state/orbital.h](../../include/state/orbital.h), [resourceFacility.h](../../include/state/resourceFacility.h) | `SECTIONS_REQUIRED` |
-| [src/pages/shuttle_view.cpp](../../src/pages/shuttle_view.cpp) | pod icon shows the refusal reason; log uses the event payload; abort control |
-| [src/loaders/](../../src/loaders/) | `active_pod` column |
-| `tests/test_construction.cpp` | new — **needs `./reconf.sh`** |
+**No event change is needed for any of this.** The existing events already pass the facility,
+so a sink reads `operational` and `construction_progress` straight off it — as
+[shuttle_view.cpp:430](../../src/pages/shuttle_view.cpp#L430) does. Both raisers fire only
+from `onWorkComplete`, and `canActivatePod` refuses once a facility is operational, so
+`operational == true` on the event is a reliable one-shot "this section finished it" — which
+is what faction response would key off.
 
-## Steps
+### 4. Smaller
 
-Build and test after each.
-
-1. **`active_pod` plus persistence.** Set and cleared, read by nothing yet. Additive.
-2. **`canActivatePod` returns `CraftActionResult`** and gains the busy check; the UI shows the
-   reason. No timing change yet.
-3. **Move construction onto the clock.** `workDurationFor`, `completeWork`, the expiry arm.
-   Behavioural, and the step that needs the play-test.
-4. **`abortWork`** with its per-item cost, `canAbortWork`, and a UI control.
-5. **Sequencing.** `activateNextMatching`, driven from `completeWork` by item type.
-6. **Event payload and constants.** `onFacilityConstruction` with progress and completion;
-   `SECTIONS_REQUIRED`; `onFacilityComplete` and the surface auto-dock.
-7. **Unify `Bandaid`** so `updateActivePod` only applies continuous effect and the timer is
-   the single way work ends.
+- **`active_pod_index` is not persisted.** A craft saved mid-deployment reloads with `-1`, so
+  the timer expires and applies nothing. One column on `craft`, defaulting to `-1`.
+- **`canActivatePod` returns `bool`** while every other guard returns `CraftActionResult`, so
+  the pod icon can only be hidden, not explained. It also has no busy check of its own — safe
+  only because its callers happen not to try mid-work.
+- The `// can work auto-continue? //TODO` comment above the chaining block is stale, and the
+  `pod_idx != active_pod_index` test in it is dead: the index is cleared to `-1` two lines
+  earlier. The chain works because consumption empties the pod instead. That only matters if
+  a `pod_capacity` ever exceeds 1, when the just-worked pod *should* be reconsidered first.
 
 ## Verification
 
-`make && make tests && ./bin/Debug/tests` — 61 cases / 7411 assertions is the current
-baseline.
+`make && make tests && ./bin/Debug/tests` — 64 cases / 7466 assertions is the current
+baseline, and the run should stay free of `ERROR` lines beyond the six deliberate
+negative-path ones.
 
-1. **Construction takes time.** Activating a frame pod leaves `construction_progress`
-   unchanged on the same tick, and raises it only once the timer expires.
-2. **Abort applies nothing and costs the frame.** Activate, abort mid-timer: progress
+Already covered: chaining across pods, stopping on completion with cargo kept, the first
+section not landing on the activating tick, only the active pod ticking, and `item_work`
+round-tripping through a save.
+
+To add with the work above:
+
+1. **Abort applies nothing and costs the frame.** Activate, abort mid-timer: progress
    unchanged, pod empty. A Bandaid abort keeps its charge and the damage already repaired.
-3. **The chain runs and stops.** Three pods of one frame each deploy three sections from one
-   activation; the chain stops when the facility completes, even with cargo left.
-4. **Completion is reported once.** A test sink counts `onFacilityConstruction` calls with
-   `complete == true` across a full build: exactly one, on the section that sets
-   `operational`, and `progress == required` on that call.
-5. **Auto-dock is surface-only.** Finishing a resource facility leaves the shuttle docked in
+2. **Auto-dock is surface-only.** Finishing a resource facility leaves the shuttle docked in
    it; finishing an orbital leaves the craft in the orbit region, undocked.
-6. **Resume across save/load.** A craft saved mid-deployment reloads working, with
-   `active_pod` intact, and completes the section.
-7. **Loading is not pod work.** An autopilot craft in `CS_WORKING` with `active_pod == -1`
-   completes its load without touching any facility.
-8. **Busy refuses.** `canActivatePod` returns `CAC_BUSY` while working or manoeuvring — one
-   of the few direct `CAC_BUSY` assertions anywhere, which `craft_state.md` notes is missing.
+3. **Completion is observable once.** A test sink counting construction events seen with
+   `facility->operational` true across a full build sees exactly one.
+4. **Resume across save/load**, once `active_pod_index` persists: a craft saved mid-deployment
+   reloads working and completes the section.
 
-**Play-test** after step 3 and again after step 6: build an orbital from an IOS carrying
-frames, watch the progress log advance over time, abort part way and confirm the frame is
-lost, then finish a surface facility and confirm the shuttle ends up docked inside it.
+**Play-test:** build an orbital from an IOS carrying frames, watch the progress log advance
+over time rather than jumping, abort part way and confirm the frame is lost, then finish a
+surface facility and confirm the shuttle ends up docked inside it.
 
 ## Deferred
 
-- **A per-item work descriptor.** Three switches on item type is the right size for three
-  activities. When there are more — mining, grapple, AMA — they want to be one table of
-  `{duration, onComplete, onAbort, chains}` rather than three parallel switches.
-- **A work type distinct from the pod.** Needed only when one cargo can do more than one
-  job; an asteroid mining attachment is the likely first case.
+- **A per-item work descriptor in code.** `item_work` is that descriptor for the parameters;
+  the effects remain a switch until there are enough of them to make a registry pay.
+- **A work type distinct from the pod.** Needed only when one cargo can do more than one job;
+  an asteroid mining attachment is the likely first case.
+- **Multi-unit cargo.** `consumption` and the chain are written for it, but every activatable
+  item has `pod_capacity` 1, so nothing exercises it.
 - **Slow UI progress without a clock advance**, as the original had. The timed state supplies
   the data; whether the cockpit animates it is a presentation decision.
-- **Abort under attack.** The motivating case for `abortWork`, but nothing calls it
-  automatically yet — the verb lands first, the caller follows.
-- **Two craft building the same facility.** Works by accident today, since progress lives on
-  the facility. Worth deciding deliberately before it is relied on.
+- **Bandaid reaches the ground from orbit.** `resourceFacilityAt` resolves through `body()`,
+  and `canActivatePod`'s Bandaid case requires `docked()` but not which side. A rule question,
+  not a bug to fix blind.
+- **Two craft building the same facility.** Works by accident, since progress lives on the
+  facility. Worth deciding deliberately before it is relied on.

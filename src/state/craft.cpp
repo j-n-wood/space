@@ -424,7 +424,23 @@ void Craft::update(float delta)
                     setState(CS_IDLE);
                     active_pod_index = -1; // reset active pod
 
-                    // can work auto-continue? //TODO
+                    // can work auto-continue?
+                    if (item.work_parameters.auto_continue)
+                    {
+                        // locate any other pod with non-zero amount of same type
+                        for (int pod_idx = 0; pod_idx < max_pods; ++pod_idx)
+                        {
+                            Pod &next_pod{pods[pod_idx]};
+                            if (next_pod.type == pod.type && next_pod.amount > 0 && pod.contentType == next_pod.contentType)
+                            {
+                                if (game->canActivatePod(this, pod_idx))
+                                {
+                                    game->activatePod(this, pod_idx);
+                                }
+                                break;
+                            }
+                        }
+                    }
                 }
                 // else other 'work' such as cargo loading
             }

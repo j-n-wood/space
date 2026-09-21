@@ -410,3 +410,72 @@ TEST_CASE("only the pod being worked has an effect")
     CHECK_MESSAGE(f.station->damage == doctest::Approx(damageBefore),
                   "an unworked Bandaid repaired a facility during cargo loading");
 }
+
+TEST_CASE("construction chains across pods and stops when the facility is done")
+{
+    // auto_continue makes a pod-load one run rather than one click per section: when a
+    // section finishes, the next pod carrying the same cargo starts by itself. It has to
+    // stop on its own too -- canActivatePod refuses once the facility is operational, so
+    // leftover cargo is kept rather than deployed into a finished station.
+    Fixture f;
+    REQUIRE(f.valid());
+
+    Location *luna = f.game->locationByID(5);
+    REQUIRE(luna != nullptr);
+    REQUIRE(luna->orbit() != nullptr);
+    REQUIRE(f.game->orbitalAt(luna) == nullptr); // Luna has a base, no orbital
+
+    IOS *ios = f.game->createIOS(luna->orbit());
+    REQUIRE(ios != nullptr);
+    REQUIRE(ios->max_pods >= 3);
+    ios->drive = true;
+    ios->location = luna->orbit();
+    ios->assignState(CS_IDLE, 0.0f, 0.0f);
+    for (int i = 0; i < 3; ++i)
+    {
+        ios->setPodType(i, PT_TOOL);
+        ios->pods[i].contentType = ItemType::Of_Frame;
+        ios->pods[i].amount = 1;
+    }
+
+    SUBCASE("a full load deploys without further input")
+    {
+        REQUIRE(f.game->activatePod(ios, 0));
+        // Deploying takes game time, so the first section is not applied on this tick.
+        CHECK(f.game->orbitalAt(luna) == nullptr);
+
+        for (int tick = 0; tick < 4000 && ios->working(); ++tick)
+        {
+            f.game->update(0.05f);
+        }
+
+        Orbital *built = f.game->orbitalAt(luna);
+        REQUIRE(built != nullptr);
+        CHECK(built->construction_progress == 3); // one per pod, from a single activation
+        CHECK(ios->pods[0].amount == 0);
+        CHECK(ios->pods[1].amount == 0);
+        CHECK(ios->pods[2].amount == 0);
+        CHECK(ios->active_pod_index == -1);
+        CHECK_FALSE(ios->working());
+    }
+
+    SUBCASE("the chain stops on completion, keeping what is left")
+    {
+        Orbital *part = f.game->createOrbital(luna->orbit());
+        REQUIRE(part != nullptr);
+        part->construction_progress = 6; // two short of the eight required
+
+        REQUIRE(f.game->activatePod(ios, 0));
+        for (int tick = 0; tick < 4000 && ios->working(); ++tick)
+        {
+            f.game->update(0.05f);
+        }
+
+        CHECK(part->construction_progress == 8);
+        CHECK(part->operational);
+        CHECK(ios->pods[0].amount == 0);
+        CHECK(ios->pods[1].amount == 0);
+        CHECK_MESSAGE(ios->pods[2].amount == 1, "kept deploying into a finished station");
+        CHECK_FALSE(ios->working());
+    }
+}

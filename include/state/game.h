@@ -19,6 +19,8 @@ const int MAX_SUPPLY_POD_AMOUNT = 250;
 const int MAX_DRONE_FLEET_SIZE = 200;
 const int BANDAID_REPAIR_RATE = 5; // how many damage points repaired per second of work
 const int MAX_ORBITAL_STORAGE = 50000;
+const int REQUIRED_ORBITAL_FRAMES = 8;
+const int REQUIRED_RESOURCE_FACILITY_FRAMES = 2;
 
 class Loader;
 
