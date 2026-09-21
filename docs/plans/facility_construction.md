@@ -39,7 +39,8 @@ overhead and the code the variable part.
 **Work has a subject.** `Craft::active_pod_index` names the pod driving the current
 `CS_WORKING`, or `-1`. That matters because the autopilot uses the same state for loading
 cargo — `-1` is what separates the two, and what the expired timer checks before applying
-anything.
+anything. Persisted on `craft`, so a craft saved mid-deployment resumes rather than reloading
+as one working on nothing.
 
 **One completion path.** Everything finishes through the `CS_WORKING` arm of the expiry
 switch in [`Craft::update`](../../src/state/craft.cpp#L408): it calls `Game::onWorkComplete`,
@@ -124,8 +125,6 @@ is what faction response would key off.
 
 ### 4. Smaller
 
-- **`active_pod_index` is not persisted.** A craft saved mid-deployment reloads with `-1`, so
-  the timer expires and applies nothing. One column on `craft`, defaulting to `-1`.
 - **`canActivatePod` returns `bool`** while every other guard returns `CraftActionResult`, so
   the pod icon can only be hidden, not explained. It also has no busy check of its own — safe
   only because its callers happen not to try mid-work.
@@ -136,13 +135,14 @@ is what faction response would key off.
 
 ## Verification
 
-`make && make tests && ./bin/Debug/tests` — 64 cases / 7466 assertions is the current
+`make && make tests && ./bin/Debug/tests` — 65 cases / 7485 assertions is the current
 baseline, and the run should stay free of `ERROR` lines beyond the six deliberate
 negative-path ones.
 
 Already covered: chaining across pods, stopping on completion with cargo kept, the first
-section not landing on the activating tick, only the active pod ticking, and `item_work`
-round-tripping through a save.
+section not landing on the activating tick, only the active pod ticking, `item_work`
+round-tripping through a save, and a craft saved mid-deployment resuming and finishing its
+section.
 
 To add with the work above:
 
@@ -152,8 +152,7 @@ To add with the work above:
    it; finishing an orbital leaves the craft in the orbit region, undocked.
 3. **Completion is observable once.** A test sink counting construction events seen with
    `facility->operational` true across a full build sees exactly one.
-4. **Resume across save/load**, once `active_pod_index` persists: a craft saved mid-deployment
-   reloads working and completes the section.
+
 
 **Play-test:** build an orbital from an IOS carrying frames, watch the progress log advance
 over time rather than jumping, abort part way and confirm the frame is lost, then finish a

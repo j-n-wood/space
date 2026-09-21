@@ -1013,6 +1013,8 @@ void Game::onWorkComplete(Craft *craft)
         {
             TraceLog(LOG_INFO, "Resource facility construction complete at location %s", craft->location->name);
             rf->operational = true;
+            // and dock here
+            craft->location = rf;
         }
         raiseResourceFacilityConstructionEvent(rf);
         // remove pod content

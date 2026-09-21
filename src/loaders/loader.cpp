@@ -385,7 +385,7 @@ bool Loader::loadCraft()
         return false;
     }
 
-    SQLiteQuery query(this, "SELECT id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id FROM craft");
+    SQLiteQuery query(this, "SELECT id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id, active_pod_index FROM craft");
     while (query.next())
     {
         int id = sqlite3_column_int(query, 0);
@@ -400,6 +400,10 @@ bool Loader::loadCraft()
         bool drive = sqlite3_column_int(query, 9) > 0;
         int destination_index = sqlite3_column_int(query, 10);
         int faction_id = sqlite3_column_int(query, 11);
+        // Which pod is driving CS_WORKING, or -1. Without it a craft saved mid-deployment
+        // reloads working but with nothing to apply when its timer expires.
+        int active_pod_index = sqlite3_column_int(query, 12);
+
         // Location ids are global, so the system is not needed to resolve one. A craft
         // is always somewhere: "nowhere in particular" is Sol space, id 0.
         Location *loc = game->locationByID(location_id);
@@ -437,6 +441,7 @@ bool Loader::loadCraft()
         craft->drive = drive;
         craft->destination_index = destination_index;
         craft->faction_id = faction_id;
+        craft->active_pod_index = static_cast<int8_t>(active_pod_index);
         craft->id = id;
 
         if (game->craft_max_id < id)

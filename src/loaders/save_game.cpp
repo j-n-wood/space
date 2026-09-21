@@ -162,7 +162,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_items ( topic_id int, item_id int);"
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_topics ( topic_id int, unlocks_topic_id int);"
         "CREATE TABLE IF NOT EXISTS body_resources ( body_id int, resource_id int, availability int );"
-        "CREATE TABLE IF NOT EXISTS craft ( id int, name text, type int, state int, state_timer float, total_state_timer float, location_id int, fuel int, max_pods int, drive int, destination_index int, faction_id int );"
+        "CREATE TABLE IF NOT EXISTS craft ( id int, name text, type int, state int, state_timer float, total_state_timer float, location_id int, fuel int, max_pods int, drive int, destination_index int, faction_id int, active_pod_index int );"
         "CREATE TABLE IF NOT EXISTS craft_pods ( craft_id int, pod_index int, type int, content_type int, amount int );"
         "CREATE TABLE IF NOT EXISTS craft_destinations ( craft_id int, destination_index int, system_id int, location_id int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot ( craft_id int, state int );"
@@ -769,7 +769,7 @@ int SaveGame::saveCraft(Craft *craft)
         return -7;
     }
 
-    SQLiteQuery craftQuery(loader, "INSERT INTO craft (id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+    SQLiteQuery craftQuery(loader, "INSERT INTO craft (id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id, active_pod_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!craftQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft insert");
@@ -792,6 +792,7 @@ int SaveGame::saveCraft(Craft *craft)
              .bind(10, craft->drive)
              .bind(11, craft->destination_index)
              .bind(12, craft->faction_id)
+             .bind(13, static_cast<int>(craft->active_pod_index))
              .step("SaveGame: Failed to execute craft insert"))
     {
         return -14;

@@ -7,6 +7,7 @@
 
 #include "doctest.h"
 #include "../include/loaders/loader.h"
+#include "../include/loaders/save_game.h"
 #include "../include/state/game.h"
 #include "../include/state/system.h"
 #include "../include/state/location.h"
@@ -478,4 +479,73 @@ TEST_CASE("construction chains across pods and stops when the facility is done")
         CHECK_MESSAGE(ios->pods[2].amount == 1, "kept deploying into a finished station");
         CHECK_FALSE(ios->working());
     }
+}
+
+TEST_CASE("a craft saved mid-deployment resumes and finishes the section")
+{
+    // CS_WORKING alone does not say what the craft is working AT -- active_pod_index does,
+    // and the autopilot uses the same state for cargo loading with it at -1. Losing it
+    // across a save reloads a craft that is working on nothing: the timer expires, the
+    // expiry arm sees -1, and the section is silently never applied.
+    const char *SAVE_PATH = "./test_active_pod.db";
+
+    Fixture f;
+    REQUIRE(f.valid());
+
+    Location *luna = f.game->locationByID(5);
+    REQUIRE(luna != nullptr);
+    REQUIRE(f.game->orbitalAt(luna) == nullptr);
+
+    IOS *ios = f.game->createIOS(luna->orbit());
+    REQUIRE(ios != nullptr);
+    ios->drive = true;
+    ios->location = luna->orbit();
+    ios->assignState(CS_IDLE, 0.0f, 0.0f);
+    ios->setPodType(0, PT_TOOL);
+    ios->pods[0].contentType = ItemType::Of_Frame;
+    ios->pods[0].amount = 1;
+
+    REQUIRE(f.game->activatePod(ios, 0));
+    REQUIRE(ios->working());
+    REQUIRE(ios->active_pod_index == 0);
+
+    // Part way through, well short of the 20s the frame takes.
+    for (int tick = 0; tick < 20; ++tick)
+    {
+        f.game->update(0.05f);
+    }
+    REQUIRE(ios->working());
+    const int lunaId = luna->id;
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    // createCurrent rather than a stack Game: Craft::update reads Game::getCurrent(), so
+    // the reloaded game has to be the singleton for the remainder to tick. This also
+    // destroys the fixture's game, so nothing from `f` may be touched below.
+    Game *loaded = Game::createCurrent();
+    Loader loader(SAVE_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(loaded->initialise(&loader));
+
+    REQUIRE(loaded->allIOS().size() == 1);
+    IOS *reloaded = loaded->allIOS()[0].get();
+    CHECK(reloaded->working());
+    CHECK_MESSAGE(reloaded->active_pod_index == 0, "reloaded working on nothing");
+
+    // Run the remainder out and the section lands, as it would have without the save.
+    Location *reloadedLuna = loaded->locationByID(lunaId);
+    REQUIRE(reloadedLuna != nullptr);
+    for (int tick = 0; tick < 2000 && reloaded->working(); ++tick)
+    {
+        loaded->update(0.05f);
+    }
+
+    Orbital *built = loaded->orbitalAt(reloadedLuna);
+    REQUIRE_MESSAGE(built != nullptr, "the resumed section was never applied");
+    CHECK(built->construction_progress == 1);
+    CHECK(reloaded->pods[0].amount == 0);
+    CHECK(reloaded->active_pod_index == -1);
+
+    std::remove(SAVE_PATH);
 }
