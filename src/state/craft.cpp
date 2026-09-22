@@ -20,7 +20,12 @@ const char *Pod::description(char *dest, size_t len)
     case PT_TOOL:
         if (amount)
         {
-            if (amount > 1)
+            // special case: grapple holding something
+            if (object)
+            {
+                std::snprintf(dest, len, "Grapple: %s", object->description());
+            }
+            else if (amount > 1)
             {
                 std::snprintf(dest, len, "%s (%d)", Game::getCurrent()->items[contentType].name, amount);
             }
@@ -610,6 +615,32 @@ const char *Craft::statusText(char *status, size_t len)
         break;
     }
 
+    return status;
+}
+
+// TODO: promote to using object.description
+const char *Craft::scanTargetText(char *status, size_t len)
+{
+    if (scan_object)
+    {
+        switch (scan_object->type)
+        {
+        case ObjectType::Artefact:
+            std::snprintf(status, len, "artefact");
+            break;
+        case ObjectType::Asteroid:
+            // quantity is tonnage as an int -- %f here read an unset FP register
+            std::snprintf(status, len, "asteroid: %d %s", scan_object->quantity, ResourceName[scan_object->resource_id]);
+            break;
+        default:
+            std::snprintf(status, len, "unknown");
+            break;
+        }
+    }
+    else
+    {
+        std::snprintf(status, len, "No scan target");
+    }
     return status;
 }
 

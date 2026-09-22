@@ -113,6 +113,7 @@ public:
     void update(float delta);
 
     const char *statusText(char *status, size_t len);
+    const char *scanTargetText(char *status, size_t len);
 
     inline void setTimedState(CraftState newState, float duration)
     {
@@ -235,6 +236,7 @@ public:
     inline bool isLaunching() const { return state == CS_LAUNCHING; }
     inline bool isDocking() const { return state == CS_DOCKING; }
     inline bool working() const { return state == CS_WORKING; }
+    inline bool scanning() const { return state == CS_SCANNING; }
 
     bool moving() const
     {

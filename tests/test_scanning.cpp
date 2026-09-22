@@ -17,6 +17,9 @@
 #include "../include/state/ios.h"
 #include "../include/state/object.h"
 #include "../include/state/autopilot.h"
+#include "../include/state/resources.h"
+
+#include <string>
 
 namespace
 {
@@ -203,6 +206,77 @@ TEST_CASE("an asteroid takes a resource the belt actually has")
                       "asteroid took a resource the belt does not have");
         CHECK(rock->quantity > 0);
     }
+}
+
+TEST_CASE("scan target text names the target")
+{
+    // The UI reads this every frame while scanning. It is all printf formatting, which
+    // nothing else exercises -- quantity is an int, and a %f for it read an unset
+    // floating-point register rather than the tonnage.
+    Game *game = loadGame();
+    REQUIRE(game != nullptr);
+
+    Location *belt = game->locationByID(BELT_ID);
+    REQUIRE(belt != nullptr);
+
+    IOS *ios = iosAtBelt(game, belt);
+    REQUIRE(ios != nullptr);
+
+    char buf[128];
+
+    SUBCASE("nothing scanned")
+    {
+        ios->scan_object = nullptr;
+        CHECK(std::string(ios->scanTargetText(buf, sizeof buf)) == std::string("No scan target"));
+    }
+
+    SUBCASE("an asteroid names its tonnage and resource")
+    {
+        Object *rock = game->createObject(0, ObjectType::Asteroid, belt, 40, ResourceType::Iron);
+        REQUIRE(rock != nullptr);
+        ios->scan_object = rock;
+
+        const std::string text = ios->scanTargetText(buf, sizeof buf);
+        CHECK(text == std::string("asteroid: 40 ") + ResourceName[ResourceType::Iron]);
+    }
+
+    SUBCASE("an artefact names itself")
+    {
+        Object *artefact = game->createObject(0, ObjectType::Artefact, belt, 1, 0);
+        REQUIRE(artefact != nullptr);
+        ios->scan_object = artefact;
+        CHECK(std::string(ios->scanTargetText(buf, sizeof buf)) == std::string("artefact"));
+    }
+}
+
+TEST_CASE("a grapple pod describes what it holds")
+{
+    // Pod::description switches to the held object when there is one, so the bay and
+    // cockpit show cargo rather than the tool name.
+    Game *game = loadGame();
+    REQUIRE(game != nullptr);
+
+    Location *belt = game->locationByID(BELT_ID);
+    REQUIRE(belt != nullptr);
+    IOS *ios = iosAtBelt(game, belt);
+    REQUIRE(ios != nullptr);
+
+    ios->setPodType(0, PT_TOOL);
+    ios->pods[0].contentType = ItemType::Grapple;
+    ios->pods[0].amount = 1;
+
+    char buf[128];
+
+    // empty grapple: the tool names itself
+    ios->pods[0].object = nullptr;
+    CHECK(std::string(ios->pods[0].description(buf, sizeof buf)) ==
+          std::string(game->items[ItemType::Grapple].name));
+
+    // holding something: the cargo names itself
+    Object *rock = game->createObject(0, ObjectType::Asteroid, belt, 40, ResourceType::Iron);
+    REQUIRE(rock != nullptr);
+    ios->pods[0].object = rock;
+    CHECK(std::string(ios->pods[0].description(buf, sizeof buf)) == std::string("Grapple: Asteroid"));
 }
 
 TEST_CASE("scanning keeps rotating rather than stopping after one target")

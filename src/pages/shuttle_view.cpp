@@ -309,6 +309,16 @@ void ShuttleView::render()
         }
     }
 
+    // scanning status. Separate buffer: formatting `status` from itself overlaps source
+    // and destination, which snprintf does not define.
+    if (craft->scanning())
+    {
+        char target[128];
+        craft->scanTargetText(target, sizeof target);
+        std::snprintf(status, sizeof status, "Scanning: %s", target);
+        DrawText(status, 320, 250, 20, YELLOW);
+    }
+
     // controls and possibly clickable status for pods
     Overlay &overlay = Overlay::getInstance(); // get the overlay instance to set tooltips when hovering buttons
 

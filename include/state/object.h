@@ -19,4 +19,6 @@ public:
     Location *location; // the location where the object is found
     int quantity;       // the quantity of the object
     int resource_id;    // the resource type of the object
+
+    const char *description() const;
 };
