@@ -47,6 +47,9 @@ class SaveGame
     /// Persist item definitions
     int saveItems(Game *game);
 
+    /// Persist objects
+    int saveObjects(Game *game);
+
     /// Persist research topics
     int saveResearchTopics(Game *game);
 

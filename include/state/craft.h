@@ -5,9 +5,8 @@
 #include "state/string_caps.h"
 #include "state/waypoint.h"
 #include "state/craft_type.h"
-// Safe because craft_action.h includes craft_type.h rather than this header -- which is
-// what that extraction was for. Gives Craft the capability enum and CraftActionResult.
 #include "state/craft_action.h"
+#include "state/object.h"
 
 typedef enum
 {
@@ -27,6 +26,7 @@ const float CSTD_ASCENT = 4.0f;
 const float CSTD_DESCENT = 2.0f;
 const float CSTD_LAUNCH = 0.3f;
 const float CSTD_DOCK = 0.3f;
+const float CSTD_SCANNING = 3.0f;
 
 typedef enum
 {
@@ -44,8 +44,9 @@ public:
     PodType type;
     int contentType; // item index or resource type
     int amount;      // amount or count
+    Object *object;  // optional: id of held object for grapple
 
-    Pod() : type{PT_EMPTY}, contentType{0}, amount{0} {};
+    Pod() : type{PT_EMPTY}, contentType{0}, amount{0}, object{nullptr} {};
 
     const char *description(char *dest, size_t len);
 };
@@ -96,6 +97,9 @@ public:
     // marker for next destination
     uint8_t destination_index;
 
+    // scan target
+    Object *scan_object; // optional: object being scanned
+
     Craft(CraftState cs, uint8_t mp, Location *loc);
     virtual ~Craft();
 
@@ -112,6 +116,11 @@ public:
 
     inline void setTimedState(CraftState newState, float duration)
     {
+        if (state == CS_SCANNING && newState != CS_SCANNING)
+        {
+            // stop scanning
+            stopScanning();
+        }
         state = newState;
         state_timer = duration;
         total_state_timer = duration;
@@ -119,6 +128,15 @@ public:
 
     inline void setState(CraftState newState)
     {
+        if (newState == state)
+        {
+            return;
+        }
+        if (state == CS_SCANNING)
+        {
+            // stop scanning
+            stopScanning();
+        }
         state = newState;
         state_timer = 0.0f;
         total_state_timer = 0.0f;
@@ -245,6 +263,9 @@ public:
         }
         return *this;
     }
+
+    Craft &startScanning();
+    Craft &stopScanning();
 
     // transition events
     virtual void onDocked();

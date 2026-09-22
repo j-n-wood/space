@@ -12,6 +12,9 @@
 #include "state/ios.h"
 #include "state/research_topic.h"
 #include "state/faction.h"
+#include "state/object.h"
+#include "state/resources.h"
+
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
 
@@ -64,6 +67,10 @@ class Game
 
     // non-owning collection of research facilities
     std::vector<ResearchFacility *> researchFacilities;
+
+    // owning collection of objects
+    uint32_t max_object_id{0}; // highest object id seen, so new objects get unique ids
+    std::vector<std::unique_ptr<Object>> objects;
 
     // current game instance
     static std::unique_ptr<Game> current;
@@ -220,6 +227,7 @@ public:
     bool canActivatePod(Craft *craft, int pod_index);
     bool activatePod(Craft *craft, int pod_index);
     bool updateActivePod(Craft *craft, Pod &pod, float delta); // returns true if pod still active after update, false if completed
+    bool updateCraftScanning(Craft *craft);                    // returns true scan target changed
 
     // weapon functions
     ItemType droneTypeForCraft(const Craft *craft) const;
@@ -244,6 +252,12 @@ public:
     void onCaptureOrbital(Orbital *orbital, int faction_id);
     void onWorkComplete(Craft *craft);
     void onWorkCancelled(Craft *craft);
+
+    std::vector<std::unique_ptr<Object>> &allObjects() { return objects; }
+    Object *createObject(int id, ObjectType type, Location *location, int quantity, int resource_id);
+    Object *objectByID(int id);
+    Object *randomiseAsteroid(Object *asteroid);
+    void releaseScanTarget(Object *scan_object);
 
     // console input
     bool processConsoleCommand(const char *command, Location *l, Facility *f);

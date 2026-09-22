@@ -767,6 +767,16 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
             }
         }
         break;
+    case ItemType::Grapple:
+        if (craft->inOrbit())
+        {
+            // can grapple if there is a scan target, and it is not already grappled
+            if (craft->scan_object && !pod.object && craft->scan_object->quantity < 250.0f)
+            {
+                return true;
+            }
+        }
+        break;
     default:
         // some other thing
         break;
@@ -844,6 +854,97 @@ bool Game::updateActivePod(Craft *craft, Pod &pod, float delta)
     }
 
     return true; // still active
+}
+
+bool Game::updateCraftScanning(Craft *craft)
+{
+    // can set scanning interval here
+
+    // Is there a PERSISTENT object at this location? Asteroids are deliberately excluded:
+    // they are generated per craft below, so two craft at one belt hold different rocks
+    // and neither can release the other's. Matching them here also found the craft's own
+    // target on the next rotation and returned without re-arming the timer, which stopped
+    // the scan after exactly one interval.
+    for (auto &obj : objects)
+    {
+        if (obj->type != ObjectType::Asteroid && obj->location == craft->location)
+        {
+            // found an object at this location, trigger scan event
+            craft->scan_object = obj.get();
+            return true;
+        }
+    }
+
+    // asteroid generation
+    if (craft->location->type == LOCATION_TYPE_ASTEROID_BELT)
+    {
+        // generate an asteroid object at this location, or randomise an existing one
+        if (!craft->scan_object)
+        {
+            // create new asteroid object at this location
+            craft->scan_object = createObject(0, ObjectType::Asteroid, craft->location, 50, ResourceType::Iron);
+        }
+        if (craft->scan_object)
+        {
+            // randomise asteroid resource type and quantity
+            randomiseAsteroid(craft->scan_object);
+        }
+        // reset scan timer
+        craft->setTimedState(CS_SCANNING, 5.0f + 1.0f * (rand() % 6));
+        return true;
+    }
+
+    return false;
+}
+
+Object *Game::randomiseAsteroid(Object *asteroid)
+{
+    if (!asteroid)
+    {
+        TraceLog(LOG_ERROR, "Missing asteroid to randomiseAsteroid");
+        return nullptr;
+    }
+    if (asteroid->type != ObjectType::Asteroid)
+    {
+        TraceLog(LOG_ERROR, "Object is not an asteroid in randomiseAsteroid");
+        return nullptr;
+    }
+
+    // randomise resource type and quantity
+    // use asteroid location to look up available resource types, and pick one
+
+    asteroid->resource_id = asteroid->location->resources.randomResourceType();
+    asteroid->quantity = 20 + rand() % 64000;
+
+    return asteroid;
+}
+
+void Game::releaseScanTarget(Object *scan_object)
+{
+    if (!scan_object)
+    {
+        TraceLog(LOG_ERROR, "Missing scan_object to releaseScanTarget");
+        return;
+    }
+
+    // drop transient objects only
+    switch (scan_object->type)
+    {
+    case ObjectType::Asteroid:
+        // asteroid is transient, can be released
+        break;
+    default:
+        return;
+    }
+
+    // remove from objects list
+    auto it = std::remove_if(objects.begin(), objects.end(),
+                             [scan_object](const std::unique_ptr<Object> &obj)
+                             { return obj.get() == scan_object; });
+    if (it != objects.end())
+    {
+        objects.erase(it, objects.end());
+    }
 }
 
 ItemType Game::droneTypeForCraft(const Craft *craft) const
@@ -1036,6 +1137,17 @@ void Game::onWorkComplete(Craft *craft)
         // handled in updateActivePod, which sets work time to 0 when complete, so this is just a notification
     }
     break;
+    case ItemType::Grapple:
+    {
+        // claim any scan target
+        if (craft->scan_object)
+        {
+            pod.object = craft->scan_object;
+            craft->scan_object = nullptr; // no longer scanning, now claimed
+            TraceLog(LOG_INFO, "Grapple pod claimed object %d at location %s", pod.object->id, craft->location->name);
+        }
+    }
+    break;
     default:
         TraceLog(LOG_ERROR, "Completed work for unknown item ID %d ", item.id);
     }
@@ -1213,4 +1325,42 @@ bool Game::hostilesAt(Location *location, int faction_id)
     }
 
     return false;
+}
+
+Object *Game::createObject(int id, ObjectType type, Location *location, int quantity, int resource_id)
+{
+    // create (owned) object and return raw pointer.
+    // if ID is 0, generate a new one from max ID
+
+    if (id == 0)
+    {
+        id = ++max_object_id;
+    }
+    else if (id > max_object_id)
+    {
+        max_object_id = id;
+    }
+
+    auto obj = std::make_unique<Object>();
+    obj->id = id;
+    obj->type = type;
+    obj->location = location;
+    obj->quantity = quantity;
+    obj->resource_id = resource_id;
+
+    Object *raw_ptr = obj.get();
+    objects.push_back(std::move(obj));
+    return raw_ptr;
+}
+
+Object *Game::objectByID(int id)
+{
+    for (const auto &obj : objects)
+    {
+        if (obj->id == id)
+        {
+            return obj.get();
+        }
+    }
+    return nullptr;
 }

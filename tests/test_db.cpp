@@ -1303,3 +1303,79 @@ TEST_CASE("SaveGame round-trips item work definitions")
 
     removeSaveFile();
 }
+
+TEST_CASE("SaveGame round-trips objects and the references into them")
+{
+    // Objects are pointers at runtime and ids in the file. Both directions have to agree,
+    // and the references are the fragile half: a craft's scan target and a grapple's held
+    // object both resolve through objectByID, so an objects table that saved empty would
+    // reload them as null with nothing to say so.
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+
+    Location *earth = game->locationByID(4);
+    REQUIRE(earth != nullptr);
+    REQUIRE(earth->orbit() != nullptr);
+
+    // A persistent one attached to a location, and a transient one being scanned.
+    Object *artefact = game->createObject(0, ObjectType::Artefact, earth, 1, 0);
+    Object *asteroid = game->createObject(0, ObjectType::Asteroid, earth->orbit(), 40, ResourceType::Iron);
+    REQUIRE(artefact != nullptr);
+    REQUIRE(asteroid != nullptr);
+    CHECK(artefact->id != asteroid->id); // ids are allocated, never shared
+
+    Orbital *orb = game->orbitalAt(earth);
+    REQUIRE(orb != nullptr);
+    IOS *ios = game->createIOS(static_cast<Location *>(orb));
+    REQUIRE(ios != nullptr);
+    ios->scan_object = asteroid; // currently scanning one
+    ios->setPodType(0, PT_TOOL);
+    ios->pods[0].contentType = ItemType::Grapple;
+    ios->pods[0].amount = 1;
+    ios->pods[0].object = artefact; // and holding the other in the grapple
+
+    const int artefactId = artefact->id;
+    const int asteroidId = asteroid->id;
+    const int iosId = ios->id;
+    const size_t objectCount = game->allObjects().size();
+    const int orbitId = earth->orbit()->id;
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Game loaded;
+    Loader loader(SAVE_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(loaded.initialise(&loader));
+
+    CHECK_MESSAGE(loaded.allObjects().size() == objectCount, "objects were not saved");
+
+    Object *lAsteroid = loaded.objectByID(asteroidId);
+    REQUIRE(lAsteroid != nullptr);
+    CHECK(lAsteroid->type == ObjectType::Asteroid);
+    CHECK(lAsteroid->quantity == 40);
+    CHECK(lAsteroid->resource_id == ResourceType::Iron);
+    REQUIRE(lAsteroid->location != nullptr);
+    CHECK(lAsteroid->location->id == orbitId); // location is an id in the file, a pointer here
+
+    IOS *lIos = nullptr;
+    for (auto &c : loaded.allIOS())
+    {
+        if (c->id == iosId)
+        {
+            lIos = c.get();
+        }
+    }
+    REQUIRE(lIos != nullptr);
+
+    // The references, which is the point: pointers again, and to the right objects.
+    REQUIRE_MESSAGE(lIos->scan_object != nullptr, "scan target lost across save");
+    CHECK(lIos->scan_object == lAsteroid);
+    REQUIRE_MESSAGE(lIos->pods[0].object != nullptr, "grappled object lost across save");
+    CHECK(lIos->pods[0].object->id == artefactId);
+
+    // an empty pod still references nothing -- 0 in the file must not resolve to an object
+    CHECK(lIos->pods[1].object == nullptr);
+
+    removeSaveFile();
+}

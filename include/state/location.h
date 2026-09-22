@@ -76,6 +76,8 @@ public:
     // can parameterise on how available it is
     uint8_t availability[static_cast<size_t>(ResourceType::Count)];
 
+    ResourceType randomResourceType() const;
+
     LocationResources();
 };
 

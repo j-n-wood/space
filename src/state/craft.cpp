@@ -64,7 +64,7 @@ const char *Pod::description(char *dest, size_t len)
     return dest;
 }
 
-Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : id{0}, faction_id{0}, state{cs}, state_timer{0.0f}, max_pods{mp}, active_pod_index{-1}, drive{false}, location{loc}, destination_index{0}, autopilot{std::make_unique<Autopilot>()}
+Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : id{0}, faction_id{0}, state{cs}, state_timer{0.0f}, max_pods{mp}, active_pod_index{-1}, drive{false}, location{loc}, destination_index{0}, scan_object{nullptr}, autopilot{std::make_unique<Autopilot>()}
 {
     name[0] = '\0';
 };
@@ -157,11 +157,12 @@ CraftActionResult Craft::canEngageDrive() const
 
 CraftActionResult Craft::canWork() const
 {
-    if (state != CS_IDLE)
+    if ((state == CS_IDLE) || (state == CS_SCANNING))
     {
-        return CAC_BUSY;
+        return CAC_OK;
     }
-    return CAC_OK;
+
+    return CAC_BUSY;
 }
 
 CraftActionResult Craft::canEngageAutopilot() const
@@ -464,7 +465,7 @@ void Craft::update(float delta)
                 // Reached the ground either way; onDocked steps into the station if
                 // there is one to dock at.
                 enterRegion(false);
-                if (Game::getCurrent()->resourceFacilityAt(location))
+                if (game->resourceFacilityAt(location))
                 {
                     onDocked();
                 }
@@ -473,12 +474,18 @@ void Craft::update(float delta)
                 onDocked();
                 if (hasCapability(CC_INTERPLANETARY))
                 {
-                    Game::getCurrent()->onSpacecraftDocked(this); // on SPACECRAFT docked, so must be interplanetary
+                    game->onSpacecraftDocked(this); // on SPACECRAFT docked, so must be interplanetary
                 }
                 break;
             case CS_TRANSIT:
                 arriveAtLocation();
-                Game::getCurrent()->onSpacecraftArrival(this);
+                game->onSpacecraftArrival(this);
+                break;
+            case CS_SCANNING:
+                if (game->updateCraftScanning(this))
+                {
+                    // handle scan target changed
+                }
                 break;
             default:
                 break;
@@ -628,6 +635,13 @@ Craft &Craft::engageDrive()
 
         setTimedState(CS_TRANSIT, transit_time);
         location = location->system->space; // space location for system
+
+        // clear any scan targets, and GC transient ones
+        if (scan_object)
+        {
+            game->releaseScanTarget(scan_object);
+            scan_object = nullptr;
+        }
     }
     return *this;
 }
@@ -696,4 +710,21 @@ CraftActionResult Craft::disengageAutopilot()
 {
     autopilot->state = AS_OFF;
     return CAC_OK;
+}
+
+Craft &Craft::startScanning()
+{
+    setTimedState(CS_SCANNING, CSTD_SCANNING);
+    return *this;
+}
+
+Craft &Craft::stopScanning()
+{
+    state = CS_IDLE;
+    if (scan_object)
+    {
+        Game::getCurrent()->releaseScanTarget(scan_object);
+        scan_object = nullptr;
+    }
+    return *this;
 }

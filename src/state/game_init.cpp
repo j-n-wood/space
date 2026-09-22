@@ -45,6 +45,13 @@ bool Game::initialise(Loader *loader)
         return false;
     }
 
+    // load before craft that can reference them
+    if (!loader->loadObjects())
+    {
+        TraceLog(LOG_ERROR, "Failed to load objects");
+        return false;
+    }
+
     if (!loader->loadFactoryQueues())
     {
         TraceLog(LOG_ERROR, "Failed to load factory queues");

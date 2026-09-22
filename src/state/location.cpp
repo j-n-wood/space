@@ -98,3 +98,30 @@ LocationResources::LocationResources()
         availability[idx] = 0;
     }
 }
+
+ResourceType LocationResources::randomResourceType() const
+{
+    // if this is a bottleneck, store total count
+    int total = 0;
+    for (int idx = 0; idx < ResourceType::Count; ++idx)
+    {
+        total += availability[idx];
+    }
+
+    if (total == 0)
+    {
+        return ResourceType::Unknown;
+    }
+
+    int r = rand() % total;
+    for (int idx = 0; idx < ResourceType::Count; ++idx)
+    {
+        r -= availability[idx];
+        if (r < 0)
+        {
+            return static_cast<ResourceType>(idx);
+        }
+    }
+
+    return ResourceType::Unknown; // should not reach here
+}

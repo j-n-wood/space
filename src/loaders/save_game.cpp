@@ -162,14 +162,15 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_items ( topic_id int, item_id int);"
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_topics ( topic_id int, unlocks_topic_id int);"
         "CREATE TABLE IF NOT EXISTS body_resources ( body_id int, resource_id int, availability int );"
-        "CREATE TABLE IF NOT EXISTS craft ( id int, name text, type int, state int, state_timer float, total_state_timer float, location_id int, fuel int, max_pods int, drive int, destination_index int, faction_id int, active_pod_index int );"
-        "CREATE TABLE IF NOT EXISTS craft_pods ( craft_id int, pod_index int, type int, content_type int, amount int );"
+        "CREATE TABLE IF NOT EXISTS craft ( id int, name text, type int, state int, state_timer float, total_state_timer float, location_id int, fuel int, max_pods int, drive int, destination_index int, faction_id int, active_pod_index int, scan_object_id int );"
+        "CREATE TABLE IF NOT EXISTS craft_pods ( craft_id int, pod_index int, type int, content_type int, amount int, object_id int );"
         "CREATE TABLE IF NOT EXISTS craft_destinations ( craft_id int, destination_index int, system_id int, location_id int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot ( craft_id int, state int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot_flows ( craft_id int, resource_index int, flow_flags int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot_cursors ( craft_id int, endpoint_index int, cursor_position int );"
         "CREATE TABLE IF NOT EXISTS factory_queue ( facility_id INT, queue_position INT, item_id INT, build_time INT, progress INT, started INT, repeat INT );"
         "CREATE TABLE IF NOT EXISTS research_facilities ( facility_id INT, current_project INT );"
+        "CREATE TABLE IF NOT EXISTS objects ( id INT, type INT, location_id INT, quantity INT, resource_id INT );"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -252,14 +253,19 @@ int SaveGame::saveGame(Game *game)
         return -10;
     }
 
-    if (saveResearchTopics(game) != 0)
+    if (saveObjects(game) != 0)
     {
         return -11;
     }
 
-    if (saveCraft(game) != 0)
+    if (saveResearchTopics(game) != 0)
     {
         return -12;
+    }
+
+    if (saveCraft(game) != 0)
+    {
+        return -13;
     }
 
     return 0;
@@ -769,7 +775,7 @@ int SaveGame::saveCraft(Craft *craft)
         return -7;
     }
 
-    SQLiteQuery craftQuery(loader, "INSERT INTO craft (id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id, active_pod_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+    SQLiteQuery craftQuery(loader, "INSERT INTO craft (id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id, active_pod_index, scan_object_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!craftQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft insert");
@@ -793,13 +799,16 @@ int SaveGame::saveCraft(Craft *craft)
              .bind(11, craft->destination_index)
              .bind(12, craft->faction_id)
              .bind(13, static_cast<int>(craft->active_pod_index))
+             // Objects are pointers at runtime and ids in the file, as craft->location is.
+             // createObject allocates from 1, so 0 is never a real id and reads as "none".
+             .bind(14, craft->scan_object ? craft->scan_object->id : 0)
              .step("SaveGame: Failed to execute craft insert"))
     {
         return -14;
     }
 
     // save pods
-    SQLiteQuery podQuery(loader, "INSERT INTO craft_pods (craft_id, pod_index, type, content_type, amount) VALUES (?, ?, ?, ?, ?);");
+    SQLiteQuery podQuery(loader, "INSERT INTO craft_pods (craft_id, pod_index, type, content_type, amount, object_id) VALUES (?, ?, ?, ?, ?, ?);");
     if (!podQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft_pods insert");
@@ -809,7 +818,9 @@ int SaveGame::saveCraft(Craft *craft)
     {
         const Pod &pod = craft->pods[podIndex];
 
-        if (!podQuery.reset().bind(1, craft->id).bind(2, podIndex).bind(3, static_cast<int>(pod.type)).bind(4, pod.contentType).bind(5, pod.amount).step("SaveGame: Failed to execute craft_pods insert"))
+        const int podObjectId = pod.object ? pod.object->id : 0; // 0 = holding nothing
+
+        if (!podQuery.reset().bind(1, craft->id).bind(2, podIndex).bind(3, static_cast<int>(pod.type)).bind(4, pod.contentType).bind(5, pod.amount).bind(6, podObjectId).step("SaveGame: Failed to execute craft_pods insert"))
         {
             return -14;
         }
@@ -988,6 +999,38 @@ int SaveGame::saveResearchState(ResourceFacility *rf, int facilityId)
              .step("SaveGame: Failed to insert research_facilities row"))
     {
         return -14;
+    }
+
+    return 0;
+}
+
+int SaveGame::saveObjects(Game *game)
+{
+    if (!loader || !loader->db)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Null loader pointer");
+        return -6;
+    }
+
+    SQLiteQuery query(loader, "INSERT INTO objects (id, type, location_id, quantity, resource_id) VALUES (?, ?, ?, ?, ?);");
+    if (!query.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare objects insert");
+        return -9;
+    }
+
+    for (const auto &obj : game->allObjects())
+    {
+        if (!query.reset()
+                 .bind(1, obj->id)
+                 .bind(2, static_cast<int>(obj->type))
+                 .bind(3, obj->location ? obj->location->id : 0)
+                 .bind(4, obj->quantity)
+                 .bind(5, obj->resource_id)
+                 .step("SaveGame: Failed to insert object row"))
+        {
+            return -14;
+        }
     }
 
     return 0;

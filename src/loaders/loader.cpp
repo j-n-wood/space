@@ -378,14 +378,14 @@ bool Loader::loadCraft()
         return false;
     }
 
-    SQLiteQuery podsQuery(this, "SELECT pod_index, type, content_type, amount FROM craft_pods WHERE craft_id = ? ORDER BY pod_index");
+    SQLiteQuery podsQuery(this, "SELECT pod_index, type, content_type, amount, object_id FROM craft_pods WHERE craft_id = ? ORDER BY pod_index");
     if (!podsQuery.stmt)
     {
         TraceLog(LOG_ERROR, "Failed to prepare craft_pods query");
         return false;
     }
 
-    SQLiteQuery query(this, "SELECT id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id, active_pod_index FROM craft");
+    SQLiteQuery query(this, "SELECT id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id, active_pod_index, scan_object_id FROM craft");
     while (query.next())
     {
         int id = sqlite3_column_int(query, 0);
@@ -403,6 +403,7 @@ bool Loader::loadCraft()
         // Which pod is driving CS_WORKING, or -1. Without it a craft saved mid-deployment
         // reloads working but with nothing to apply when its timer expires.
         int active_pod_index = sqlite3_column_int(query, 12);
+        int scan_object_id = sqlite3_column_int(query, 13);
 
         // Location ids are global, so the system is not needed to resolve one. A craft
         // is always somewhere: "nowhere in particular" is Sol space, id 0.
@@ -449,6 +450,18 @@ bool Loader::loadCraft()
             game->craft_max_id = id;
         }
 
+        // set scan target if any
+        if (scan_object_id > 0)
+        {
+            Object *scan_obj = game->objectByID(scan_object_id);
+            if (!scan_obj)
+            {
+                TraceLog(LOG_ERROR, "Failed to find scan object %d for craft %d", scan_object_id, id);
+                return false;
+            }
+            craft->scan_object = scan_obj;
+        }
+
         // load pods
 
         if (!podsQuery.reset().bind(1, id))
@@ -462,17 +475,28 @@ bool Loader::loadCraft()
             int pod_type = sqlite3_column_int(podsQuery, 1);
             int content_type = sqlite3_column_int(podsQuery, 2);
             int amount = sqlite3_column_int(podsQuery, 3);
+            int object_id = sqlite3_column_int(podsQuery, 4);
             if (pod_index >= 0 && pod_index < craft->max_pods)
             {
                 craft->pods[pod_index].type = PodType(pod_type);
+                craft->pods[pod_index].contentType = content_type;
+                craft->pods[pod_index].amount = amount;
+
+                if (object_id > 0)
+                {
+                    Object *obj = game->objectByID(object_id);
+                    if (!obj)
+                    {
+                        TraceLog(LOG_ERROR, "Failed to find object %d for pod %d of craft %d", object_id, pod_index, id);
+                        return false;
+                    }
+                    craft->pods[pod_index].object = obj;
+                }
             }
             else
             {
                 TraceLog(LOG_ERROR, "Invalid pod_index %d for craft %d", pod_index, id);
             }
-
-            craft->pods[pod_index].contentType = content_type;
-            craft->pods[pod_index].amount = amount;
         }
 
         // load destinations for this craft
@@ -600,6 +624,31 @@ bool Loader::loadResearchFacilities()
             continue;
         }
         rf->research_facility->current_project = current_project;
+    }
+
+    return true;
+}
+
+bool Loader::loadObjects()
+{
+    SQLiteQuery query(this, "SELECT id, type, location_id, quantity, resource_id FROM objects");
+
+    while (query.next())
+    {
+        int id = sqlite3_column_int(query, 0);
+        int type = sqlite3_column_int(query, 1);
+        int location_id = sqlite3_column_int(query, 2);
+        int quantity = sqlite3_column_int(query, 3);
+        int resource_id = sqlite3_column_int(query, 4);
+
+        Location *loc = game->locationByID(location_id);
+        if (!loc)
+        {
+            TraceLog(LOG_ERROR, "Failed to find location %d for object %d", location_id, id);
+            return false;
+        }
+
+        game->createObject(id, ObjectType(type), loc, quantity, resource_id);
     }
 
     return true;
