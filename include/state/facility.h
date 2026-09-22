@@ -8,6 +8,8 @@
 #include "state/waypoint.h"
 #include "state/location.h"
 
+class Crew;
+
 // A facility IS a place: a child location of the body it sits on or orbits. That
 // parent is `Location::primary`; its identity is `Location::id`, drawn from the same
 // sequence as bodies; what it is, is `Location::type`.
@@ -33,13 +35,15 @@ public:
     uint8_t construction_progress; // 0-100, for construction progress of facility, if under construction
     float damage;                  // 0-100, for damage level of facility, if damaged
 
+    Crew *factory_crew;
+
     // `parent` is the orbit or surface location this facility sits in, and is what makes
     // it orbital or surface. Id and name are assigned by the Game factory that creates
     // it, which owns the id sequence.
     Facility(Location *parent, LocationType t)
         : Location(parent ? parent->system : nullptr, -1, "", t),
           faction_id{0}, operational{false}, aoc_installed{false},
-          sdm_installed{false}, mtx_installed{false}, construction_progress{0}, damage{0}
+          sdm_installed{false}, mtx_installed{false}, construction_progress{0}, damage{0}, factory_crew{nullptr}
     {
         primary = parent;
         radius = 0.0f; // not drawn or hit-tested in the orrery yet
@@ -50,6 +54,13 @@ public:
     virtual void update();
 
     Factory *createFactory();
+
+    inline Crew *assignCrew(Crew *c)
+    {
+        auto prior = factory_crew;
+        factory_crew = c;
+        return prior;
+    }
 };
 
 // Facility* from a Location*, or nullptr. The LocationType enum is the discriminator,

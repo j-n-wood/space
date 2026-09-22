@@ -86,6 +86,8 @@ public:
 
     bool loadObjects();
 
+    bool loadCrews();
+
 private:
     Location *findLocation(int system_id, int location_id);
     Facility *findFacilityById(int facility_id);

@@ -1379,3 +1379,97 @@ TEST_CASE("SaveGame round-trips objects and the references into them")
 
     removeSaveFile();
 }
+
+TEST_CASE("SaveGame round-trips crews and everything that references them")
+{
+    // Crew is referenced from three places -- a facility's factory, a research facility,
+    // and a craft -- each as a pointer at runtime and an id in the file. The table and
+    // the three references were added one at a time and hid each other's absence: an
+    // unsaved table makes a bad column name unreachable, which makes a load-order bug
+    // invisible. Assert the whole chain at once so that cannot happen again.
+    Game *game = createTestGame();
+    REQUIRE(game != nullptr);
+
+    Location *earth = game->locationByID(4);
+    REQUIRE(earth != nullptr);
+    ResourceFacility *ec = game->resourceFacilityAt(earth);
+    Orbital *orb = game->orbitalAt(earth);
+    REQUIRE(ec != nullptr);
+    REQUIRE(orb != nullptr);
+    REQUIRE(ec->research_facility != nullptr);
+
+    Crew *engineers = game->createCrew(0, CrewType::Engineer, "Kowalski", 2, 6, 12.5f);
+    Crew *scientists = game->createCrew(0, CrewType::Scientist, "Vance", 1, 3, 4.0f);
+    Crew *marines = game->createCrew(0, CrewType::Marine, "Shepard", 3, 12, 30.0f);
+    REQUIRE(engineers != nullptr);
+    REQUIRE(scientists != nullptr);
+    REQUIRE(marines != nullptr);
+    CHECK(engineers->id != scientists->id); // allocated, not shared
+
+    IOS *ios = game->createIOS(static_cast<Location *>(orb));
+    REQUIRE(ios != nullptr);
+
+    // one crew per reference site
+    CHECK(orb->assignCrew(engineers) == nullptr); // returns the displaced crew, if any
+    ec->research_facility->assignCrew(scientists);
+    ios->assignCrew(marines);
+
+    const int engineersId = engineers->id;
+    const int scientistsId = scientists->id;
+    const int marinesId = marines->id;
+    const int orbId = orb->id;
+    const int ecId = ec->id;
+    const int iosId = ios->id;
+    const size_t crewCount = game->allCrews().size();
+
+    SaveGame saver;
+    REQUIRE(saver.save(SAVE_PATH) == 0);
+
+    Game loaded;
+    Loader loader(SAVE_PATH);
+    REQUIRE(loader.isValid());
+    REQUIRE(loaded.initialise(&loader));
+
+    CHECK_MESSAGE(loaded.allCrews().size() == crewCount, "crews were not saved");
+
+    Crew *lEngineers = loaded.crewByID(engineersId);
+    REQUIRE_MESSAGE(lEngineers != nullptr, "crew row lost across save");
+    CHECK(lEngineers->type == CrewType::Engineer);
+    CHECK_STREQ(lEngineers->leader_name, "Kowalski"); // the column name mismatch lands here
+    CHECK(lEngineers->rank == 2);
+    CHECK(lEngineers->size == 6);
+    CHECK(lEngineers->experience == doctest::Approx(12.5f));
+
+    // The three references, which is what the load order decides.
+    Orbital *lOrb = static_cast<Orbital *>(loaded.locationByID(orbId));
+    REQUIRE(lOrb != nullptr);
+    REQUIRE_MESSAGE(lOrb->factory_crew != nullptr, "facility crew lost -- crews must load before facilities");
+    CHECK(lOrb->factory_crew == lEngineers);
+
+    ResourceFacility *lEc = static_cast<ResourceFacility *>(loaded.locationByID(ecId));
+    REQUIRE(lEc != nullptr);
+    REQUIRE(lEc->research_facility != nullptr);
+    REQUIRE_MESSAGE(lEc->research_facility->crew != nullptr, "research crew lost across save");
+    CHECK(lEc->research_facility->crew->id == scientistsId);
+
+    IOS *lIos2 = nullptr;
+    for (auto &c : loaded.allIOS())
+    {
+        if (c->id == iosId)
+        {
+            lIos2 = c.get();
+        }
+    }
+    REQUIRE(lIos2 != nullptr);
+    REQUIRE_MESSAGE(lIos2->crew != nullptr, "craft crew lost across save");
+    CHECK(lIos2->crew->id == marinesId);
+
+    // and an unassigned craft still has none -- 0 must not resolve to a crew
+    Shuttle *anyShuttle = earth->shuttle;
+    if (anyShuttle)
+    {
+        CHECK(anyShuttle->crew == nullptr);
+    }
+
+    removeSaveFile();
+}

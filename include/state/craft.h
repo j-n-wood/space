@@ -55,6 +55,8 @@ const int MAX_DESTINATIONS = 2;
 
 class Autopilot;
 
+class Crew;
+
 class CurrentState
 {
 public:
@@ -99,6 +101,9 @@ public:
 
     // scan target
     Object *scan_object; // optional: object being scanned
+
+    // crew
+    Crew *crew; // optional: crew assigned to this craft
 
     Craft(CraftState cs, uint8_t mp, Location *loc);
     virtual ~Craft();
@@ -268,6 +273,13 @@ public:
 
     Craft &startScanning();
     Craft &stopScanning();
+
+    inline Crew *assignCrew(Crew *c)
+    {
+        auto prior = crew;
+        crew = c;
+        return prior;
+    }
 
     // transition events
     virtual void onDocked();

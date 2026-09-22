@@ -8,8 +8,20 @@
 
 * on craft
 * at factories
-* cryo pod
+* cryo pod to transport (if not ships crew)
 * transfer at docks
+
+Need:
+
+* class (id, type, leader name, rank, crew size)
+* persistence
+* craft crew reference
+* factory crew reference
+* research facility crew reference
+
+Avoid persistence of training facility state by putting on the crew - make rank 0 trainee, and have FT update until rank 1 experience is reached.
+
+Need to disband crew via Game.
 
 ## Craft persistence
 
@@ -28,6 +40,8 @@
 
 ### Grapple
 
+In progress - need graphics, click to remove content.
+
 ## bay view animation
 
 * use local copy of e.g. pod state to animate transitions. Data is updated immediately.
@@ -45,6 +59,8 @@
 ## self destruct
 
 ## Capture of orbitals
+
+In progress.
 
 ## MTX
 

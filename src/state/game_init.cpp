@@ -27,6 +27,12 @@ bool Game::initialise(Loader *loader)
         return false;
     }
 
+    if (!loader->loadCrews())
+    {
+        TraceLog(LOG_ERROR, "Failed to load crews");
+        return false;
+    }
+
     if (!loader->loadFacilities())
     {
         TraceLog(LOG_ERROR, "Failed to load facilities");

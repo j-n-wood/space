@@ -69,6 +69,8 @@ class SaveGame
     /// Persist a research facility's active project belonging to a facility.
     int saveResearchState(ResourceFacility *rf, int facilityId);
 
+    int saveCrews(Game *game);
+
 public:
     SaveGame();
     ~SaveGame();

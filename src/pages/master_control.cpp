@@ -144,6 +144,10 @@ void MasterControlView::renderIOS()
             {
                 source = &uiElementSources[UI_BUTTON_CRAFT_DOCKING];
             }
+            else if (ios->scanning())
+            {
+                source = &uiElementSources[UI_BUTTON_CRAFT_SCANNING];
+            }
 
             DrawTexturePro(*texture_ui_buttons, *source, target, (Vector2){0, 0}, 0.f, WHITE);
             // add hover tooltip with craft name, state

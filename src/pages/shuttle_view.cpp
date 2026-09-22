@@ -19,6 +19,7 @@ namespace
     const Rectangle VIEWPORT_ORBIT{1368, 152, 208, 120}; // orbit, no station
     const Rectangle VIEWPORT_STORM_DOORS{1152, 280, 208, 120};
     const Rectangle VIEWPORT_TRANSIT{1152, 408, 208, 120};
+    const Rectangle VIEWPORT_ASTEROIDS{1152, 536, 208, 120};
 
     // The orbit region draws a rendered planet with an optional station overlay instead
     // of flat art -- but only at rest. Mid-manoeuvre the flat image stays up, so the
@@ -33,6 +34,11 @@ namespace
 
     Rectangle viewportImageFor(const Craft *craft)
     {
+        if (craft->location->type == LOCATION_TYPE_ASTEROID_BELT)
+        {
+            return VIEWPORT_ASTEROIDS; // asteroid belt is a region, not a body, so it is always orbit
+        }
+
         // Manoeuvres first: what the craft is doing outranks where it happens to be.
         if (craft->inTransit())
         {
@@ -291,6 +297,15 @@ void ShuttleView::render()
     char status[128];
 
     DrawText(craft->statusText(status, sizeof status), 320, 160, 20, YELLOW);
+
+    // crew (224,866)
+    if (craft->crew)
+    {
+        char crew_status[128];
+        DrawText(craft->crew->description(crew_status, sizeof crew_status), 224, 866, 20, YELLOW);
+        std::snprintf(status, sizeof status, "%d marines", craft->crew->size);
+        DrawText(status, 224, 886, 20, YELLOW);
+    }
 
     // if have a destination, show that too
     if (craft->hasCapability(CC_INTERPLANETARY))

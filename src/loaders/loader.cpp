@@ -105,7 +105,7 @@ Facility *Loader::findFacilityById(int facility_id)
 
 bool Loader::loadFacilities()
 {
-    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed FROM facilities ORDER BY id");
+    SQLiteQuery query(this, "SELECT id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed, factory_crew_id FROM facilities ORDER BY id");
 
     while (query.next())
     {
@@ -121,6 +121,7 @@ bool Loader::loadFacilities()
         int aoc_installed = sqlite3_column_int(query, 9);
         int sdm_installed = sqlite3_column_int(query, 10);
         int mtx_installed = sqlite3_column_int(query, 11);
+        int factory_crew_id = sqlite3_column_int(query, 12);
         Location *loc = findLocation(system_id, location_id);
         if (!loc)
         {
@@ -173,6 +174,16 @@ bool Loader::loadFacilities()
             // id was supplied to the factory: a facility's id is its location id and
             // must survive the round trip, so it is not reassigned here.
             fac->faction_id = faction_id;
+            if (factory_crew_id > 0)
+            {
+                Crew *crew = game->crewByID(factory_crew_id);
+                if (!crew)
+                {
+                    TraceLog(LOG_ERROR, "Failed to find crew %d for facility %d", factory_crew_id, id);
+                    return false;
+                }
+                fac->factory_crew = crew;
+            }
         }
     }
 
@@ -385,7 +396,7 @@ bool Loader::loadCraft()
         return false;
     }
 
-    SQLiteQuery query(this, "SELECT id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id, active_pod_index, scan_object_id FROM craft");
+    SQLiteQuery query(this, "SELECT id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id, active_pod_index, scan_object_id, crew_id FROM craft");
     while (query.next())
     {
         int id = sqlite3_column_int(query, 0);
@@ -404,6 +415,7 @@ bool Loader::loadCraft()
         // reloads working but with nothing to apply when its timer expires.
         int active_pod_index = sqlite3_column_int(query, 12);
         int scan_object_id = sqlite3_column_int(query, 13);
+        int crew_id = sqlite3_column_int(query, 14);
 
         // Location ids are global, so the system is not needed to resolve one. A craft
         // is always somewhere: "nowhere in particular" is Sol space, id 0.
@@ -460,6 +472,17 @@ bool Loader::loadCraft()
                 return false;
             }
             craft->scan_object = scan_obj;
+        }
+
+        if (crew_id > 0)
+        {
+            Crew *crew = game->crewByID(crew_id);
+            if (!crew)
+            {
+                TraceLog(LOG_ERROR, "Failed to find crew %d for craft %d", crew_id, id);
+                return false;
+            }
+            craft->crew = crew;
         }
 
         // load pods
@@ -604,12 +627,13 @@ bool Loader::loadFactoryQueues()
 
 bool Loader::loadResearchFacilities()
 {
-    SQLiteQuery query(this, "SELECT facility_id, current_project FROM research_facilities");
+    SQLiteQuery query(this, "SELECT facility_id, current_project, crew_id FROM research_facilities");
 
     while (query.next())
     {
         int facility_id = sqlite3_column_int(query, 0);
         int current_project = sqlite3_column_int(query, 1);
+        int crew_id = sqlite3_column_int(query, 2);
 
         Facility *fac = findFacilityById(facility_id);
         if (!fac)
@@ -624,6 +648,16 @@ bool Loader::loadResearchFacilities()
             continue;
         }
         rf->research_facility->current_project = current_project;
+        if (crew_id > 0)
+        {
+            Crew *crew = game->crewByID(crew_id);
+            if (!crew)
+            {
+                TraceLog(LOG_ERROR, "Failed to find crew %d for research_facility at facility %d", crew_id, facility_id);
+                return false;
+            }
+            rf->research_facility->crew = crew;
+        }
     }
 
     return true;
@@ -649,6 +683,25 @@ bool Loader::loadObjects()
         }
 
         game->createObject(id, ObjectType(type), loc, quantity, resource_id);
+    }
+
+    return true;
+}
+
+bool Loader::loadCrews()
+{
+    SQLiteQuery query(this, "SELECT id, type, leader_name, rank, size, experience FROM crews");
+
+    while (query.next())
+    {
+        int id = sqlite3_column_int(query, 0);
+        int type = sqlite3_column_int(query, 1);
+        const char *leader = (const char *)sqlite3_column_text(query, 2);
+        int rank = sqlite3_column_int(query, 3);
+        int size = sqlite3_column_int(query, 4);
+        float experience = (float)sqlite3_column_double(query, 5);
+
+        game->createCrew(id, CrewType(type), leader, rank, size, experience);
     }
 
     return true;

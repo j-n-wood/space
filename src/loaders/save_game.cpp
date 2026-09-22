@@ -151,7 +151,7 @@ int SaveGame::initialiseSaveFile()
         "BEGIN TRANSACTION;"
         "CREATE TABLE IF NOT EXISTS bodies ( id INTEGER, system_id INT, primary_id INT, type INT, name TEXT, orbital_radius FLOAT, orbital_velocity FLOAT, initial_angle FLOAT, radius FLOAT, color TEXT );"
         "CREATE TABLE IF NOT EXISTS systems ( id INTEGER, name TEXT );"
-        "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT, operational INT, construction_progress INT, damage INT, faction_id INT, aoc_installed INT, sdm_installed INT, mtx_installed INT );"
+        "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT, operational INT, construction_progress INT, damage INT, faction_id INT, aoc_installed INT, sdm_installed INT, mtx_installed INT, factory_crew_id int );"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT, ios_number INT, scg_number INT );"
         "CREATE TABLE IF NOT EXISTS factions ( id INT, name TEXT, hostile INT );"
@@ -162,15 +162,16 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_items ( topic_id int, item_id int);"
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_topics ( topic_id int, unlocks_topic_id int);"
         "CREATE TABLE IF NOT EXISTS body_resources ( body_id int, resource_id int, availability int );"
-        "CREATE TABLE IF NOT EXISTS craft ( id int, name text, type int, state int, state_timer float, total_state_timer float, location_id int, fuel int, max_pods int, drive int, destination_index int, faction_id int, active_pod_index int, scan_object_id int );"
+        "CREATE TABLE IF NOT EXISTS craft ( id int, name text, type int, state int, state_timer float, total_state_timer float, location_id int, fuel int, max_pods int, drive int, destination_index int, faction_id int, active_pod_index int, scan_object_id int, crew_id int );"
         "CREATE TABLE IF NOT EXISTS craft_pods ( craft_id int, pod_index int, type int, content_type int, amount int, object_id int );"
         "CREATE TABLE IF NOT EXISTS craft_destinations ( craft_id int, destination_index int, system_id int, location_id int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot ( craft_id int, state int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot_flows ( craft_id int, resource_index int, flow_flags int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot_cursors ( craft_id int, endpoint_index int, cursor_position int );"
         "CREATE TABLE IF NOT EXISTS factory_queue ( facility_id INT, queue_position INT, item_id INT, build_time INT, progress INT, started INT, repeat INT );"
-        "CREATE TABLE IF NOT EXISTS research_facilities ( facility_id INT, current_project INT );"
+        "CREATE TABLE IF NOT EXISTS research_facilities ( facility_id INT, current_project INT, crew_id INT );"
         "CREATE TABLE IF NOT EXISTS objects ( id INT, type INT, location_id INT, quantity INT, resource_id INT );"
+        "CREATE TABLE IF NOT EXISTS crews ( id INT, type int, leader_name TEXT, rank int, size int, experience float );"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -223,6 +224,11 @@ int SaveGame::saveGame(Game *game)
         {
             return -7; // error logged at failure site
         }
+    }
+
+    if (saveCrews(game) != 0)
+    {
+        return -8;
     }
 
     // Facility ids are location ids now, so they are written as they are rather
@@ -466,7 +472,7 @@ int SaveGame::saveBase(ResourceFacility *rf)
         return -8;
     }
 
-    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
+    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, factory_crew_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!facilityQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare facility insert for base");
@@ -484,11 +490,12 @@ int SaveGame::saveBase(ResourceFacility *rf)
              .bind(7, rf->construction_progress)
              .bind(8, rf->damage)
              .bind(9, rf->faction_id)
+             .bind(9, rf->faction_id)
+             .bind(10, rf->factory_crew ? rf->factory_crew->id : 0)
              .step("SaveGame: Failed to execute facility insert for base"))
     {
         return -14;
     }
-
     int rc = saveStores(&rf->stores, facilityId);
     if (rc != 0)
     {
@@ -525,7 +532,7 @@ int SaveGame::saveOrbital(Orbital *orbital)
         return -8;
     }
 
-    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+    SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed, factory_crew_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!facilityQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare facility insert for orbital");
@@ -544,6 +551,7 @@ int SaveGame::saveOrbital(Orbital *orbital)
              .bind(10, orbital->aoc_installed)
              .bind(11, orbital->sdm_installed)
              .bind(12, orbital->mtx_installed)
+             .bind(13, orbital->factory_crew ? orbital->factory_crew->id : 0)
              .step("SaveGame: Failed to execute facility insert for orbital"))
     {
         return -14;
@@ -775,7 +783,7 @@ int SaveGame::saveCraft(Craft *craft)
         return -7;
     }
 
-    SQLiteQuery craftQuery(loader, "INSERT INTO craft (id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id, active_pod_index, scan_object_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+    SQLiteQuery craftQuery(loader, "INSERT INTO craft (id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id, active_pod_index, scan_object_id, crew_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!craftQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft insert");
@@ -802,6 +810,7 @@ int SaveGame::saveCraft(Craft *craft)
              // Objects are pointers at runtime and ids in the file, as craft->location is.
              // createObject allocates from 1, so 0 is never a real id and reads as "none".
              .bind(14, craft->scan_object ? craft->scan_object->id : 0)
+             .bind(15, craft->crew ? craft->crew->id : 0)
              .step("SaveGame: Failed to execute craft insert"))
     {
         return -14;
@@ -981,13 +990,16 @@ int SaveGame::saveResearchState(ResourceFacility *rf, int facilityId)
         return 0;
     }
 
-    // Skip idle facilities to keep the table sparse (matches saveStores skipping zero rows).
-    if (rf->research_facility->current_project == -1)
+    // Skip only when there is nothing to record, to keep the table sparse (matches
+    // saveStores skipping zero rows). The row once carried current_project alone, so
+    // "idle" meant "empty" -- it now also carries the crew, which outlives any project,
+    // so an idle facility with a crew assigned still has state worth keeping.
+    if (rf->research_facility->current_project == -1 && !rf->research_facility->crew)
     {
         return 0;
     }
 
-    SQLiteQuery query(loader, "INSERT INTO research_facilities (facility_id, current_project) VALUES (?, ?);");
+    SQLiteQuery query(loader, "INSERT INTO research_facilities (facility_id, current_project, crew_id) VALUES (?, ?, ?);");
     if (!query.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare research_facilities insert");
@@ -996,6 +1008,7 @@ int SaveGame::saveResearchState(ResourceFacility *rf, int facilityId)
 
     if (!query.bind(1, facilityId)
              .bind(2, rf->research_facility->current_project)
+             .bind(3, rf->research_facility->crew ? rf->research_facility->crew->id : 0)
              .step("SaveGame: Failed to insert research_facilities row"))
     {
         return -14;
@@ -1028,6 +1041,39 @@ int SaveGame::saveObjects(Game *game)
                  .bind(4, obj->quantity)
                  .bind(5, obj->resource_id)
                  .step("SaveGame: Failed to insert object row"))
+        {
+            return -14;
+        }
+    }
+
+    return 0;
+}
+
+int SaveGame::saveCrews(Game *game)
+{
+    if (!loader || !loader->db)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Null loader pointer");
+        return -6;
+    }
+
+    SQLiteQuery query(loader, "INSERT INTO crews (id, type, leader_name, rank, size, experience) VALUES (?, ?, ?, ?, ?, ?);");
+    if (!query.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare crews insert");
+        return -9;
+    }
+
+    for (const auto &crew : game->allCrews())
+    {
+        if (!query.reset()
+                 .bind(1, crew->id)
+                 .bind(2, static_cast<int>(crew->type))
+                 .bind(3, crew->leader_name)
+                 .bind(4, crew->rank)
+                 .bind(5, crew->size)
+                 .bind(6, crew->experience)
+                 .step("SaveGame: Failed to insert crew row"))
         {
             return -14;
         }

@@ -14,6 +14,7 @@
 #include "state/faction.h"
 #include "state/object.h"
 #include "state/resources.h"
+#include "state/crew.h"
 
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
@@ -34,6 +35,7 @@ class TransitTimeCalculator
 {
 public:
     virtual float calculateTransitTime(Location *from, Location *to) = 0;
+    virtual ~TransitTimeCalculator() = default;
 };
 
 class LinearTransitTimeCalculator : public TransitTimeCalculator
@@ -67,10 +69,15 @@ class Game
 
     // non-owning collection of research facilities
     std::vector<ResearchFacility *> researchFacilities;
+    std::vector<TrainingFacility *> trainingFacilities;
 
     // owning collection of objects
     uint32_t max_object_id{0}; // highest object id seen, so new objects get unique ids
     std::vector<std::unique_ptr<Object>> objects;
+
+    // owning collection of crews
+    uint32_t max_crew_id{0}; // highest crew id seen, so new crews get unique ids
+    std::vector<std::unique_ptr<Crew>> crews;
 
     // current game instance
     static std::unique_ptr<Game> current;
@@ -165,6 +172,7 @@ public:
     ResourceFacility *createResourceFacility(Location *location, int id = -1);
     Orbital *createOrbital(Location *location, int id = -1);
     ResearchFacility *createResearchFacility(ResourceFacility *facility);
+    TrainingFacility *createTrainingFacility(ResourceFacility *facility);
 
     // locate game state
     ResourceFacility *resourceFacilityAt(Location *location);
@@ -204,7 +212,6 @@ public:
     // "nowhere in particular" is a system's space location rather than a null pointer.
     IOS *createIOS(Location *location);
     IOS *createIOS(Facility *facility); // at that facility's body
-    ResearchFacility *createResearchFacility(Facility *facility);
 
     // locations
     Locations &allLocations() { return locations; }
@@ -253,11 +260,18 @@ public:
     void onWorkComplete(Craft *craft);
     void onWorkCancelled(Craft *craft);
 
+    // objects
     std::vector<std::unique_ptr<Object>> &allObjects() { return objects; }
     Object *createObject(int id, ObjectType type, Location *location, int quantity, int resource_id);
     Object *objectByID(int id);
     Object *randomiseAsteroid(Object *asteroid);
     void releaseScanTarget(Object *scan_object);
+
+    // crews
+    std::vector<std::unique_ptr<Crew>> &allCrews() { return crews; }
+    Crew *createCrew(int id, CrewType type, const char *leader, int rank, int size, float experience);
+    Crew *crewByID(int id);
+    void releaseCrew(Crew *crew);
 
     // console input
     bool processConsoleCommand(const char *command, Location *l, Facility *f);

@@ -1,6 +1,7 @@
 #include "loaders/loader.h"
 #include "state/game.h"
 #include "state/research_facility.h"
+#include "state/training_facility.h"
 #include "state/event_sink.h"
 #include "state/craft_action.h"
 
@@ -198,6 +199,7 @@ EarthCity *Game::createEarthCity(Location *location, int id)
     factory->is_orbital = false;      // EC is surface facility, so set factory accordingly
     factory->tech_level = 1;          // EC starts with tech level 1, can build basic items
     createResearchFacility(ec);
+    createTrainingFacility(ec); // EC has a training facility for crew
     return ec;
 }
 
@@ -325,6 +327,24 @@ ResearchFacility *Game::createResearchFacility(ResourceFacility *facility)
     ResearchFacility *rf = facility->research_facility.get();
     researchFacilities.push_back(rf);
     return rf;
+}
+
+TrainingFacility *Game::createTrainingFacility(ResourceFacility *facility)
+{
+    if (!facility)
+    {
+        TraceLog(LOG_ERROR, "Null facility provided to createTrainingFacility");
+        return nullptr;
+    }
+    if (facility->training_facility)
+    {
+        TraceLog(LOG_ERROR, "Facility already has training facility");
+        return nullptr;
+    }
+    facility->training_facility = std::make_unique<TrainingFacility>(facility);
+    TrainingFacility *tf = facility->training_facility.get();
+    trainingFacilities.push_back(tf);
+    return tf;
 }
 
 bool Game::canCommissionShuttle(Facility *facility) const
@@ -768,14 +788,13 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
         }
         break;
     case ItemType::Grapple:
-        if (craft->inOrbit())
+
+        // can grapple if there is a scan target, and it is not already grappled
+        if (craft->scan_object && !pod.object && craft->scan_object->quantity < 250.0f)
         {
-            // can grapple if there is a scan target, and it is not already grappled
-            if (craft->scan_object && !pod.object && craft->scan_object->quantity < 250.0f)
-            {
-                return true;
-            }
+            return true;
         }
+
         break;
     default:
         // some other thing
@@ -914,7 +933,13 @@ Object *Game::randomiseAsteroid(Object *asteroid)
     // use asteroid location to look up available resource types, and pick one
 
     asteroid->resource_id = asteroid->location->resources.randomResourceType();
-    asteroid->quantity = 20 + rand() % 64000;
+
+    // size of asteroid - lots of little ones, few big ones. Use a simple power law distribution to generate quantity.
+    float exponent = 8.0f; // power law exponent, adjust for desired distribution
+    float rand_val = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    float quantity = 10.0 + powf(rand_val, exponent) * 21000.0f;
+
+    asteroid->quantity = static_cast<int>(quantity);
 
     return asteroid;
 }
@@ -1022,6 +1047,11 @@ void Game::update(float delta)
     for (auto &rf : researchFacilities)
     {
         rf->update(dt);
+    }
+
+    for (auto &tf : trainingFacilities)
+    {
+        tf->update(dt);
     }
 
     int difference = static_cast<int>(game_time) - prior;
@@ -1363,4 +1393,63 @@ Object *Game::objectByID(int id)
         }
     }
     return nullptr;
+}
+
+// provide persistence id to recreate existing, or zero to generate a new object
+// references use nullptr to indicate absence
+Crew *Game::createCrew(int id, CrewType type, const char *leader, int rank, int size, float experience)
+{
+    if (id == 0)
+    {
+        id = ++max_crew_id;
+    }
+    else if (id > max_crew_id)
+    {
+        max_crew_id = id;
+    }
+
+    // clamp rank to 0..3
+    if (rank < 0)
+    {
+        rank = 0;
+    }
+    else if (rank > 3)
+    {
+        rank = 3;
+    }
+
+    auto crew = std::make_unique<Crew>(id, type, leader, rank, size, experience);
+
+    Crew *raw_ptr = crew.get();
+    crews.push_back(std::move(crew));
+    return raw_ptr;
+}
+
+Crew *Game::crewByID(int id)
+{
+    for (const auto &crew : crews)
+    {
+        if (crew->id == id)
+        {
+            return crew.get();
+        }
+    }
+    return nullptr;
+}
+
+void Game::releaseCrew(Crew *crew)
+{
+    if (!crew)
+    {
+        TraceLog(LOG_ERROR, "Null crew provided to releaseCrew");
+        return;
+    }
+
+    auto it = std::remove_if(crews.begin(), crews.end(),
+                             [crew](const std::unique_ptr<Crew> &c)
+                             { return c.get() == crew; });
+    if (it != crews.end())
+    {
+        crews.erase(it, crews.end());
+    }
 }

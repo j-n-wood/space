@@ -48,7 +48,7 @@ void buildTestData(Game *game)
 	auto of = game->orbitalAt(earth);
 
 	Shuttle *sh = game->createShuttle(earth); // create shuttle based at earth
-	game->setDefaultRoute(sh, of);           // surface <-> earth orbital
+	game->setDefaultRoute(sh, of);			  // surface <-> earth orbital
 	sh->drive = true;
 	sh->fuel = 250;
 	sh->setPodType(0, PT_SUPPLY);
@@ -124,6 +124,18 @@ void buildTestData(Game *game)
 
 	game->setFactionHostility(1, true);								  // methanoids hostile to player
 	game->orbitalAt(jupiter)->stores.items[ItemType::Ios_Drone] = 50; // orbital created from starting data
+
+	// test IOS 4 at asteroids
+	Location *asteroid_belt = game->locationByID(9);
+	IOS *ios4 = game->createIOS(asteroid_belt);
+	ios4->enterRegion(true);
+	ios4->drive = true;
+	ios4->fuel = 250;
+	ios4->setPodType(0, PT_TOOL);
+	ios4->pods[0].contentType = ItemType::Grapple;
+	ios4->pods[0].amount = 1;
+	ios4->startScanning();
+	ios4->assignCrew(game->createCrew(0, CrewType::Marine, "Hudson", 1, 35, 0.0f));
 }
 
 int main()

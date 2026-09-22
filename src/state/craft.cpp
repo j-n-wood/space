@@ -69,7 +69,7 @@ const char *Pod::description(char *dest, size_t len)
     return dest;
 }
 
-Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : id{0}, faction_id{0}, state{cs}, state_timer{0.0f}, max_pods{mp}, active_pod_index{-1}, drive{false}, location{loc}, destination_index{0}, scan_object{nullptr}, autopilot{std::make_unique<Autopilot>()}
+Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : id{0}, faction_id{0}, state{cs}, state_timer{0.0f}, max_pods{mp}, active_pod_index{-1}, drive{false}, location{loc}, destination_index{0}, scan_object{nullptr}, autopilot{std::make_unique<Autopilot>()}, crew{nullptr}
 {
     name[0] = '\0';
 };
@@ -346,6 +346,14 @@ void Craft::enterRegion(bool orbit)
     {
         return;
     }
+
+    if (location->type == LOCATION_TYPE_ASTEROID_BELT)
+    {
+        // asteroid belt is a special case: it is a region, not a body, so the craft
+        // is already in the right place. The orbit/surface distinction does not apply.
+        return;
+    }
+
     Location *region = orbit ? b->orbit() : b->surface();
     if (region)
     {
@@ -570,7 +578,14 @@ const char *Craft::statusText(char *status, size_t len)
         }
         else
         {
-            std::snprintf(status, len, inOrbit() ? "In %s" : "On %s", location_name);
+            if (location->type == LOCATION_TYPE_ASTEROID_BELT)
+            {
+                std::snprintf(status, len, "At %s", location_name);
+            }
+            else
+            {
+                std::snprintf(status, len, inOrbit() ? "In %s" : "On %s", location_name);
+            }
         }
         break;
     case CS_DOCKING:
@@ -749,13 +764,10 @@ Craft &Craft::startScanning()
     return *this;
 }
 
+// don't release scan_target, otherwise change to 'working' state loses the target
+// consider it that the craft has stopped near the target
 Craft &Craft::stopScanning()
 {
     state = CS_IDLE;
-    if (scan_object)
-    {
-        Game::getCurrent()->releaseScanTarget(scan_object);
-        scan_object = nullptr;
-    }
     return *this;
 }
