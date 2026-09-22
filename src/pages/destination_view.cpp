@@ -20,6 +20,15 @@ void DestinationPicker::input()
     orrery->input();
 }
 
+void DestinationPicker::update()
+{
+    if (!visible)
+    {
+        return;
+    }
+    orrery->update();
+}
+
 void DestinationPicker::render()
 {
     if (!visible)

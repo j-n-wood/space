@@ -23,6 +23,13 @@ public:
     void input() override;
     void render() override;
 
+    // Keeps the orrery's render table current. Page update runs after render, so activate()
+    // primes it too -- otherwise the first frame on this page has an empty table.
+    void update(const float delta) override
+    {
+        orrery->update();
+    }
+
     void renderLocationInfo();
 
     void setSystem(System *s)

@@ -19,6 +19,11 @@ public:
     void input();
     void render();
 
+    // Owner forwards its update() here. Skipped while hidden like input and render are -- a
+    // hidden picker's table is stale by definition, and its stamp makes it rebuild on the
+    // update that follows being shown, before the next render.
+    void update();
+
     void setCallbacks(void *caller, onDestinationSelected onSelected, onDestinationSelectCancelled onCancelled)
     {
         orrery->caller = caller;

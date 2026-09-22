@@ -29,6 +29,10 @@ void SystemView::activate(ViewState &viewState)
         orrery->caller = this;
         orrery->onDestinationSelectedCallback = bodySelected;
     }
+
+    // The system may have changed since this page last drew, and update() does not run until
+    // after the first render.
+    orrery->update();
 }
 
 void SystemView::render()

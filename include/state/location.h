@@ -102,6 +102,10 @@ public:
     float orbital_velocity; // radians per unit game time
     float initial_angle;    // phase at time 0
     float radius;           // display radius; 0 means not drawn and not hit-testable
+
+    // An asteroid belt reads the two radii differently: it is drawn as a ring about its
+    // primary, so `orbital_radius` is the middle of that ring and `radius` its half-width.
+    // A belt has no disc -- its `position` is just one point on the ring.
     Color color;
     Vector2 position; // position relative to `primary`, refreshed by System::update
 

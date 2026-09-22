@@ -447,6 +447,11 @@ void ShuttleView::update(const float delta)
 {
     pageLog.update(delta);
     droneControlView->update(delta);
+
+    if (destinationPicker)
+    {
+        destinationPicker->update();
+    }
 }
 
 void ShuttleView::renderDebug()
