@@ -246,6 +246,11 @@ void ShuttleView::input()
         destinationPicker->visible = !destinationPicker->visible;
     }
 
+    if (IsKeyPressed(KEY_S) && (craft->idle()))
+    {
+        craft->startScanning();
+    }
+
     if (destinationPicker && destinationPicker->visible)
     {
         destinationPicker->input();

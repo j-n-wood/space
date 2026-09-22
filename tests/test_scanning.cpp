@@ -40,16 +40,18 @@ Game *loadGame()
 }
 
 // An IOS in the belt's orbit region, at rest and able to manoeuvre.
+// A belt has no orbit or surface children -- there is nothing to land on -- so the belt
+// itself is the place a craft occupies.
 IOS *iosAtBelt(Game *game, Location *belt)
 {
-    IOS *ios = game->createIOS(belt->orbit());
+    IOS *ios = game->createIOS(belt);
     if (!ios)
     {
         return nullptr;
     }
     ios->drive = true;
     ios->fuel = 250;
-    ios->location = belt->orbit();
+    ios->location = belt;
     ios->assignState(CS_IDLE, 0.0f, 0.0f);
     return ios;
 }
@@ -97,51 +99,49 @@ TEST_CASE("leaving the scan state does not recurse")
     s->ascend();
 
     CHECK(s->currentState().state == CS_ASCENDING);
-    CHECK(s->scan_object == nullptr); // and the target went with the state
 }
 
-TEST_CASE("leaving the scan state releases a transient target")
+TEST_CASE("leaving the scan state keeps the target")
 {
+    // Deliberate: stopping the scan is not the same as discarding what was found. A craft
+    // that stops scanning to go and WORK on the asteroid it just located would otherwise
+    // arrive with nothing to act on. Only departure collects the target -- see below.
     Game *game = loadGame();
     REQUIRE(game != nullptr);
 
     Location *belt = game->locationByID(BELT_ID);
     REQUIRE(belt != nullptr);
     REQUIRE(belt->type == LOCATION_TYPE_ASTEROID_BELT);
+    REQUIRE_MESSAGE(belt->orbit() == nullptr, "a belt has no sub-locations to orbit or land on");
 
     IOS *ios = iosAtBelt(game, belt);
     REQUIRE(ios != nullptr);
 
-    SUBCASE("an asteroid is dropped, not orphaned")
-    {
-        Object *rock = game->createObject(0, ObjectType::Asteroid, ios->location, 50, ResourceType::Iron);
-        REQUIRE(rock != nullptr);
-        ios->scan_object = rock;
-        ios->startScanning();
-        const int before = countObjects(game, ObjectType::Asteroid);
-        REQUIRE(before > 0);
+    Object *rock = game->createObject(0, ObjectType::Asteroid, ios->location, 50, ResourceType::Iron);
+    REQUIRE(rock != nullptr);
+    ios->scan_object = rock;
+    ios->startScanning();
+    const int before = countObjects(game, ObjectType::Asteroid);
+    REQUIRE(before > 0);
 
+    SUBCASE("stopScanning leaves it in hand")
+    {
         ios->stopScanning();
 
-        CHECK(ios->scan_object == nullptr);
-        CHECK_MESSAGE(countObjects(game, ObjectType::Asteroid) == before - 1,
-                      "transient asteroid was orphaned rather than collected");
+        CHECK(ios->currentState().state == CS_IDLE);
+        CHECK_MESSAGE(ios->scan_object == rock, "the located asteroid was discarded");
+        CHECK(countObjects(game, ObjectType::Asteroid) == before);
     }
 
-    SUBCASE("a persistent object is kept")
+    SUBCASE("so does a manoeuvre that ends the scan")
     {
-        // Story items exist whether or not anyone is scanning, so releasing the scan must
-        // not take one with it.
-        Object *artefact = game->createObject(0, ObjectType::Artefact, ios->location, 1, 0);
-        REQUIRE(artefact != nullptr);
-        const int artefactId = artefact->id;
-        ios->scan_object = artefact;
-        ios->startScanning();
+        // Any transition out of CS_SCANNING goes through the same hook, so starting work
+        // on the target must not take the target away.
+        ios->work(1.0f);
 
-        ios->stopScanning();
-
-        CHECK(ios->scan_object == nullptr);        // no longer scanning it
-        CHECK(game->objectByID(artefactId) != nullptr); // but it still exists
+        CHECK(ios->working());
+        CHECK(ios->scan_object == rock);
+        CHECK(countObjects(game, ObjectType::Asteroid) == before);
     }
 }
 
@@ -159,19 +159,40 @@ TEST_CASE("engaging the drive releases the scan target")
 
     IOS *ios = iosAtBelt(game, belt);
     REQUIRE(ios != nullptr);
-
-    Object *rock = game->createObject(0, ObjectType::Asteroid, ios->location, 50, ResourceType::Iron);
-    REQUIRE(rock != nullptr);
-    ios->scan_object = rock;
-    const int before = countObjects(game, ObjectType::Asteroid);
-
     ios->setDestination(0, earth);
-    REQUIRE(bool(ios->canEngageDrive()));
-    ios->engageDrive();
 
-    REQUIRE(ios->inTransit());
-    CHECK(ios->scan_object == nullptr);
-    CHECK(countObjects(game, ObjectType::Asteroid) == before - 1);
+    SUBCASE("a transient asteroid is collected")
+    {
+        Object *rock = game->createObject(0, ObjectType::Asteroid, ios->location, 50, ResourceType::Iron);
+        REQUIRE(rock != nullptr);
+        ios->scan_object = rock;
+        const int before = countObjects(game, ObjectType::Asteroid);
+
+        REQUIRE(bool(ios->canEngageDrive()));
+        ios->engageDrive();
+
+        REQUIRE(ios->inTransit());
+        CHECK(ios->scan_object == nullptr);
+        CHECK_MESSAGE(countObjects(game, ObjectType::Asteroid) == before - 1,
+                      "asteroid left behind at a belt the craft has departed");
+    }
+
+    SUBCASE("a persistent object is kept")
+    {
+        // Story items exist whether or not anyone is scanning, so departing must drop the
+        // reference without destroying the thing referenced.
+        Object *artefact = game->createObject(0, ObjectType::Artefact, ios->location, 1, 0);
+        REQUIRE(artefact != nullptr);
+        const int artefactId = artefact->id;
+        ios->scan_object = artefact;
+
+        REQUIRE(bool(ios->canEngageDrive()));
+        ios->engageDrive();
+
+        REQUIRE(ios->inTransit());
+        CHECK(ios->scan_object == nullptr);                 // no longer scanning it
+        CHECK_MESSAGE(game->objectByID(artefactId) != nullptr, "a story item was collected as garbage");
+    }
 }
 
 TEST_CASE("an asteroid takes a resource the belt actually has")

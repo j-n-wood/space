@@ -456,6 +456,10 @@ Location *Game::targetFor(Location *location, bool wantOrbit)
     {
         return location; // already exact
     }
+    if (location->type == LOCATION_TYPE_ASTEROID_BELT || location->type == LOCATION_TYPE_SPACE)
+    {
+        return location; // no orbit or surface region to prefer
+    }
 
     Location *region = facilityParentFor(location, wantOrbit);
     if (!region)

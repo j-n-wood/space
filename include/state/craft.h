@@ -242,6 +242,7 @@ public:
     inline bool isDocking() const { return state == CS_DOCKING; }
     inline bool working() const { return state == CS_WORKING; }
     inline bool scanning() const { return state == CS_SCANNING; }
+    inline bool idle() const { return state == CS_IDLE; }
 
     bool moving() const
     {

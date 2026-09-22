@@ -1190,6 +1190,44 @@ TEST_CASE("a destination resolves a body to an exact place")
     {
         CHECK(game->targetFor(earthOrbital, true) == earthOrbital);
     }
+
+    SUBCASE("a body with no regions resolves to itself")
+    {
+        // An asteroid belt has nothing to orbit or land on, so the belt IS the exact
+        // place. Resolving through a region returned null, which made the belt
+        // unreachable: setDestination produced a null endpoint, and the autopilot then
+        // reported CAC_NO_DESTINATION for the one place mining happens.
+        Location *belt = game->locationByID(9);
+        REQUIRE(belt != nullptr);
+        REQUIRE(belt->type == LOCATION_TYPE_ASTEROID_BELT);
+        REQUIRE(belt->orbit() == nullptr);
+        REQUIRE(belt->surface() == nullptr);
+
+        CHECK(game->targetFor(belt, true) == belt);
+        CHECK(game->targetFor(belt, false) == belt); // neither side exists, so both agree
+
+        // A system's `space` is region-less for the same reason.
+        Location *space = game->locationByID(0);
+        REQUIRE(space != nullptr);
+        REQUIRE(space->type == LOCATION_TYPE_SPACE);
+        CHECK(game->targetFor(space, true) == space);
+    }
+
+    SUBCASE("a region-less body can be set as a destination")
+    {
+        // What the resolution is for: the endpoint has to name somewhere a craft can
+        // actually be sent.
+        Location *belt = game->locationByID(9);
+        REQUIRE(belt != nullptr);
+
+        IOS *ios = game->createIOS(static_cast<Location *>(earthOrbital));
+        REQUIRE(ios != nullptr);
+        ios->drive = true;
+        ios->setDestination(0, belt);
+
+        REQUIRE_MESSAGE(ios->destinations[0].location != nullptr, "the belt is unreachable");
+        CHECK(ios->destinations[0].location == belt);
+    }
 }
 
 TEST_CASE("atEndpoint compares locations")
