@@ -22,6 +22,8 @@ const float door_animation_duration = 0.5f; // seconds
 const float door_animation_closed = 1.0f;   // closed position
 const float door_animation_open = 0.0f;     // open position
 
+const Rectangle door_image{585, 382, 42, 75};
+
 void TrainingView::setTweenState(CrewType type)
 {
     Crew *crew = facility->crewForType(type);
@@ -141,6 +143,23 @@ void TrainingView::renderTrainingControls(CrewType type, const Rectangle &remove
         char buf[64];
         std::snprintf(buf, sizeof buf, "Door %.2f", value);
         DrawText(buf, remove_button.x + 10, remove_button.y - 30, 20, WHITE);
+
+        static float door_left[3] = {1055.0f, 855.0f, 585.0f};
+
+        Rectangle door_dest{door_left[static_cast<int>(type)], 494, 42 * 4, 75 * 4};
+        // cut source image into left-right halves
+        // trim from centre to edges based on progress value
+        // make target rects of equivalent size from left and right edges of control area, and draw each half with appropriate source rect
+        Rectangle left_source{door_image.x, door_image.y, door_image.width * value, door_image.height};
+        Rectangle right_source{door_image.x + door_image.width * (1.0f - value), door_image.y, door_image.width * value, door_image.height};
+        Rectangle left_dest{door_dest.x, door_dest.y, door_dest.width * value, door_dest.height};
+        Rectangle right_dest{door_dest.x + door_dest.width * (1.0f - value), door_dest.y, door_dest.width * value, door_dest.height};
+
+        if (backgroundTexture)
+        {
+            DrawTexturePro(*backgroundTexture, left_source, left_dest, (Vector2){0, 0}, 0.f, WHITE);
+            DrawTexturePro(*backgroundTexture, right_source, right_dest, (Vector2){0, 0}, 0.f, WHITE);
+        }
     }
 }
 
