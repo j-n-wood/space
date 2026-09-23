@@ -1,25 +1,11 @@
 # TODO
 
-## EC training button
-
-* all main pages have same buttons, with EC having two extras instead of orbital/faction indicator
-
 ## staff model
 
 * on craft
 * at factories
 * cryo pod to transport (if not ships crew)
 * transfer at docks
-
-Need:
-
-* class (id, type, leader name, rank, crew size)
-* persistence
-* craft crew reference
-* factory crew reference
-* research facility crew reference
-
-Avoid persistence of training facility state by putting on the crew - make rank 0 trainee, and have FT update until rank 1 experience is reached.
 
 Need to disband crew via Game.
 
@@ -34,7 +20,7 @@ Need to disband crew via Game.
 
 ## locations
 
-* asteriod locations? Generic belt, major asteriods?
+* asteriod locations for major asteriods? Future: allow 'marking' scanned asteroids so you can return to them and mine some more?
 
 ### AMA
 
