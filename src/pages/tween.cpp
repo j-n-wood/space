@@ -17,6 +17,12 @@ bool Tween::update(float delta)
 
 float Tween::progress() const
 {
+    if (duration <= 0.0f)
+    {
+        // Must be finished
+        return 1.0f;
+    }
+
     float t = timer / duration;
     if (t < 0.0f)
     {
