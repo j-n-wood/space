@@ -1,5 +1,6 @@
 #include "state/game.h"
 #include "loaders/load_system.h"
+#include "state/training_facility.h"
 
 bool Game::initialise(Loader *loader)
 {
@@ -80,6 +81,36 @@ bool Game::initialise(Loader *loader)
     {
         TraceLog(LOG_ERROR, "Failed to load craft");
         return false;
+    }
+
+    // cross-reference hacks // TODO
+
+    // crew in training -> EC facility
+    for (auto &crew : crews)
+    {
+        if (crew->inTraining())
+        {
+            if (!earth_city || !earth_city->training_facility)
+            {
+                TraceLog(LOG_ERROR, "No Earth City training facility for crew %d in training", crew->id);
+                return false;
+            }
+            switch (crew->type)
+            {
+            case CrewType::Scientist:
+                earth_city->training_facility->scientists = crew.get();
+                break;
+            case CrewType::Engineer:
+                earth_city->training_facility->engineers = crew.get();
+                break;
+            case CrewType::Marine:
+                earth_city->training_facility->marines = crew.get();
+                break;
+            default:
+                TraceLog(LOG_ERROR, "Unknown crew type %d for crew %d in training", static_cast<int>(crew->type), crew->id);
+                return false;
+            }
+        }
     }
 
     TraceLog(LOG_INFO, "Game initialisation complete");

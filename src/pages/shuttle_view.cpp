@@ -357,19 +357,43 @@ void ShuttleView::render()
             // by construction, the icon image element ID happens to equal the pod type
             DrawTexturePro(*itemsTexture, uiElementSources[craft->pods[idx].type], pod_icon_coordinates[idx], (Vector2){0, 0}, 0.f, WHITE);
 
-            // if is tool pod, and can activate in current state:
-            bool canActivate = (craft->pods[idx].type == PT_TOOL) && Game::getCurrent()->canActivatePod(craft, idx);
-            // check game logic for activation conditions
+            // if docked, click to go to dock view. Otherwise click to activate.
 
-            if (canActivate)
+            if (craft->docked())
             {
                 // add hovertext
-                if (overlay.addToolTip("Activate", pod_icon_coordinates[idx]) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                if (overlay.addToolTip("Service", pod_icon_coordinates[idx]) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                 {
-                    // clicked on pod icon, activate
-                    Game::getCurrent()->activatePod(craft, idx);
+                    // clicked on pod icon, go to dock view
+                    PageManager &pm = PageManager::getInstance();
+                    pm.viewState.setFacilityFocus(asFacility(craft->location));
+                    // TODO this sucks
+                    if (craft->hasCapability(CC_INTERPLANETARY))
+                    {
+                        pm.switchToPage(PAGE_ORBIT_SPACE_BAY);
+                    }
+                    else
+                    {
+                        pm.switchToPage(craft->location->orbit() ? PAGE_ORBIT_SHUTTLE_BAY : PAGE_SURFACE_SHUTTLE_BAY);
+                    }
                 }
             }
+            else
+            {
+                // if is tool pod, and can activate in current state:
+                bool canActivate = (craft->pods[idx].type == PT_TOOL) && Game::getCurrent()->canActivatePod(craft, idx);
+                // check game logic for activation conditions
+
+                if (canActivate)
+                {
+                    // add hovertext
+                    if (overlay.addToolTip("Activate", pod_icon_coordinates[idx]) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                    {
+                        // clicked on pod icon, activate
+                        Game::getCurrent()->activatePod(craft, idx);
+                    }
+                }
+            } // not docked
         }
     }
 

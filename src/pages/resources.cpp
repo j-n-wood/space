@@ -14,6 +14,16 @@ void Resources::render()
 
     // location resources
     listResources();
+
+    // add derricks if available
+
+    if (facility && facility->canAddDerrick())
+    {
+        if (GuiButton((Rectangle){400, 600, 200, 32}, "Add Derrick"))
+        {
+            facility->addDerrick();
+        }
+    }
 }
 
 void Resources::activate(ViewState &viewState)

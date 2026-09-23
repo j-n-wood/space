@@ -30,3 +30,24 @@ void ResourceFacility::update()
         }
     }
 }
+
+bool ResourceFacility::canAddDerrick()
+{
+    // any in stock?
+
+    if (stores.items[ItemType::Derrick] <= 0)
+    {
+        return false;
+    }
+
+    return num_derricks < 8;
+}
+
+void ResourceFacility::addDerrick()
+{
+    if (canAddDerrick())
+    {
+        num_derricks++;
+        stores.items[ItemType::Derrick]--;
+    }
+}

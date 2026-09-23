@@ -22,6 +22,9 @@ public:
     virtual void update() override;
     bool isEarthCity() const { return type == LOCATION_TYPE_EARTH_CITY; }
 
+    bool canAddDerrick();
+    void addDerrick();
+
 protected:
     // for EarthCity, which is a resource facility of a different kind
     ResourceFacility(Location *l, LocationType t);

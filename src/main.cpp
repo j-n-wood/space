@@ -299,6 +299,10 @@ int main(const int argc, const char **argv)
 						// force UI pages to reset
 						auto &pm{PageManager::getInstance()};
 						pm.reactivateCurrentPage();
+
+						auto ec = game->earthCity();
+						PageManager::getInstance().viewState.setCurrentResearchFacility(ec->research_facility.get()); // currently global and single
+						PageManager::getInstance().viewState.setCurrentTrainingFacility(ec->training_facility.get()); // currently global and single
 					}
 					else
 					{
