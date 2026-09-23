@@ -108,6 +108,10 @@ void BasePage::renderStandardButtons()
             }
         }
     }
+    else
+    {
+        orbital_faction_id = surface->faction_id; // for Earth City, use the surface faction ID for player faction checks below
+    }
     if (surface)
     {
         DrawTexturePro(*buttonTexture, uiElementSources[UI_BUTTON_SURFACE], standardButtonSurfaceDestination, (Vector2){0, 0}, 0.f, WHITE);

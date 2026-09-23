@@ -36,8 +36,7 @@ void takeDefaultFocus()
 	System *system = game->allSystems()[1].get();
 	Location *earth = game->locationByID(4);
 	pm.viewState.setCurrentSystem(system);
-	// Start focused on Earth's orbital. The body, and so the sidebar, follows from it.
-	pm.viewState.setFacilityFocus(game->orbitalAt(earth));
+	pm.viewState.setFacilityFocus(game->earthCity());
 }
 
 void buildTestData(Game *game)
@@ -105,11 +104,6 @@ void buildTestData(Game *game)
 	ios2->setDestination(0, earth);
 	ios2->setDestination(1, luna);
 
-	// TODO need to move this to main startup
-	auto ec = game->resourceFacilityAt(earth);
-	PageManager::getInstance().viewState.setCurrentResearchFacility(ec->research_facility.get()); // currently global and single
-	PageManager::getInstance().viewState.setCurrentTrainingFacility(ec->training_facility.get()); // currently global and single
-
 	// set OF frame research complete so we can test orbital construction
 	game->researchTopics[6].progress = game->researchTopics[6].requiredTime;
 	game->items[ItemType::Of_Frame].researched = true;
@@ -140,10 +134,33 @@ void buildTestData(Game *game)
 	ios4->assignCrew(game->createCrew(0, CrewType::Marine, "Hudson", 1, 35, 0.0f));
 }
 
-int main()
+// check args for -flag type values
+class Args
+{
+	const int argc;
+	const char **argv;
+
+public:
+	Args(int argc, const char **argv) : argc(argc), argv(argv) {}
+	bool hasFlag(const char *flag) const
+	{
+		for (int i = 1; i < argc; ++i)
+		{
+			if (std::strcmp(argv[i], flag) == 0)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+};
+
+int main(const int argc, const char **argv)
 {
 	int uiWidth = 1280;
 	int uiHeight = 1024;
+
+	Args args(argc, argv);
 
 	// Tell the window to use vsync and work on high DPI displays
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
@@ -173,7 +190,17 @@ int main()
 				TraceLog(LOG_ERROR, "Failed to initialise game data");
 				return 2;
 			}
-			buildTestData(game);
+
+			// TODO need to move this to main startup
+			auto ec = game->earthCity();
+			PageManager::getInstance().viewState.setCurrentResearchFacility(ec->research_facility.get()); // currently global and single
+			PageManager::getInstance().viewState.setCurrentTrainingFacility(ec->training_facility.get()); // currently global and single
+
+			if (args.hasFlag("-testdata"))
+			{
+				TraceLog(LOG_INFO, "Building test data");
+				buildTestData(game);
+			}
 		}
 
 		// set game UI state to focus on default selection
