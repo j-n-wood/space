@@ -2,7 +2,7 @@
 #include "state/research_facility.h"
 #include "state/training_facility.h"
 
-EarthCity::EarthCity(Location *l) : ResourceFacility{l, LOCATION_TYPE_EARTH_CITY}
+EarthCity::EarthCity(Location *l) : ResourceFacility{l, LOCATION_TYPE_EARTH_CITY}, population{6000}
 {
     operational = true; // start operational, as we don't have construction progress implemented yet
     construction_progress = 1;

@@ -8,7 +8,6 @@ const int MAX_CREW_RANK = 5;
 
 enum class CrewType : uint8_t
 {
-    None,
     Marine,
     Engineer,
     Scientist,
@@ -46,4 +45,6 @@ public:
         }
         return rank;
     }
+
+    int maxSize() const;
 };

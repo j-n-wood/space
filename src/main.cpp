@@ -105,8 +105,10 @@ void buildTestData(Game *game)
 	ios2->setDestination(0, earth);
 	ios2->setDestination(1, luna);
 
+	// TODO need to move this to main startup
 	auto ec = game->resourceFacilityAt(earth);
 	PageManager::getInstance().viewState.setCurrentResearchFacility(ec->research_facility.get()); // currently global and single
+	PageManager::getInstance().viewState.setCurrentTrainingFacility(ec->training_facility.get()); // currently global and single
 
 	// set OF frame research complete so we can test orbital construction
 	game->researchTopics[6].progress = game->researchTopics[6].requiredTime;

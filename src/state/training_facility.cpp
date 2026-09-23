@@ -3,22 +3,30 @@
 #include "state/research_facility.h"
 #include "state/game.h"
 
-Crew *TrainingFacility::addTrainees(CrewType type, int count)
+int TrainingFacility::addTrainees(CrewType type, int count)
 {
-    Crew *crew = crewForType(type);
+    Crew *crew = getOrCreateCrewForType(type);
     if (crew)
     {
+        // limit to crew->maxSize() - crew->size
+        int max_add = crew->maxSize() - crew->size;
+        if (count > max_add)
+        {
+            count = max_add;
+        }
         crew->size += count;
     }
-    return crew;
+    return count;
 }
 
-Crew *TrainingFacility::removeTrainees(CrewType type, int count)
+int TrainingFacility::removeTrainees(CrewType type, int count)
 {
     Crew *crew = crewForType(type);
     if (crew)
     {
-        crew->size -= count;
+        int delta = std::min(count, crew->size);
+        crew->size -= delta;
+        // earth_city->population += delta; // return to population pool
         if (crew->size <= 0)
         {
             // remove crew from training facility
@@ -37,9 +45,11 @@ Crew *TrainingFacility::removeTrainees(CrewType type, int count)
             default:
                 break;
             }
+            crew = nullptr;
         }
+        return delta;
     }
-    return crew;
+    return 0;
 }
 
 Crew *TrainingFacility::crewForType(CrewType type)
@@ -47,21 +57,36 @@ Crew *TrainingFacility::crewForType(CrewType type)
     switch (type)
     {
     case CrewType::Scientist:
+        return scientists;
+    case CrewType::Engineer:
+        return engineers;
+    case CrewType::Marine:
+        return marines;
+    default:
+        return nullptr;
+    }
+}
+
+Crew *TrainingFacility::getOrCreateCrewForType(CrewType type)
+{
+    switch (type)
+    {
+    case CrewType::Scientist:
         if (scientists == nullptr)
         {
-            scientists = Game::getCurrent()->createCrew(0, CrewType::Scientist, "New Scientist", 0, 1, 0.0f);
+            scientists = Game::getCurrent()->createCrew(0, CrewType::Scientist, "New Scientist", 0, 0, 0.0f);
         }
         return scientists;
     case CrewType::Engineer:
         if (engineers == nullptr)
         {
-            engineers = Game::getCurrent()->createCrew(0, CrewType::Engineer, "New Engineer", 0, 1, 0.0f);
+            engineers = Game::getCurrent()->createCrew(0, CrewType::Engineer, "New Engineer", 0, 0, 0.0f);
         }
         return engineers;
     case CrewType::Marine:
         if (marines == nullptr)
         {
-            marines = Game::getCurrent()->createCrew(0, CrewType::Marine, "New Marine", 0, 1, 0.0f);
+            marines = Game::getCurrent()->createCrew(0, CrewType::Marine, "New Marine", 0, 0, 0.0f);
         }
         return marines;
     default:

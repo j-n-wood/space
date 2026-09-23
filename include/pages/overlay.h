@@ -9,6 +9,31 @@ extern "C"
 
 using onHover = void (*)(void *);
 
+class RepeatButtonState
+{
+public:
+    bool held{false};
+    float add_rate{1.0f};
+    float dead_time{0.0f};
+    float acceleration{0.3f}; // rate of increase in add_rate per second
+    const Rectangle *last_button{nullptr};
+
+    RepeatButtonState(const float accel = 0.3f) : acceleration{accel} {}
+
+    void reset()
+    {
+        held = false;
+        add_rate = 1.0f;
+        dead_time = 0.0f;
+        last_button = nullptr;
+    }
+    int rate() const
+    {
+        return static_cast<int>(add_rate); // clamp to int
+    }
+    void update(const float delta);
+};
+
 class Overlay
 {
     bool toolTipSet;
@@ -29,7 +54,8 @@ public:
 
     int renderButton(const Rectangle &buttonRect, const char *buttonText, const char *toolTip, const Color &color);
     int renderButtonHover(const Rectangle &buttonRect, const char *buttonText, const Color &color, onHover hover, void *state);
-    bool clickedArea(const Rectangle &area, const char *toolTip); // basically transparent button with hovertext, no outline
+    bool clickedArea(const Rectangle &area, const char *toolTip);                             // basically transparent button with hovertext, no outline
+    bool mouseDownArea(const Rectangle &area, const char *toolTip, RepeatButtonState *state); // basically transparent button with hovertext, no outline, but returns true if mouse is down
     void setDefaultStyle();
 
     inline void setCurrentToolTip(const char *toolTip)

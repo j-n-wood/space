@@ -57,6 +57,7 @@ class Game
     // owning collections of facilities
     Bases bases;
     Orbitals orbitals;
+    EarthCity *earth_city{nullptr}; // only one, non-owning reference
 
     // owning collection of IOS - maybe per-system?
     IOSs ios;
@@ -177,6 +178,7 @@ public:
     // locate game state
     ResourceFacility *resourceFacilityAt(Location *location);
     Orbital *orbitalAt(Location *location) const;
+    EarthCity *earthCity() const { return earth_city; };
 
     // faction related
     void setFactionHostility(int faction_id, bool hostile);

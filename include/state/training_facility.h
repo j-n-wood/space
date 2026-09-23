@@ -14,12 +14,13 @@ public:
 
     TrainingFacility(ResourceFacility *facility) : facility(facility) {};
 
-    Crew *addTrainees(CrewType type, int count);
-    Crew *removeTrainees(CrewType type, int count);
+    int addTrainees(CrewType type, int count);
+    int removeTrainees(CrewType type, int count);
 
     void update(float delta);
 
 private:
     ResourceFacility *facility{nullptr};
     Crew *crewForType(CrewType type);
+    Crew *getOrCreateCrewForType(CrewType type);
 };

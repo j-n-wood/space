@@ -33,6 +33,60 @@ bool Overlay::clickedArea(const Rectangle &area, const char *toolTip)
     return false;
 }
 
+bool Overlay::mouseDownArea(const Rectangle &area, const char *toolTip, RepeatButtonState *state)
+{
+    if (CheckCollisionPointRec(GetMousePosition(), area))
+    {
+        auto mb{IsMouseButtonDown(MOUSE_LEFT_BUTTON)};
+        setCurrentToolTip(toolTip);
+        DrawRectangleLinesEx(area, 1.0f, mb ? WHITE : GRAY);
+        if (mb)
+        {
+            if (state->last_button != &area)
+            {
+                state->reset();
+                state->last_button = &area; // set the last button after reset
+                state->dead_time = 0.5f;    // initial dead time before repeat starts
+                return true;
+            }
+
+            // same button
+            state->held = true;
+            if (state->dead_time > 0.0f)
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
+    return false;
+}
+
+void RepeatButtonState::update(const float delta)
+{
+    if (IsMouseButtonUp(MOUSE_BUTTON_LEFT))
+    {
+        // reset count for add/remove
+        reset();
+    }
+    else
+    {
+        if (held)
+        {
+            if (dead_time > 0.0f)
+            {
+                dead_time -= delta;
+            }
+            else
+            {
+                // increase add/remove rate if button is held down
+                add_rate += delta * acceleration; // adjust multiplier for desired acceleration
+            }
+        }
+    }
+}
+
 int Overlay::renderButton(const Rectangle &buttonRect, const char *buttonText, const char *toolTip, const Color &color)
 {
     // Implementation for rendering a button with hover text

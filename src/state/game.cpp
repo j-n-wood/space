@@ -186,21 +186,21 @@ EarthCity *Game::createEarthCity(Location *location, int id)
         return nullptr;
     }
     // Game::locations owns it; bases below is a non-owning view.
-    EarthCity *ec = static_cast<EarthCity *>(
+    earth_city = static_cast<EarthCity *>(
         placeLocation(std::make_unique<EarthCity>(parent), (id >= 0) ? id : nextLocationID()));
-    if (!ec)
+    if (!earth_city)
     {
         return nullptr;
     }
-    attachFacilityLocation(ec, parent, "City");
-    bases.push_back(ec);
+    attachFacilityLocation(earth_city, parent, "City");
+    bases.push_back(earth_city);
 
-    auto factory = createFactory(ec); // EC production
-    factory->is_orbital = false;      // EC is surface facility, so set factory accordingly
-    factory->tech_level = 1;          // EC starts with tech level 1, can build basic items
-    createResearchFacility(ec);
-    createTrainingFacility(ec); // EC has a training facility for crew
-    return ec;
+    auto factory = createFactory(earth_city); // EC production
+    factory->is_orbital = false;              // EC is surface facility, so set factory accordingly
+    factory->tech_level = 1;                  // EC starts with tech level 1, can build basic items
+    createResearchFacility(earth_city);
+    createTrainingFacility(earth_city); // EC has a training facility for crew
+    return earth_city;
 }
 
 ResourceFacility *Game::createResourceFacility(Location *location, int id)

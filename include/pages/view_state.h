@@ -5,6 +5,7 @@ class Location;
 class Facility;
 class Craft;
 class ResearchFacility; // currently only one
+class TrainingFacility; // currently only one
 
 // What the UI is looking at. Two questions with two different answers, and both are
 // derived from the focus rather than stored alongside it (architecture.md: "Location
@@ -27,11 +28,12 @@ class ViewState
 
     System *browsedSystem; // fallback when nothing is focused
     ResearchFacility *currentResearchFacility;
+    TrainingFacility *currentTrainingFacility;
 
     int faction_id;
 
 public:
-    ViewState() : focusPlace(nullptr), focusCraft(nullptr), browsedSystem(nullptr), currentResearchFacility(nullptr), faction_id(0) {};
+    ViewState() : focusPlace(nullptr), focusCraft(nullptr), browsedSystem(nullptr), currentResearchFacility(nullptr), currentTrainingFacility(nullptr), faction_id(0) {};
 
     inline int getFactionId() const { return faction_id; }
     inline ViewState &setFactionId(int id)
@@ -76,6 +78,16 @@ public:
     inline ViewState &setCurrentResearchFacility(ResearchFacility *rf)
     {
         currentResearchFacility = rf;
+        return *this;
+    }
+
+    inline TrainingFacility *getCurrentTrainingFacility() const
+    {
+        return currentTrainingFacility;
+    }
+    inline ViewState &setCurrentTrainingFacility(TrainingFacility *tf)
+    {
+        currentTrainingFacility = tf;
         return *this;
     }
 
