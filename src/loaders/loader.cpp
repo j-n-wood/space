@@ -217,6 +217,31 @@ bool Loader::loadStores()
         }
     }
 
+    SQLiteQuery items_query(this, "SELECT facility_id, item_id, amount FROM facility_item_stores");
+
+    while (items_query.next())
+    {
+        int facility_id = sqlite3_column_int(items_query, 0);
+        int item_id = sqlite3_column_int(items_query, 1);
+        int amount = sqlite3_column_int(items_query, 2);
+
+        Facility *fac = findFacilityById(facility_id);
+        if (!fac)
+        {
+            TraceLog(LOG_ERROR, "Failed to find facility with id %d for stores", facility_id);
+            return false;
+        }
+
+        if (item_id >= 0 && item_id < ItemType::MAX_ITEM_TYPE)
+        {
+            fac->stores.items[item_id] = amount;
+        }
+        else
+        {
+            TraceLog(LOG_ERROR, "Invalid item_id %d for facility %d", item_id, facility_id);
+        }
+    }
+
     return true;
 }
 

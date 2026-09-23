@@ -120,6 +120,12 @@ void BasePage::renderStandardButtons()
     // is this YOUR faction?
     bool player_faction = (orbital_faction_id > -1) && (vs.getFactionId() == orbital_faction_id);
 
+    // orbital pages only available if orbital present and active
+    // same for surface pages
+
+    bool orbital_available = (orbital != nullptr) && orbital->operational;
+    bool surface_available = (surface != nullptr) && surface->operational;
+
     // iterate flags in standardButtons bitfield
     for (int i = 0; i < STANDARD_BUTTON_COUNT; i++)
     {
@@ -135,25 +141,25 @@ void BasePage::renderStandardButtons()
             case BUTTON_ORBIT_STORES:
             case BUTTON_ORBIT_SPACE_BAY:
             case BUTTON_ORBIT_SHUTTLE_BAY:
-                enabled = (orbital != nullptr);
+                enabled = orbital_available;
                 break;
             case BUTTON_SURFACE_PRODUCTION:
-                enabled = (surface != nullptr) && (surface->factory.get());
+                enabled = surface_available && (surface->factory.get());
                 break;
             case BUTTON_SHUTTLE:
                 // must have one or other facility and a shuttle
                 enabled = (location != nullptr) && (location->shuttle);
                 break;
             case BUTTON_TRAINING:
-                enabled = (surface != nullptr) && (surface->training_facility.get());
+                enabled = surface_available && (surface->training_facility.get());
                 break;
             case BUTTON_RESEARCH:
-                enabled = (surface != nullptr) && (surface->research_facility.get());
+                enabled = surface_available && (surface->research_facility.get());
                 break;
             case BUTTON_SURFACE_SHUTTLE_BAY:
             case BUTTON_SURFACE_RESOURCES:
             case BUTTON_SURFACE_STORES:
-                enabled = (surface != nullptr);
+                enabled = surface_available;
                 break;
             }
 

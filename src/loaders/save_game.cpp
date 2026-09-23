@@ -172,6 +172,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS research_facilities ( facility_id INT, current_project INT, crew_id INT );"
         "CREATE TABLE IF NOT EXISTS objects ( id INT, type INT, location_id INT, quantity INT, resource_id INT );"
         "CREATE TABLE IF NOT EXISTS crews ( id INT, type int, leader_name TEXT, rank int, size int, experience float );"
+        "CREATE TABLE IF NOT EXISTS facility_item_stores ( facility_id INT, item_id INT, amount INT );"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -602,6 +603,33 @@ int SaveGame::saveStores(Stores *stores, int facilityId)
                  .bind(2, resourceId)
                  .bind(3, amount)
                  .step("SaveGame: Failed to execute stores insert"))
+        {
+            return -13;
+        }
+    }
+
+    SQLiteQuery itemsQuery(loader, "INSERT INTO facility_item_stores (facility_id, item_id, amount) VALUES (?, ?, ?);");
+    if (!itemsQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare items insert");
+        return -9;
+    }
+
+    for (int itemid = ItemType::None; itemid < ItemType::MAX_ITEM_TYPE; ++itemid)
+    {
+        int amount = stores->items[itemid];
+        if (amount == 0)
+        {
+            continue;
+        }
+
+        sqlite3_reset(itemsQuery.stmt);
+        sqlite3_clear_bindings(itemsQuery.stmt);
+
+        if (!itemsQuery.bind(1, facilityId)
+                 .bind(2, itemid)
+                 .bind(3, amount)
+                 .step("SaveGame: Failed to execute items insert"))
         {
             return -13;
         }
