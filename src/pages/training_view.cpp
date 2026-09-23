@@ -138,12 +138,6 @@ void TrainingView::renderTrainingControls(CrewType type, const Rectangle &remove
     if (value > door_animation_open)
     {
         // draw door over control area
-        // TODO
-        // dump text placeholder for now
-        char buf[64];
-        std::snprintf(buf, sizeof buf, "Door %.2f", value);
-        DrawText(buf, remove_button.x + 10, remove_button.y - 30, 20, WHITE);
-
         static float door_left[3] = {1055.0f, 855.0f, 585.0f};
 
         Rectangle door_dest{door_left[static_cast<int>(type)], 494, 42 * 4, 75 * 4};
