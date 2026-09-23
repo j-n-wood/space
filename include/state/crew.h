@@ -35,7 +35,7 @@ public:
     inline int addExperience(float exp)
     {
         experience += exp;
-        if (experience >= 100.0f)
+        if (experience >= 20.0f)
         {
             experience = 0.0f;
             if (rank < MAX_CREW_RANK)
@@ -47,4 +47,8 @@ public:
     }
 
     int maxSize() const;
+    bool inTraining() const
+    {
+        return (rank == 0 && experience > 0.0f);
+    }
 };

@@ -14,6 +14,8 @@ public:
 
     TrainingFacility(ResourceFacility *facility) : facility(facility) {};
 
+    Crew *crewForType(CrewType type);
+
     int addTrainees(CrewType type, int count);
     int removeTrainees(CrewType type, int count);
 
@@ -21,6 +23,5 @@ public:
 
 private:
     ResourceFacility *facility{nullptr};
-    Crew *crewForType(CrewType type);
     Crew *getOrCreateCrewForType(CrewType type);
 };
