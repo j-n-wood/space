@@ -1139,9 +1139,10 @@ void Game::onWorkComplete(Craft *craft)
             TraceLog(LOG_INFO, "Orbital construction complete at location %s", craft->location->name);
             orbital->operational = true;
         }
-        raiseOrbitalConstructionEvent(orbital);
         // remove pod content
         pod.amount = 0;
+
+        raiseOrbitalConstructionEvent(orbital);
     }
     break;
     case ItemType::R_Frame:
@@ -1232,6 +1233,32 @@ void Game::raiseOrbitalConstructionEvent(Orbital *orbital)
     for (auto sink : eventSinks)
     {
         sink->onOrbitalConstruction(orbital);
+    }
+
+    // hardcoded game event - on first orbital, unlock IOS research, for player faction
+    if (orbital && orbital->operational && (researchTopics[30].progress == 0.0))
+    {
+        // check if this is the first orbital
+        int operational_orbitals = 0;
+        for (auto &o : orbitals)
+        {
+            if (o->operational && o->faction_id == 0)
+            {
+                ++operational_orbitals;
+            }
+        }
+        if (operational_orbitals == 1)
+        {
+            // first orbital completed, unlock IOS research
+            auto &topic{researchTopics[30]};
+            {
+                // complete that to unlock IOS research
+                for (auto &topicId : topic.unlocksTopics)
+                {
+                    researchTopics[topicId].available = true;
+                }
+            }
+        }
     }
 }
 

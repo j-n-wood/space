@@ -1,5 +1,15 @@
 # TODO
 
+## viewState references
+
+On load, can invalidate pointers to e.g. research/training facilities. Make explicit? Assume EC only?
+
+## enough to do?
+
+Lots of waiting at the start. Set up experience limits for rank 1 s.t. initial training is faster.
+Production time of e.g. OF -> shorter.
+Some clue that Luna base exists?
+
 ## staff model
 
 * on craft
@@ -7,7 +17,7 @@
 * cryo pod to transport (if not ships crew)
 * transfer at docks
 
-Need to disband crew via Game.
+Remeber: Need to disband crew via Game.
 
 ## Craft persistence
 
