@@ -24,50 +24,50 @@
 namespace
 {
 
-const char *SC_DB_PATH = "./resources/initial.db";
-const int EARTH_ID = 4;
-const int BELT_ID = 9; // Sol's asteroid belt, the only LOCATION_TYPE_ASTEROID_BELT body
+    const char *SC_DB_PATH = "./resources/initial.db";
+    const int EARTH_ID = 4;
+    const int BELT_ID = 9; // Sol's asteroid belt, the only LOCATION_TYPE_ASTEROID_BELT body
 
-Game *loadGame()
-{
-    Game *game = Game::createCurrent();
-    Loader loader(SC_DB_PATH);
-    if (!loader.isValid() || !game->initialise(&loader))
+    Game *loadGame()
     {
-        return nullptr;
-    }
-    return game;
-}
-
-// An IOS in the belt's orbit region, at rest and able to manoeuvre.
-// A belt has no orbit or surface children -- there is nothing to land on -- so the belt
-// itself is the place a craft occupies.
-IOS *iosAtBelt(Game *game, Location *belt)
-{
-    IOS *ios = game->createIOS(belt);
-    if (!ios)
-    {
-        return nullptr;
-    }
-    ios->drive = true;
-    ios->fuel = 250;
-    ios->location = belt;
-    ios->assignState(CS_IDLE, 0.0f, 0.0f);
-    return ios;
-}
-
-int countObjects(Game *game, ObjectType type)
-{
-    int n = 0;
-    for (auto &obj : game->allObjects())
-    {
-        if (obj->type == type)
+        Game *game = Game::createCurrent();
+        Loader loader(SC_DB_PATH);
+        if (!loader.isValid() || !game->initialise(&loader))
         {
-            ++n;
+            return nullptr;
         }
+        return game;
     }
-    return n;
-}
+
+    // An IOS in the belt's orbit region, at rest and able to manoeuvre.
+    // A belt has no orbit or surface children -- there is nothing to land on -- so the belt
+    // itself is the place a craft occupies.
+    IOS *iosAtBelt(Game *game, Location *belt)
+    {
+        IOS *ios = game->createIOS(belt);
+        if (!ios)
+        {
+            return nullptr;
+        }
+        ios->drive = true;
+        ios->fuel = 250;
+        ios->location = belt;
+        ios->assignState(CS_IDLE, 0.0f, 0.0f);
+        return ios;
+    }
+
+    int countObjects(Game *game, ObjectType type)
+    {
+        int n = 0;
+        for (auto &obj : game->allObjects())
+        {
+            if (obj->type == type)
+            {
+                ++n;
+            }
+        }
+        return n;
+    }
 
 } // namespace
 
@@ -190,7 +190,7 @@ TEST_CASE("engaging the drive releases the scan target")
         ios->engageDrive();
 
         REQUIRE(ios->inTransit());
-        CHECK(ios->scan_object == nullptr);                 // no longer scanning it
+        CHECK(ios->scan_object == nullptr); // no longer scanning it
         CHECK_MESSAGE(game->objectByID(artefactId) != nullptr, "a story item was collected as garbage");
     }
 }
@@ -322,7 +322,7 @@ TEST_CASE("scanning keeps rotating rather than stopping after one target")
     // state; one that is still cycling is in it with a target and a running timer.
     for (int tick = 0; tick < 2000; ++tick)
     {
-        game->update(0.05f);
+        game->update(0.05);
     }
 
     CHECK_MESSAGE(ios->currentState().state == CS_SCANNING,

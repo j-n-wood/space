@@ -65,7 +65,7 @@ class Orrery
 
     // The game_time `rendered` was built for. -1 rather than 0 because a new game sits at
     // game_time 0 until time first advances, and a 0 stamp would never build a first table.
-    float last_update_time{-1.0f};
+    double last_update_time{-1.0};
 
     void rebuild();
 
@@ -108,7 +108,7 @@ public:
 
         // A different system means different rows entirely, and time need not have advanced
         // for that to be true.
-        last_update_time = -1.0f;
+        last_update_time = -1.0;
         return *this;
     }
 

@@ -18,54 +18,54 @@
 namespace
 {
 
-const char *OR_DB_PATH = "./resources/initial.db";
-const int BELT_ID = 9; // Sol's asteroid belt, the only LOCATION_TYPE_ASTEROID_BELT body
+    const char *OR_DB_PATH = "./resources/initial.db";
+    const int BELT_ID = 9; // Sol's asteroid belt, the only LOCATION_TYPE_ASTEROID_BELT body
 
-const int EARTH_ID = 4;
-const int JUPITER_ID = 10;
+    const int EARTH_ID = 4;
+    const int JUPITER_ID = 10;
 
-Game *loadGame()
-{
-    Game *game = Game::createCurrent();
-    Loader loader(OR_DB_PATH);
-    if (!loader.isValid() || !game->initialise(&loader))
+    Game *loadGame()
     {
+        Game *game = Game::createCurrent();
+        Loader loader(OR_DB_PATH);
+        if (!loader.isValid() || !game->initialise(&loader))
+        {
+            return nullptr;
+        }
+        return game;
+    }
+
+    // Sol, reached through a body in it rather than by index -- allSystems()[0] is interstellar
+    // space, and the orrery only ever cares which system a location belongs to.
+    System *solSystem(Game *game)
+    {
+        Location *earth = game->locationByID(EARTH_ID);
+        return earth ? earth->system : nullptr;
+    }
+
+    // An orrery on the loaded system, focused on the origin so focusOffset() is just the centre
+    // -- which makes the belt band's centre a known point rather than one the test has to derive.
+    OrreryPtr solOrrery(Game *game, float scale = 1.0f)
+    {
+        OrreryPtr orrery = createOrrery((Vector2){640.0f, 400.0f}, scale);
+        orrery->setSystem(solSystem(game));
+        orrery->focus = {0.0f, 0.0f};
+        orrery->focus_location = nullptr;
+        orrery->update();
+        return orrery;
+    }
+
+    const LocationRender *rowFor(const Orrery *orrery, const Location *loc)
+    {
+        for (const LocationRender &r : orrery->renderTable())
+        {
+            if (r.location == loc)
+            {
+                return &r;
+            }
+        }
         return nullptr;
     }
-    return game;
-}
-
-// Sol, reached through a body in it rather than by index -- allSystems()[0] is interstellar
-// space, and the orrery only ever cares which system a location belongs to.
-System *solSystem(Game *game)
-{
-    Location *earth = game->locationByID(EARTH_ID);
-    return earth ? earth->system : nullptr;
-}
-
-// An orrery on the loaded system, focused on the origin so focusOffset() is just the centre
-// -- which makes the belt band's centre a known point rather than one the test has to derive.
-OrreryPtr solOrrery(Game *game, float scale = 1.0f)
-{
-    OrreryPtr orrery = createOrrery((Vector2){640.0f, 400.0f}, scale);
-    orrery->setSystem(solSystem(game));
-    orrery->focus = {0.0f, 0.0f};
-    orrery->focus_location = nullptr;
-    orrery->update();
-    return orrery;
-}
-
-const LocationRender *rowFor(const Orrery *orrery, const Location *loc)
-{
-    for (const LocationRender &r : orrery->renderTable())
-    {
-        if (r.location == loc)
-        {
-            return &r;
-        }
-    }
-    return nullptr;
-}
 
 } // namespace
 
@@ -120,7 +120,7 @@ TEST_CASE("a new game is not blank")
     // the orrery would draw nothing until the player unpaused.
     Game *game = loadGame();
     REQUIRE(game != nullptr);
-    game->game_time = 0.0f;
+    game->game_time = 0.0;
 
     OrreryPtr orrery = createOrrery((Vector2){640.0f, 400.0f}, 1.0f);
     orrery->setSystem(solSystem(game));
@@ -147,7 +147,7 @@ TEST_CASE("the table rebuilds when its inputs change, and not otherwise")
         // Far enough around the orbit that the move is unambiguous rather than sub-pixel.
         for (int tick = 0; tick < 200; ++tick)
         {
-            game->update(1.0f);
+            game->update(1.0);
         }
         orrery->update();
 

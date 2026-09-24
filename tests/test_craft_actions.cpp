@@ -22,56 +22,56 @@
 namespace
 {
 
-const char *CA_DB_PATH = "./resources/initial.db";
-const int EARTH_ID = 4;
+    const char *CA_DB_PATH = "./resources/initial.db";
+    const int EARTH_ID = 4;
 
-Game *loadGame()
-{
-    Game *game = Game::createCurrent();
-    Loader loader(CA_DB_PATH);
-    if (!loader.isValid() || !game->initialise(&loader))
+    Game *loadGame()
     {
-        return nullptr;
-    }
-    return game;
-}
-
-// Earth carries both an orbital and a surface facility, which is what makes it the only
-// body where every guard can be exercised without building anything first.
-struct Fixture
-{
-    Game *game;
-    Location *earth;
-    Orbital *orbital;
-    ResourceFacility *station;
-
-    Fixture() : game(loadGame()), earth(nullptr), orbital(nullptr), station(nullptr)
-    {
-        if (!game)
+        Game *game = Game::createCurrent();
+        Loader loader(CA_DB_PATH);
+        if (!loader.isValid() || !game->initialise(&loader))
         {
-            return;
+            return nullptr;
         }
-        earth = game->locationByID(EARTH_ID);
-        orbital = game->orbitalAt(earth);
-        station = game->resourceFacilityAt(earth);
+        return game;
     }
 
-    bool valid() const
+    // Earth carries both an orbital and a surface facility, which is what makes it the only
+    // body where every guard can be exercised without building anything first.
+    struct Fixture
     {
-        return game && earth && orbital && station && earth->orbit() && earth->surface();
-    }
+        Game *game;
+        Location *earth;
+        Orbital *orbital;
+        ResourceFacility *station;
 
-    // A shuttle parked exactly where the case needs it, at rest and fully fitted.
-    Shuttle *shuttleAt(Location *where) const
-    {
-        Shuttle *s = earth->shuttle ? earth->shuttle : game->createShuttle(earth);
-        s->drive = true;
-        s->fuel = 250;
-        s->location = where;
-        s->assignState(CS_IDLE, 0.0f, 0.0f);
-        return s;
-    }
-};
+        Fixture() : game(loadGame()), earth(nullptr), orbital(nullptr), station(nullptr)
+        {
+            if (!game)
+            {
+                return;
+            }
+            earth = game->locationByID(EARTH_ID);
+            orbital = game->orbitalAt(earth);
+            station = game->resourceFacilityAt(earth);
+        }
+
+        bool valid() const
+        {
+            return game && earth && orbital && station && earth->orbit() && earth->surface();
+        }
+
+        // A shuttle parked exactly where the case needs it, at rest and fully fitted.
+        Shuttle *shuttleAt(Location *where) const
+        {
+            Shuttle *s = earth->shuttle ? earth->shuttle : game->createShuttle(earth);
+            s->drive = true;
+            s->fuel = 250;
+            s->location = where;
+            s->assignState(CS_IDLE, 0.0f, 0.0f);
+            return s;
+        }
+    };
 
 } // namespace
 
@@ -305,7 +305,7 @@ TEST_CASE("a blocked launch is retried, not lost")
     s->drive = false;
     for (int tick = 0; tick < 200; ++tick)
     {
-        f.game->update(0.05f);
+        f.game->update(0.05);
     }
     CHECK(s->docked()); // stuck, correctly -- it cannot fly
 
@@ -314,7 +314,7 @@ TEST_CASE("a blocked launch is retried, not lost")
     bool departed = false;
     for (int tick = 0; tick < 200 && !departed; ++tick)
     {
-        f.game->update(0.05f);
+        f.game->update(0.05);
         if (!s->docked())
         {
             departed = true;
@@ -405,7 +405,7 @@ TEST_CASE("only the pod being worked has an effect")
 
     for (int tick = 0; tick < 40 && ios->working(); ++tick)
     {
-        f.game->update(0.05f);
+        f.game->update(0.05);
     }
 
     CHECK_MESSAGE(f.station->damage == doctest::Approx(damageBefore),
@@ -447,7 +447,7 @@ TEST_CASE("construction chains across pods and stops when the facility is done")
 
         for (int tick = 0; tick < 4000 && ios->working(); ++tick)
         {
-            f.game->update(0.05f);
+            f.game->update(0.05);
         }
 
         Orbital *built = f.game->orbitalAt(luna);
@@ -469,7 +469,7 @@ TEST_CASE("construction chains across pods and stops when the facility is done")
         REQUIRE(f.game->activatePod(ios, 0));
         for (int tick = 0; tick < 4000 && ios->working(); ++tick)
         {
-            f.game->update(0.05f);
+            f.game->update(0.05);
         }
 
         CHECK(part->construction_progress == 8);
@@ -512,7 +512,7 @@ TEST_CASE("a craft saved mid-deployment resumes and finishes the section")
     // Part way through, well short of the 20s the frame takes.
     for (int tick = 0; tick < 20; ++tick)
     {
-        f.game->update(0.05f);
+        f.game->update(0.05);
     }
     REQUIRE(ios->working());
     const int lunaId = luna->id;
@@ -538,7 +538,7 @@ TEST_CASE("a craft saved mid-deployment resumes and finishes the section")
     REQUIRE(reloadedLuna != nullptr);
     for (int tick = 0; tick < 2000 && reloaded->working(); ++tick)
     {
-        loaded->update(0.05f);
+        loaded->update(0.05);
     }
 
     Orbital *built = loaded->orbitalAt(reloadedLuna);

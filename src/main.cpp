@@ -325,18 +325,18 @@ int main(const int argc, const char **argv)
 				// time rate
 				if (IsKeyPressed(KEY_EQUAL))
 				{
-					game->time_rate *= 2.0f;
+					game->time_rate *= 2.0;
 					TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
 				}
 				else if (IsKeyPressed(KEY_MINUS))
 				{
-					game->time_rate *= 0.5f;
+					game->time_rate *= 0.5;
 					TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
 				}
 
 				// time
-				float currentTime = GetTime();
-				float deltaTime = currentTime - lastTime;
+				double currentTime = GetTime();
+				double deltaTime = currentTime - lastTime;
 				lastTime = currentTime;
 				if (advanceTime || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused
 				{

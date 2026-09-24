@@ -23,26 +23,26 @@
 namespace
 {
 
-const char *FL_DB_PATH = "./resources/initial.db";
-const int EARTH_ID = 4;
+    const char *FL_DB_PATH = "./resources/initial.db";
+    const int EARTH_ID = 4;
 
-float distanceBetween(const Location *a, const Location *b)
-{
-    const Vector2 pa = a->resolvedPosition();
-    const Vector2 pb = b->resolvedPosition();
-    return std::sqrt((pa.x - pb.x) * (pa.x - pb.x) + (pa.y - pb.y) * (pa.y - pb.y));
-}
-
-Game *loadGame()
-{
-    Game *game = Game::createCurrent();
-    Loader loader(FL_DB_PATH);
-    if (!loader.isValid() || !game->initialise(&loader))
+    float distanceBetween(const Location *a, const Location *b)
     {
-        return nullptr;
+        const Vector2 pa = a->resolvedPosition();
+        const Vector2 pb = b->resolvedPosition();
+        return std::sqrt((pa.x - pb.x) * (pa.x - pb.x) + (pa.y - pb.y) * (pa.y - pb.y));
     }
-    return game;
-}
+
+    Game *loadGame()
+    {
+        Game *game = Game::createCurrent();
+        Loader loader(FL_DB_PATH);
+        if (!loader.isValid() || !game->initialise(&loader))
+        {
+            return nullptr;
+        }
+        return game;
+    }
 
 } // namespace
 
@@ -140,7 +140,7 @@ TEST_CASE("facility positions resolve relative to their parent")
     REQUIRE(earth != nullptr);
     for (auto &sys : game->allSystems())
     {
-        sys->update(1000.0f);
+        sys->update(1000.0);
     }
 
     Orbital *orbital = game->orbitalAt(earth);
@@ -201,7 +201,7 @@ TEST_CASE("siblings at one body get distinct positions")
 
     for (auto &sys : game->allSystems())
     {
-        sys->update(1000.0f);
+        sys->update(1000.0);
     }
 
     CHECK(second->initial_angle != doctest::Approx(first->initial_angle));
@@ -291,7 +291,7 @@ TEST_CASE("an autopilot shuttle advances past its first dock")
 
     for (int tick = 0; tick < 6000; ++tick)
     {
-        game->update(0.05f);
+        game->update(0.05);
 
         if (s->destination_index != startIndex)
         {
@@ -350,7 +350,7 @@ TEST_CASE("a craft's location matches what it is doing")
 
     for (int tick = 0; tick < 4000; ++tick)
     {
-        game->update(0.05f);
+        game->update(0.05);
 
         REQUIRE(s->location != nullptr);
         if (s->body() != earth)
@@ -413,9 +413,9 @@ TEST_CASE("a shuttle's owner and its position are separate")
     Shuttle *s = game->createShuttle(orbital);
     REQUIRE(s != nullptr);
 
-    CHECK(s->location == orbital);       // position: where it is
-    CHECK(earth->shuttle == s);          // reference: on the body
-    CHECK(orbital->shuttle == nullptr);  // never on the facility
+    CHECK(s->location == orbital);      // position: where it is
+    CHECK(earth->shuttle == s);         // reference: on the body
+    CHECK(orbital->shuttle == nullptr); // never on the facility
 
     // Game holds the lifetime, as it does for IOS
     bool owned = false;

@@ -35,7 +35,7 @@ public:
 
     // Refresh every location's position about its primary. Orbital elements live on
     // Location, so this grows naturally as locations are added.
-    void update(float time);
+    void update(double time);
 
     inline size_t bodyCount() const { return locations.size(); }
 };

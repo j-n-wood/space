@@ -13,11 +13,11 @@ System::~System()
 {
 }
 
-void System::update(float time)
+void System::update(double time)
 {
     for (Location *loc : this->locations)
     {
-        const float angle = time * loc->orbital_velocity + loc->initial_angle;
+        const float angle = static_cast<float>(std::fmod(time * loc->orbital_velocity + loc->initial_angle, 2.0 * PI));
         loc->position = (Vector2){
             loc->orbital_radius * cosf(angle),
             loc->orbital_radius * sinf(angle)};

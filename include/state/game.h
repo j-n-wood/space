@@ -103,8 +103,8 @@ class Game
 
 public:
     // game state
-    float game_time;
-    float time_rate;
+    double game_time;
+    double time_rate;
 
     // name counters
     int ios_number{1};
@@ -243,7 +243,7 @@ public:
     int droneCountForCraft(const Craft *craft) const;
 
     // update by delta
-    void update(float delta);
+    void update(double delta);
     void advanceTick();
 
     // events

@@ -153,7 +153,7 @@ void Orrery::input()
 
         // The table was built for the old transform. Zoom works while paused, so waiting for
         // time to advance would leave the orrery drawn at the previous scale.
-        last_update_time = -1.0f;
+        last_update_time = -1.0;
     }
 
     // set focus to mouse position on right click, if over a body -- nullptr clears it, which
@@ -275,7 +275,7 @@ Orrery &Orrery::focusOnLocation(Location *location)
 
     // Moving the view invalidates every screen position in the table. Same marker the zoom
     // path uses, so there is one way for the table to go stale.
-    last_update_time = -1.0f;
+    last_update_time = -1.0;
 
     return *this;
 }

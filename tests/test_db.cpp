@@ -163,7 +163,7 @@ TEST_CASE("Game::initialise loads full game state")
 
     SUBCASE("loads game time")
     {
-        CHECK(game->game_time == 0.0f);
+        CHECK(game->game_time == 0.0);
     }
 
     SUBCASE("loads item definitions")
@@ -377,7 +377,7 @@ static Game *createTestGame()
         orb = game->createOrbital(earth);
     orb->stores.resources[ResourceType::Carbon] = 10;
 
-    game->game_time = 42.5f;
+    game->game_time = 42.5;
 
     return game;
 }
@@ -406,7 +406,7 @@ TEST_CASE("SaveGame produces a loadable database")
 
     SUBCASE("round-trips game time")
     {
-        CHECK(loaded.game_time == doctest::Approx(42.5f));
+        CHECK(loaded.game_time == doctest::Approx(42.5));
     }
 
     SUBCASE("round-trips system")

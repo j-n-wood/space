@@ -11,7 +11,7 @@
 
 std::unique_ptr<Game> Game::current;
 
-const float MAX_TIMESTEP = 1.0f;
+const double MAX_TIMESTEP = 1.0;
 
 // initial.db ships 173 bodies and 13 facilities; the orbit and surface locations take
 // that to roughly 490. Reserving past it means createLocation's resize never has to
@@ -37,7 +37,7 @@ float LinearTransitTimeCalculator::calculateTransitTime(Location *from, Location
     return distance / speed;
 }
 
-Game::Game() : game_time(0.0f), time_rate(1.0f), transitTimeCalculator(std::make_unique<LinearTransitTimeCalculator>())
+Game::Game() : game_time(0.0), time_rate(1.0), transitTimeCalculator(std::make_unique<LinearTransitTimeCalculator>())
 {
     locations.reserve(INITIAL_LOCATION_CAPACITY);
 }
@@ -1019,10 +1019,10 @@ int Game::droneCountForCraft(const Craft *craft) const
     return craft->pods[0].amount;
 }
 
-void Game::update(float delta)
+void Game::update(double delta)
 {
     // add to time, if ticks over one second call advanceTick
-    float dt = delta * time_rate;
+    double dt = delta * time_rate;
     if (dt > MAX_TIMESTEP)
     {
         dt = MAX_TIMESTEP;
