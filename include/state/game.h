@@ -15,6 +15,7 @@
 #include "state/object.h"
 #include "state/resources.h"
 #include "state/crew.h"
+#include "state/event.h"
 
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
@@ -134,6 +135,9 @@ public:
     std::vector<EventSink *> eventSinks; // non-owning collection of event sinks to send game events to, e.g. for logging or triggering UI updates
 
     std::unique_ptr<TransitTimeCalculator> transitTimeCalculator;
+
+    // game events
+    Events events;
 
     Game();
     ~Game();
@@ -274,6 +278,10 @@ public:
     Crew *createCrew(int id, CrewType type, const char *leader, int rank, int size, float experience);
     Crew *crewByID(int id);
     void releaseCrew(Crew *crew);
+
+    // events
+    Event *eventByID(int id);
+    bool completeEvent(int id);
 
     // console input
     bool processConsoleCommand(const char *command, Location *l, Facility *f);

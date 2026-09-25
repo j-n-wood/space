@@ -1,5 +1,6 @@
 #include "loaders/loader.h"
 #include "state/location.h"
+#include "state/strings.h"
 
 Location::Location(System *s, const int lid, const char *n, LocationType t)
     : type(t), system(s), id(lid), primary_id(-1), primary(nullptr),

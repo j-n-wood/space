@@ -13,6 +13,7 @@
 #include "state/autopilot.h"
 #include "state/factory.h"
 #include "state/research_facility.h"
+#include "state/strings.h"
 
 Loader::Loader(const char *dbPath) : game(nullptr)
 {
@@ -727,6 +728,63 @@ bool Loader::loadCrews()
         float experience = (float)sqlite3_column_double(query, 5);
 
         game->createCrew(id, CrewType(type), leader, rank, size, experience);
+    }
+
+    return true;
+}
+
+bool Loader::loadEvents()
+{
+    // query max event ID, reserve space and then emplace s.t. event ID = index in vector
+    SQLiteQuery maxIdQuery(this, "SELECT MAX(id) FROM events");
+    if (!maxIdQuery.next())
+    {
+        TraceLog(LOG_ERROR, "Failed to query max event ID");
+        return false;
+    }
+    int max_event_id = sqlite3_column_int(maxIdQuery, 0);
+    if (max_event_id < 0)
+    {
+        TraceLog(LOG_ERROR, "Invalid max event ID %d", max_event_id);
+        return false;
+    }
+    game->events.clear();
+    game->events.resize(max_event_id + 1);
+
+    SQLiteQuery query(this, "SELECT id, name, log_message, email_message, completed, raise_at FROM events");
+
+    while (query.next())
+    {
+        int id = sqlite3_column_int(query, 0);
+        const char *name = (const char *)sqlite3_column_text(query, 1);
+        const char *log_message = (const char *)sqlite3_column_text(query, 2);
+        const char *email_message = (const char *)sqlite3_column_text(query, 3);
+        bool completed = sqlite3_column_int(query, 4) > 0;
+        float raise_at = (float)sqlite3_column_double(query, 5);
+
+        // emplace at index = id, so that event ID = index in vector
+        game->events[id] = Event(static_cast<EventID>(id), name, log_message, email_message, completed, raise_at);
+    }
+
+    // load event unlocks for research topics
+    SQLiteQuery unlocksQuery(this, "SELECT event_id, topic_id FROM event_unlock_research_topics");
+    while (unlocksQuery.next())
+    {
+        int event_id = sqlite3_column_int(unlocksQuery, 0);
+        int topic_id = sqlite3_column_int(unlocksQuery, 1);
+
+        Event *event = game->eventByID(event_id);
+        if (!event)
+        {
+            TraceLog(LOG_ERROR, "Failed to find event %d for research topic unlock", event_id);
+            return false;
+        }
+        if (topic_id < 0 || topic_id >= static_cast<int>(game->researchTopics.size()))
+        {
+            TraceLog(LOG_ERROR, "Invalid research topic ID %d for event %d", topic_id, event_id);
+            return false;
+        }
+        event->unlocksTopics.push_back(topic_id);
     }
 
     return true;

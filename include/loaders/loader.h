@@ -17,23 +17,6 @@ class System;
 class Location;
 class Facility;
 
-inline void copyFixed(char *dst, size_t dstSize, const char *src)
-{
-    if (dstSize == 0)
-        return;
-    if (!src)
-    {
-        dst[0] = '\0';
-        return;
-    }
-    if (std::strlen(src) >= dstSize)
-    {
-        TraceLog(LOG_WARNING, "copyFixed: truncated '%s' to %zu chars", src, dstSize - 1);
-    }
-    std::strncpy(dst, src, dstSize - 1);
-    dst[dstSize - 1] = '\0';
-}
-
 /// Lightweight SQLite save loader.
 /// Wraps a SQLite database handle and provides the entry point for load operations.
 class Loader
@@ -87,6 +70,8 @@ public:
     bool loadObjects();
 
     bool loadCrews();
+
+    bool loadEvents();
 
 private:
     Location *findLocation(int system_id, int location_id);

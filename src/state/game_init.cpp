@@ -83,6 +83,12 @@ bool Game::initialise(Loader *loader)
         return false;
     }
 
+    if (!loader->loadEvents())
+    {
+        TraceLog(LOG_ERROR, "Failed to load events");
+        return false;
+    }
+
     // cross-reference hacks // TODO
 
     // crew in training -> EC facility

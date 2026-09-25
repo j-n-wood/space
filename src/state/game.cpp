@@ -4,6 +4,7 @@
 #include "state/training_facility.h"
 #include "state/event_sink.h"
 #include "state/craft_action.h"
+#include "state/strings.h"
 
 #include <cstdio>
 #include <cmath>
@@ -40,6 +41,7 @@ float LinearTransitTimeCalculator::calculateTransitTime(Location *from, Location
 Game::Game() : game_time(0.0), time_rate(1.0), transitTimeCalculator(std::make_unique<LinearTransitTimeCalculator>())
 {
     locations.reserve(INITIAL_LOCATION_CAPACITY);
+    events.resize(EVENT_MAX); // preallocate events vector to hold all events by ID
 }
 
 Game::~Game()
@@ -1236,7 +1238,7 @@ void Game::raiseOrbitalConstructionEvent(Orbital *orbital)
     }
 
     // hardcoded game event - on first orbital, unlock IOS research, for player faction
-    if (orbital && orbital->operational && (researchTopics[30].progress == 0.0))
+    if (orbital && orbital->operational && (!events[EVENT_ORBITAL_FACTORY_COMPLETED].completed))
     {
         // check if this is the first orbital
         int operational_orbitals = 0;
@@ -1249,15 +1251,8 @@ void Game::raiseOrbitalConstructionEvent(Orbital *orbital)
         }
         if (operational_orbitals == 1)
         {
-            // first orbital completed, unlock IOS research
-            auto &topic{researchTopics[30]};
-            {
-                // complete that to unlock IOS research
-                for (auto &topicId : topic.unlocksTopics)
-                {
-                    researchTopics[topicId].available = true;
-                }
-            }
+            // game event 1 trigger
+            completeEvent(EVENT_ORBITAL_FACTORY_COMPLETED);
         }
     }
 }
@@ -1483,4 +1478,42 @@ void Game::releaseCrew(Crew *crew)
     {
         crews.erase(it, crews.end());
     }
+}
+
+Event *Game::eventByID(int id)
+{
+    if (id < 0 || id >= events.size())
+    {
+        TraceLog(LOG_ERROR, "Invalid event ID %d in eventByID", id);
+        return nullptr;
+    }
+    return &events[id];
+}
+
+bool Game::completeEvent(int id)
+{
+    Event *event = eventByID(id);
+    if ((!event) || (event->completed))
+    {
+        return false;
+    }
+    event->completed = true;
+    TraceLog(LOG_INFO, "Event %d '%s' marked as completed", id, event->name);
+
+    // unlock any research topics associated with this event
+    for (auto topic_id : event->unlocksTopics)
+    {
+        if (topic_id >= 0 && topic_id < researchTopics.size())
+        {
+            researchTopics[topic_id].available = true;
+            TraceLog(LOG_INFO, "Research topic %d unlocked by event %d", topic_id, id);
+        }
+    }
+
+    if (strlen(event->log_message) > 0)
+    {
+        raiseLogEvent(event->log_message);
+    }
+
+    return true;
 }

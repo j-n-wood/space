@@ -71,6 +71,8 @@ class SaveGame
 
     int saveCrews(Game *game);
 
+    int saveEvents(Game *game);
+
 public:
     SaveGame();
     ~SaveGame();

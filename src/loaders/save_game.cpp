@@ -173,6 +173,8 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS objects ( id INT, type INT, location_id INT, quantity INT, resource_id INT );"
         "CREATE TABLE IF NOT EXISTS crews ( id INT, type int, leader_name TEXT, rank int, size int, experience float );"
         "CREATE TABLE IF NOT EXISTS facility_item_stores ( facility_id INT, item_id INT, amount INT );"
+        "CREATE TABLE IF NOT EXISTS events ( id INTEGER PRIMARY KEY, name TEXT, log_message TEXT, email_message TEXT, completed INT, raise_at FLOAT );"
+        "CREATE TABLE IF NOT EXISTS event_unlock_research_topics ( event_id INT, topic_id INT );"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -273,6 +275,11 @@ int SaveGame::saveGame(Game *game)
     if (saveCraft(game) != 0)
     {
         return -13;
+    }
+
+    if (saveEvents(game) != 0)
+    {
+        return -14;
     }
 
     return 0;
@@ -1104,6 +1111,66 @@ int SaveGame::saveCrews(Game *game)
                  .step("SaveGame: Failed to insert crew row"))
         {
             return -14;
+        }
+    }
+
+    return 0;
+}
+
+int SaveGame::saveEvents(Game *game)
+{
+    if (!loader || !loader->db)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Null loader pointer");
+        return -6;
+    }
+
+    SQLiteQuery query(loader, "INSERT INTO events (id, name, log_message, email_message, completed, raise_at) VALUES (?, ?, ?, ?, ?, ?);");
+    if (!query.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare events insert");
+        return -9;
+    }
+
+    for (const auto &event : game->events)
+    {
+        if (event.id == 0)
+        {
+            // skip
+            continue;
+        }
+        if (!query.reset()
+                 .bind(1, static_cast<int>(event.id))
+                 .bind(2, event.name)
+                 .bind(3, event.log_message)
+                 .bind(4, event.email_message)
+                 .bind(5, event.completed ? 1 : 0)
+                 .bind(6, event.raise_at)
+                 .step("SaveGame: Failed to insert event row"))
+        {
+            return -14;
+        }
+    }
+
+    // iterate and store topic unlocks for each event
+    SQLiteQuery unlockQuery(loader, "INSERT INTO event_unlock_research_topics (event_id, topic_id) VALUES (?, ?);");
+    if (!unlockQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare event_unlock_research_topics insert");
+        return -9;
+    }
+
+    for (const auto &event : game->events)
+    {
+        for (const auto &topicId : event.unlocksTopics)
+        {
+            if (!unlockQuery.reset()
+                     .bind(1, static_cast<int>(event.id))
+                     .bind(2, topicId)
+                     .step("SaveGame: Failed to insert event_unlock_research_topics row"))
+            {
+                return -14;
+            }
         }
     }
 
