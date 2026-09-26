@@ -46,6 +46,11 @@ void buildTestData(Game *game)
 	Location *earth = game->locationByID(4);
 	auto of = game->orbitalAt(earth);
 
+	if (!of)
+	{
+		return;
+	}
+
 	Shuttle *sh = game->createShuttle(earth); // create shuttle based at earth
 	game->setDefaultRoute(sh, of);			  // surface <-> earth orbital
 	sh->drive = true;

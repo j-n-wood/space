@@ -22,7 +22,7 @@ const float door_animation_duration = 0.5f; // seconds
 const float door_animation_closed = 1.0f;   // closed position
 const float door_animation_open = 0.0f;     // open position
 
-const Rectangle door_image{585, 382, 42, 75};
+const Rectangle door_image{586, 384, 42, 75};
 
 void TrainingView::setTweenState(CrewType type)
 {
@@ -138,9 +138,9 @@ void TrainingView::renderTrainingControls(CrewType type, const Rectangle &remove
     if (value > door_animation_open)
     {
         // draw door over control area
-        static float door_left[3] = {1055.0f, 855.0f, 585.0f};
+        static float door_left[3] = {1040.0f, 784.0f, 528.0f};
 
-        Rectangle door_dest{door_left[static_cast<int>(type)], 494, 42 * 4, 75 * 4};
+        Rectangle door_dest{door_left[static_cast<int>(type)], 491, 150, 438};
         // cut source image into left-right halves
         // trim from centre to edges based on progress value
         // make target rects of equivalent size from left and right edges of control area, and draw each half with appropriate source rect
