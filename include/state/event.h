@@ -31,12 +31,12 @@ public:
         email_message[0] = '\0';
     }
 
-    Event(EventID id, const char *name, const char *log_message, const char *email_message, bool completed, double raise_at)
-        : id(id), completed(completed), raise_at(raise_at)
+    Event(EventID i, const char *n, const char *log, const char *email, bool c, double r)
+        : id(i), completed(c), raise_at(r)
     {
-        copyFixed(this->name, sizeof(this->name), name);
-        copyFixed(this->log_message, sizeof(this->log_message), log_message);
-        copyFixed(this->email_message, sizeof(this->email_message), email_message);
+        copyFixed(this->name, sizeof(this->name), n);
+        copyFixed(this->log_message, sizeof(this->log_message), log);
+        copyFixed(this->email_message, sizeof(this->email_message), email);
     }
 };
 

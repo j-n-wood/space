@@ -12,7 +12,7 @@ public:
     Crew *engineers{nullptr};
     Crew *marines{nullptr};
 
-    TrainingFacility(ResourceFacility *facility) : facility(facility), scientists(nullptr), engineers(nullptr), marines(nullptr) {}
+    TrainingFacility(ResourceFacility *f) : facility(f), scientists(nullptr), engineers(nullptr), marines(nullptr) {}
 
     Crew *crewForType(CrewType type);
 
