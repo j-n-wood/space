@@ -2,6 +2,7 @@
 
 #include "state/game.h"
 #include "raygui/raygui.h"
+#include "assets/ui_elements.h"
 
 class ItemList
 {
@@ -60,12 +61,13 @@ public:
         }
 
         GuiSetStyle(LISTVIEW, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
-        GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
         GuiSetStyle(LISTVIEW, BASE_COLOR_NORMAL, ColorToInt(BLACK));
         GuiSetStyle(LISTVIEW, BASE_COLOR_FOCUSED, ColorToInt(DARKGRAY));
         GuiSetStyle(LISTVIEW, BASE_COLOR_PRESSED, ColorToInt(GRAY));
 
         GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(BLACK));
+
+        DefaultTextSizeState defaultTextSizeState(20);
         return GuiListViewEx(dest, names, currentCount, &scrollIndex, &itemActive, &itemFocused);
     }
 

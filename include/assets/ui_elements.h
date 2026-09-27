@@ -201,3 +201,23 @@ public:
         GuiSetStyle(BUTTON, TEXT_COLOR_PRESSED, 0xFFFFFFFF);
     }
 };
+
+// used to set and reset 'DEFAULT' text size in the GUI
+// e.g. as used by listview (item list component)
+// but affects other controls as well
+class DefaultTextSizeState
+{
+    int previousTextSize;
+
+public:
+    DefaultTextSizeState(const int textSize)
+    {
+        previousTextSize = GuiGetStyle(DEFAULT, TEXT_SIZE);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, textSize); // Example default text size
+    }
+
+    ~DefaultTextSizeState()
+    {
+        GuiSetStyle(DEFAULT, TEXT_SIZE, previousTextSize); // Reset to previous text size
+    }
+};
