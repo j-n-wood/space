@@ -8,10 +8,13 @@
 
 Rectangle itemImageTarget = {250, 140, 256, 224};
 Rectangle docImageTarget = {560, 240, 192, 192};
+Rectangle grinderSource = {464, 384, 21, 9};  // leftmost part of repeated shaft, 6 pix repeat
+Rectangle grinderTarget = {983, 488, 81, 54}; // where to blit the shaft
 
 void FactoryView::activate(ViewState &viewState)
 {
     factory = nullptr;
+    shaft_animation = 0.0f;
 
     auto game{Game::getCurrent()};
     Facility *f{nullptr};
@@ -147,11 +150,26 @@ void FactoryView::render()
         }
     }
 
+    // blit shaft image over grinder area - always, so progress looks consistent
+    Rectangle source = grinderSource;
+    source.x += (int)(shaft_animation * 6.0f); // 6 pixel repeat
+    DrawTexturePro(*backgroundTexture, source, grinderTarget, (Vector2){0, 0}, 0.f, WHITE);
+
     pageLog.render();
 }
 
 void FactoryView::update(const float delta)
 {
+    // if we have something in production, animate the grinder shaft
+    if (factory && !factory->queue.empty())
+    {
+        shaft_animation += delta;
+        if (shaft_animation > 1.0f)
+        {
+            shaft_animation -= 1.0f;
+        }
+    }
+
     pageLog.update(delta);
 }
 

@@ -12,7 +12,8 @@ class Factory;
 class FactoryView : public BasePage, EventSink
 {
     Factory *factory;
-    LocationType side; // LOCATION_TYPE_ORBIT or LOCATION_TYPE_SURFACE
+    LocationType side;     // LOCATION_TYPE_ORBIT or LOCATION_TYPE_SURFACE
+    float shaft_animation; // 0.0 to 1.0, for the grinder shaft animation
 
     PageLog pageLog;
 
