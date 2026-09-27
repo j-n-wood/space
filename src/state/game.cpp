@@ -743,6 +743,12 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
         return false;
     }
 
+    // if that pod is already active, cannot activate again
+    if (craft->active_pod_index == pod_index)
+    {
+        return false;
+    }
+
     Pod &pod{craft->pods[pod_index]};
 
     // currently only tool pods can activate
