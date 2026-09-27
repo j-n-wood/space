@@ -174,6 +174,9 @@ int main(const int argc, const char **argv)
 	InitWindow(uiWidth, uiHeight, "Space");
 	TraceLog(LOG_INFO, "Window initialized: %d x %d", uiWidth, uiHeight);
 
+	// disable raylib's default ESC-to-quit, too easy to hit when dismissing dialogs - quit is Ctrl-Q instead
+	SetExitKey(KEY_NULL);
+
 	BasePage::setWindowSize(uiWidth, uiHeight);
 
 	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
@@ -220,7 +223,8 @@ int main(const int argc, const char **argv)
 		Overlay &overlay = Overlay::getInstance(); // create the overlay instance, which will render on top of all pages
 
 		// game loop
-		while (!WindowShouldClose()) // run the loop until the user presses ESCAPE or presses the Close button on the window
+		bool quit = false;
+		while (!quit && !WindowShouldClose()) // run the loop until the user presses Ctrl-Q or presses the Close button on the window
 		{
 			overlay.start(); // start the overlay for this frame, can be used to reset any state tracked by the overlay at the start of each frame
 			// drawing
@@ -253,6 +257,12 @@ int main(const int argc, const char **argv)
 			overlay.render(); // render the overlay (incl. console text box) after all pages
 
 			EndDrawing();
+
+			// Ctrl-Q quits, even with the console open
+			if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_Q))
+			{
+				quit = true;
+			}
 
 			if (!overlay.console) // only process game input if console is not open, so that we can type into the console without affecting the game
 			{

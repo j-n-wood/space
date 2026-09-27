@@ -102,3 +102,4 @@ Quicksave/quickload: F5 saves to `quicksave.db`, F8 loads by creating a fresh Ga
 - **1/2**: Switch pages (System View / Earth City)
 - **Space**: Pause/resume time
 - **F5/F8**: Quicksave/Quickload
+- **Ctrl-Q**: Quit (Esc does not quit)
