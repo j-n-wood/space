@@ -123,15 +123,24 @@ bool Factory::canBuild(const int item_id) const
     }
     auto &item{game->items[item_id]};
 
-    if (item.orbital && (!this->is_orbital))
+    if (item.orbital && (!is_orbital))
     {
         return false; // orbital only
     }
 
-    if (item.tech_level > this->tech_level)
+    if (item.tech_level > getTechLevel())
     {
         return false; // too hard
     }
 
     return true;
+}
+
+int Factory::getTechLevel() const
+{
+    if (!facility)
+    {
+        return 0; // default tech level if no facility
+    }
+    return facility->factory_crew ? facility->factory_crew->rank : 0;
 }

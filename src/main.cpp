@@ -42,14 +42,13 @@ void takeDefaultFocus()
 void buildTestData(Game *game)
 {
 
+	TraceLog(LOG_INFO, "Building test data for game");
+
 	System *system = game->allSystems()[1].get();
 	Location *earth = game->locationByID(4);
-	auto of = game->orbitalAt(earth);
 
-	if (!of)
-	{
-		return;
-	}
+	auto of = game->createOrbital(earth);
+	of->operational = true;
 
 	Shuttle *sh = game->createShuttle(earth); // create shuttle based at earth
 	game->setDefaultRoute(sh, of);			  // surface <-> earth orbital
@@ -70,6 +69,9 @@ void buildTestData(Game *game)
 	of->stores.items[ItemType::Of_Frame] = 5;
 	of->stores.items[ItemType::DFCC] = 1;
 	of->stores.items[ItemType::Ios_Drone] = 10;
+	of->stores.items[ItemType::Cryo_Pod] = 2;
+
+	of->barracks.addCrew(game->createCrew(0, CrewType::Marine, "Apone", 2, 40, 70.0));
 
 	// Mars orbital first: setDestination resolves a body to an exact place there and
 	// then, so an endpoint set before the orbital exists would name the bare orbit
@@ -137,6 +139,12 @@ void buildTestData(Game *game)
 	ios4->pods[0].amount = 1;
 	ios4->startScanning();
 	ios4->assignCrew(game->createCrew(0, CrewType::Marine, "Hudson", 1, 35, 0.0f));
+
+	IOS *ios5 = game->createIOS(of);
+	ios5->enterRegion(true);
+	ios5->drive = true;
+	ios5->fuel = 250;
+	ios5->setPodType(0, PT_CRYO);
 }
 
 // check args for -flag type values
@@ -206,7 +214,6 @@ int main(const int argc, const char **argv)
 
 			if (args.hasFlag("-testdata"))
 			{
-				TraceLog(LOG_INFO, "Building test data");
 				buildTestData(game);
 			}
 		}

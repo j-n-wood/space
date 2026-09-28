@@ -163,7 +163,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS research_topic_unlocks_topics ( topic_id int, unlocks_topic_id int);"
         "CREATE TABLE IF NOT EXISTS body_resources ( body_id int, resource_id int, availability int );"
         "CREATE TABLE IF NOT EXISTS craft ( id int, name text, type int, state int, state_timer float, total_state_timer float, location_id int, fuel int, max_pods int, drive int, destination_index int, faction_id int, active_pod_index int, scan_object_id int, crew_id int );"
-        "CREATE TABLE IF NOT EXISTS craft_pods ( craft_id int, pod_index int, type int, content_type int, amount int, object_id int );"
+        "CREATE TABLE IF NOT EXISTS craft_pods ( craft_id int, pod_index int, type int, content_type int, amount int, object_id int, crew_id int );"
         "CREATE TABLE IF NOT EXISTS craft_destinations ( craft_id int, destination_index int, system_id int, location_id int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot ( craft_id int, state int );"
         "CREATE TABLE IF NOT EXISTS craft_autopilot_flows ( craft_id int, resource_index int, flow_flags int );"
@@ -908,7 +908,7 @@ int SaveGame::saveCraft(Craft *craft)
     }
 
     // save pods
-    SQLiteQuery podQuery(loader, "INSERT INTO craft_pods (craft_id, pod_index, type, content_type, amount, object_id) VALUES (?, ?, ?, ?, ?, ?);");
+    SQLiteQuery podQuery(loader, "INSERT INTO craft_pods (craft_id, pod_index, type, content_type, amount, object_id, crew_id) VALUES (?, ?, ?, ?, ?, ?, ?);");
     if (!podQuery.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare craft_pods insert");
@@ -920,7 +920,7 @@ int SaveGame::saveCraft(Craft *craft)
 
         const int podObjectId = pod.object ? pod.object->id : 0; // 0 = holding nothing
 
-        if (!podQuery.reset().bind(1, craft->id).bind(2, podIndex).bind(3, static_cast<int>(pod.type)).bind(4, pod.contentType).bind(5, pod.amount).bind(6, podObjectId).step("SaveGame: Failed to execute craft_pods insert"))
+        if (!podQuery.reset().bind(1, craft->id).bind(2, podIndex).bind(3, static_cast<int>(pod.type)).bind(4, pod.contentType).bind(5, pod.amount).bind(6, podObjectId).bind(7, pod.crew ? pod.crew->id : 0).step("SaveGame: Failed to execute craft_pods insert"))
         {
             return -14;
         }

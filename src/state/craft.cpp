@@ -57,7 +57,14 @@ const char *Pod::description(char *dest, size_t len)
         }
         break;
     case PT_CRYO:
-        // TODO
+        if (crew)
+        {
+            std::snprintf(dest, len, "Cryo Pod: %s", crew->description(dest, len));
+        }
+        else
+        {
+            std::snprintf(dest, len, "Cryo Pod");
+        }
         break;
     case PT_WEAPON:
         std::snprintf(dest, len, "%s", Game::getCurrent()->items[contentType].name);

@@ -199,7 +199,6 @@ EarthCity *Game::createEarthCity(Location *location, int id)
 
     auto factory = createFactory(earth_city); // EC production
     factory->is_orbital = false;              // EC is surface facility, so set factory accordingly
-    factory->tech_level = 1;                  // EC starts with tech level 1, can build basic items
     createResearchFacility(earth_city);
     createTrainingFacility(earth_city); // EC has a training facility for crew
     return earth_city;
@@ -646,6 +645,48 @@ void Game::setToolPodContent(Pod *pod, Stores *stores, int item_id)
         // remove from stores
         stores->items[item_id] -= pod->amount;
     }
+}
+bool Game::setCryoPodContent(Pod *pod, Crew *crew, Facility *facility)
+{
+    if (!pod || !crew || !facility)
+    {
+        TraceLog(LOG_ERROR, "Missing pod, crew, or facility to setCryoPodContent");
+        return false;
+    }
+
+    if (pod->type != PT_CRYO)
+    {
+        TraceLog(LOG_ERROR, "Pod is not a cryo pod");
+        return false;
+    }
+
+    // remove existing crew if any
+    if (pod->crew)
+    {
+        if (facility->barracks.addCrew(pod->crew))
+        {
+            pod->crew = nullptr;
+        }
+        else
+        {
+            TraceLog(LOG_ERROR, "No space available in barracks to assign crew to cryo pod");
+            return false;
+        }
+    }
+
+    pod->crew = crew;
+
+    // remove from facility
+    for (int i = 0; i < MAX_BARRACKS_CREW; ++i)
+    {
+        if (facility->barracks.crew[i] == crew)
+        {
+            facility->barracks.crew[i] = nullptr;
+            break;
+        }
+    }
+
+    return true;
 }
 
 void Game::unloadAllPods(Craft *craft, Facility *facility)

@@ -5,7 +5,7 @@
 
 const int MAX_CREW_LEADER_NAME_LEN = 32;
 const int MAX_CREW_RANK = 5;
-const float experience_thresholds[MAX_CREW_RANK] = {20.0f, 50.0f, 100.0f, 150.0f, 220.0f};
+const float experience_thresholds[MAX_CREW_RANK] = {20.0f, 70.0f, 120.0f, 200.0f, 300.0f};
 
 enum class CrewType : uint8_t
 {

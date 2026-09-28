@@ -444,7 +444,7 @@ bool Loader::loadCraft()
         return false;
     }
 
-    SQLiteQuery podsQuery(this, "SELECT pod_index, type, content_type, amount, object_id FROM craft_pods WHERE craft_id = ? ORDER BY pod_index");
+    SQLiteQuery podsQuery(this, "SELECT pod_index, type, content_type, amount, object_id, crew_id FROM craft_pods WHERE craft_id = ? ORDER BY pod_index");
     if (!podsQuery.stmt)
     {
         TraceLog(LOG_ERROR, "Failed to prepare craft_pods query");
@@ -554,6 +554,7 @@ bool Loader::loadCraft()
             int content_type = sqlite3_column_int(podsQuery, 2);
             int amount = sqlite3_column_int(podsQuery, 3);
             int object_id = sqlite3_column_int(podsQuery, 4);
+            crew_id = sqlite3_column_int(podsQuery, 5);
             if (pod_index >= 0 && pod_index < craft->max_pods)
             {
                 craft->pods[pod_index].type = PodType(pod_type);
@@ -569,6 +570,17 @@ bool Loader::loadCraft()
                         return false;
                     }
                     craft->pods[pod_index].object = obj;
+                }
+
+                if (crew_id > 0)
+                {
+                    Crew *crew = game->crewByID(crew_id);
+                    if (!crew)
+                    {
+                        TraceLog(LOG_ERROR, "Failed to find crew %d for pod %d of craft %d", crew_id, pod_index, id);
+                        return false;
+                    }
+                    craft->pods[pod_index].crew = crew;
                 }
             }
             else

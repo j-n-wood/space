@@ -77,6 +77,7 @@ void BayView::activate(ViewState &viewState)
         Rectangle dlg_dest{(float)dlg_width * 0.5f, (float)dlg_height * 0.5f, (float)dlg_width, (float)dlg_height};
         resourceList.activate(game, &facility->stores, dlg_dest);
         itemList.activate(game, &facility->stores, dlg_dest);
+        crewList.activate(facility, dlg_dest);
 
         craft = getCraft(); // initial docked craft on page activation
     }
@@ -120,6 +121,14 @@ void BayView::loadToolPod(Pod *pod)
         }
     }
     itemList.visible = true;
+}
+
+void BayView::loadCryoPod(Pod *pod)
+{
+    // set cryo pod selection to current pod content, if any
+    // show a list of available crews
+    crewList.itemActive = -1;
+    crewList.visible = true;
 }
 
 void BayView::input()
@@ -173,6 +182,22 @@ void BayView::input()
         }
     }
 
+    if (crewList.visible)
+    {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+        {
+            crewList.visible = false;
+        }
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
+            Crew *selectedCrew = crewList.getSelectedItem();
+            if (selectedCrew)
+            {
+                Game::getCurrent()->setCryoPodContent(&craft->pods[section - 1], selectedCrew, facility);
+            }
+        }
+    }
+
     Overlay &overlay = Overlay::getInstance();
 
     // TEMP: debug hotkeys for craft-wide weapon loading until dedicated UI lands
@@ -222,13 +247,18 @@ void BayView::input()
         if (inspectPod)
         {
             // if supply pod, choose resource
-            if (craft->pods[podIndex].type == PT_SUPPLY)
+            auto &pod = craft->pods[podIndex];
+            if (pod.type == PT_SUPPLY)
             {
-                loadSupplyPod(&craft->pods[podIndex]);
+                loadSupplyPod(&pod);
             }
-            else if (craft->pods[podIndex].type == PT_TOOL)
+            else if (pod.type == PT_TOOL)
             {
-                loadToolPod(&craft->pods[podIndex]);
+                loadToolPod(&pod);
+            }
+            else if (pod.type == PT_CRYO)
+            {
+                loadCryoPod(&pod);
             }
             return; // no other input
         }
@@ -328,63 +358,70 @@ void BayView::render()
         {
             itemList.render();
         }
+        if (crewList.visible)
+        {
+            crewList.render();
+        }
     }
 
     auto &overlay = Overlay::getInstance();
 
     // list barracks crews
-    float y = 360.0;
-    for (int idx = 0; idx < MAX_BARRACKS_CREW; idx++)
+    if (section == 0)
     {
-        // render each crew in the barracks
-        Crew *crew = facility->barracks.crew[idx];
-        if (crew)
+        float y = 360.0;
+        for (int idx = 0; idx < MAX_BARRACKS_CREW; idx++)
         {
-            static const Color crew_text_colors[4] = {YELLOW, GREEN, BLUE, RED};
-            static const char *crew_hover_text[4] = {"Assign to craft", "Send to engineering", "Send to research", "Crew 4"};
-            char crew_status[128];
-            int crew_type = static_cast<int>(crew->type);
-            if (overlay.renderButton(Rectangle{330, y, 200, 30}, crew->description(crew_status, sizeof crew_status), crew_hover_text[crew_type], crew_text_colors[crew_type]))
+            // render each crew in the barracks
+            Crew *crew = facility->barracks.crew[idx];
+            if (crew)
             {
-                // perform action with crew
-                switch (crew_type)
+                static const Color crew_text_colors[4] = {YELLOW, GREEN, BLUE, RED};
+                static const char *crew_hover_text[4] = {"Assign to craft", "Send to engineering", "Send to research", "Crew 4"};
+                char crew_status[128];
+                int crew_type = static_cast<int>(crew->type);
+                if (overlay.renderButton(Rectangle{330, y, 200, 30}, crew->description(crew_status, sizeof crew_status), crew_hover_text[crew_type], crew_text_colors[crew_type]))
                 {
-                case 0:
-                    // Assign to craft
-                    if (craft && craft->crew == nullptr)
+                    // perform action with crew
+                    switch (crew_type)
                     {
-                        // assign crew to craft
-                        craft->crew = crew;
-                        facility->barracks.crew[idx] = nullptr;
-                        crew = nullptr;
-                        TraceLog(LOG_INFO, "Crew assigned to craft");
+                    case 0:
+                        // Assign to craft
+                        if (craft && craft->crew == nullptr)
+                        {
+                            // assign crew to craft
+                            craft->crew = crew;
+                            facility->barracks.crew[idx] = nullptr;
+                            crew = nullptr;
+                            TraceLog(LOG_INFO, "Crew assigned to craft");
+                        }
+                        break;
+                    case 1:
+                        // Send to engineering
+                        if (facility && facility->factory_crew == nullptr)
+                        {
+                            // send crew to engineering
+                            facility->factory_crew = crew;
+                            facility->barracks.crew[idx] = nullptr;
+                            crew = nullptr;
+                            TraceLog(LOG_INFO, "Crew sent to engineering");
+                        }
+                        break;
+                    case 2:
+                        // Send to research
+                        // TODO
+                        break;
+                    case 3:
+                        break;
                     }
-                    break;
-                case 1:
-                    // Send to engineering
-                    if (facility && facility->factory_crew == nullptr)
-                    {
-                        // send crew to engineering
-                        facility->factory_crew = crew;
-                        facility->barracks.crew[idx] = nullptr;
-                        crew = nullptr;
-                        TraceLog(LOG_INFO, "Crew sent to engineering");
-                    }
-                    break;
-                case 2:
-                    // Send to research
-                    // TODO
-                    break;
-                case 3:
-                    break;
                 }
-            }
 
-            y += 30;
+                y += 30;
+            }
         }
     }
 
-    if (section == 0)
+    if ((section == 0) && craft)
     {
         // report crew if any
         if (craft->crew)
@@ -564,6 +601,14 @@ void BayView::renderPod(Pod *pod)
         break;
     case PT_CRYO:
         DrawTexturePro(*partsTexture, cryo_pod, main_section_dest, Vector2{0, 0}, 0.0f, WHITE);
+        if (pod->crew)
+        {
+            auto game = Game::getCurrent();
+            char buffer[64];
+            std::snprintf(buffer, sizeof buffer, "Cryo Pod: %s", pod->crew->description(buffer, sizeof buffer));
+            int textWidth = MeasureText(buffer, 20);
+            DrawText(buffer, (int)(main_section_dest.x + main_section_dest.width / 2 - textWidth / 2), (int)(main_section_dest.y + main_section_dest.height + 10), 20, WHITE);
+        }
         break;
     case PT_WEAPON:
         // which weapon?

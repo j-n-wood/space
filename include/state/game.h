@@ -235,6 +235,7 @@ public:
     void setPodType(Craft *craft, int index, PodType pt, Facility *facility);
     void setSupplyPodContent(Pod *pod, Stores *stores, int resource_id, int amount);
     void setToolPodContent(Pod *pod, Stores *stores, int item_id);
+    bool setCryoPodContent(Pod *pod, Crew *crew, Facility *facility);
     void unloadAllPods(Craft *craft, Facility *facility);
     bool loadWeapon(Craft *craft, int item_id, Facility *facility);
     bool canActivatePod(Craft *craft, int pod_index);

@@ -27,9 +27,8 @@ class Factory
 
 public:
     bool is_orbital;
-    int tech_level;
 
-    explicit Factory(Facility *f, Stores *s) : facility{f}, stores{s}, is_orbital{true}, tech_level{1} {}
+    explicit Factory(Facility *f, Stores *s) : facility{f}, stores{s}, is_orbital{true} {}
 
     Facility *facility;
     Stores *stores;
@@ -43,4 +42,6 @@ public:
     void queueItem(const int item_id);
     void dropQueueItem(const int index);
     void repeatQueueItem(const int index, const bool r);
+
+    int getTechLevel() const;
 };

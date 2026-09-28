@@ -38,6 +38,8 @@ typedef enum
     PT_COUNT
 } PodType;
 
+class Crew;
+
 class Pod
 {
 public:
@@ -45,8 +47,9 @@ public:
     int contentType; // item index or resource type
     int amount;      // amount or count
     Object *object;  // optional: id of held object for grapple
+    Crew *crew;      // optional: crew assigned to this pod (cryo pod)
 
-    Pod() : type{PT_EMPTY}, contentType{0}, amount{0}, object{nullptr} {};
+    Pod() : type{PT_EMPTY}, contentType{0}, amount{0}, object{nullptr}, crew{nullptr} {};
 
     const char *description(char *dest, size_t len);
 };
