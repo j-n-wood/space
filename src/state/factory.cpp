@@ -41,6 +41,13 @@ void Factory::repeatQueueItem(const int index, const bool r)
 
 void Factory::update()
 {
+
+    // if no crew, cannot do anything
+    if (!facility->factory_crew)
+    {
+        return;
+    }
+
     // progress on current queue, if any
     // update by one tick
     if (!queue.empty())
@@ -73,6 +80,9 @@ void Factory::update()
             // else wait for resources
             return; // if can't start, don't progress time
         }
+
+        // add some crew experience
+        facility->factory_crew->addExperience(1.0f); // adjust rate as needed
 
         if (++queueItem.progress >= queueItem.build_time)
         {

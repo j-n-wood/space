@@ -22,6 +22,15 @@ void ResearchView::render()
 
     // location resources
     listResearch();
+
+    // display crew
+    if (facility->crew)
+    {
+        char crew_status[128];
+        DrawText(facility->crew->description(crew_status, sizeof crew_status), 270, 770, 20, BLUE);
+        snprintf(crew_status, sizeof crew_status, "Researchers: %d", facility->crew->size);
+        DrawText(crew_status, 270, 790, 20, BLUE);
+    }
 }
 
 void ResearchView::listResearch()

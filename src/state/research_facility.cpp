@@ -11,7 +11,7 @@ void ResearchFacility::update(float delta)
     // if enough to complete project, mark as researched and move to next project if desired
     // currently no queue, but prepare for it
 
-    if (current_project != -1)
+    if ((current_project != -1) && (crew != nullptr))
     {
         auto game = Game::getCurrent();
         auto &topic = game->researchTopics[current_project];
@@ -49,5 +49,6 @@ void ResearchFacility::update(float delta)
             // still researching
             topic.progress += delta;
         }
+        crew->addExperience(delta); // add experience to the crew for the time spent researching
     }
 }
