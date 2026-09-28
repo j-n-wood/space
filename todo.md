@@ -10,6 +10,10 @@ Lots of waiting at the start. Set up experience limits for rank 1 s.t. initial t
 Production time of e.g. OF -> shorter.
 Some clue that Luna base exists?
 
+## tech levels
+
+* cannot produce IOS as need tech level two, not implemented
+
 ## staff model
 
 * on craft
