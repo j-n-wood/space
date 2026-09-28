@@ -155,6 +155,16 @@ void FactoryView::render()
     source.x += (int)(shaft_animation * 6.0f); // 6 pixel repeat
     DrawTexturePro(*backgroundTexture, source, grinderTarget, (Vector2){0, 0}, 0.f, WHITE);
 
+    // report crew
+    if (factory->facility && factory->facility->factory_crew)
+    {
+        Crew *crew = factory->facility->factory_crew;
+        char crew_status[128];
+        DrawText(crew->description(crew_status, sizeof crew_status), 684, 852, 20, YELLOW);
+        std::snprintf(crew_status, sizeof crew_status, "%d engineers", crew->size);
+        DrawText(crew_status, 684, 872, 20, YELLOW);
+    }
+
     pageLog.render();
 }
 

@@ -5,6 +5,7 @@
 #include <vector>
 
 class Stores;
+class Facility; // for crew transfer
 
 class QueueItem
 {
@@ -28,8 +29,9 @@ public:
     bool is_orbital;
     int tech_level;
 
-    explicit Factory(Stores *s) : stores{s}, is_orbital{true}, tech_level{1} {}
+    explicit Factory(Facility *f, Stores *s) : facility{f}, stores{s}, is_orbital{true}, tech_level{1} {}
 
+    Facility *facility;
     Stores *stores;
     FactoryQueue queue;
 

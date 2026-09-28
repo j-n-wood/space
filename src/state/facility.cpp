@@ -2,7 +2,7 @@
 
 Factory *Facility::createFactory()
 {
-    factory = std::move(std::make_unique<Factory>(&stores));
+    factory = std::move(std::make_unique<Factory>(this, &stores));
     return factory.get();
 }
 

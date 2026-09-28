@@ -308,8 +308,8 @@ void ShuttleView::render()
     {
         char crew_status[128];
         DrawText(craft->crew->description(crew_status, sizeof crew_status), 224, 866, 20, YELLOW);
-        std::snprintf(status, sizeof status, "%d marines", craft->crew->size);
-        DrawText(status, 224, 886, 20, YELLOW);
+        std::snprintf(crew_status, sizeof crew_status, "%d marines", craft->crew->size);
+        DrawText(crew_status, 224, 886, 20, YELLOW);
     }
 
     // if have a destination, show that too
