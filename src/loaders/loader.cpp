@@ -188,6 +188,35 @@ bool Loader::loadFacilities()
         }
     }
 
+    // load facility crews for all facilities
+    SQLiteQuery crewQuery(this, "SELECT facility_id, crew_id FROM facility_crews");
+
+    while (crewQuery.next())
+    {
+        int facility_id = sqlite3_column_int(crewQuery, 0);
+        int crew_id = sqlite3_column_int(crewQuery, 1);
+
+        Facility *fac = findFacilityById(facility_id);
+        if (!fac)
+        {
+            TraceLog(LOG_ERROR, "Failed to find facility with id %d for facility crew", facility_id);
+            return false;
+        }
+
+        Crew *crew = game->crewByID(crew_id);
+        if (!crew)
+        {
+            TraceLog(LOG_ERROR, "Failed to find crew with id %d for facility %d", crew_id, facility_id);
+            return false;
+        }
+
+        if (!fac->barracks.addCrew(crew))
+        {
+            TraceLog(LOG_ERROR, "Failed to add crew %d to facility %d: barracks full", crew_id, facility_id);
+            return false;
+        }
+    }
+
     return true;
 }
 

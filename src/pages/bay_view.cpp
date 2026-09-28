@@ -2,6 +2,7 @@
 #include "state/game.h"
 #include "pages/overlay.h"
 #include "assets/ui_elements.h"
+#include "state/facility.h"
 
 const char *bayTypeName[]{
     "Shuttle",
@@ -40,6 +41,7 @@ Rectangle ios_chassis{786, 508, 880, 80};
 // render output and interaction areas
 // full width = 320 + 224 * 4 = 1214
 Rectangle cockpit_dest{1214 - 128 * 4, 300, 96 * 4, 80 * 4};
+Vector2 cockpit_crew_dest{1214 - 128 * 4, 700};
 Rectangle cockpit_spine_dest{1214 - 32 * 4, 300 + 24 * 4, 32 * 4, 48 * 4};
 Rectangle drive_spine_dest{640 - 80 * 4, 300 + 24 * 4, 80 * 4, 48 * 4};
 Rectangle pod_spine_dest{320, 300 + 24 * 4, 224 * 4, 48 * 4};
@@ -328,8 +330,73 @@ void BayView::render()
         }
     }
 
-    // new craft button
     auto &overlay = Overlay::getInstance();
+
+    // list barracks crews
+    float y = 360.0;
+    for (int idx = 0; idx < MAX_BARRACKS_CREW; idx++)
+    {
+        // render each crew in the barracks
+        Crew *crew = facility->barracks.crew[idx];
+        if (crew)
+        {
+            static const Color crew_text_colors[4] = {YELLOW, GREEN, BLUE, RED};
+            static const char *crew_hover_text[4] = {"Assign to craft", "Send to engineering", "Send to research", "Crew 4"};
+            char crew_status[128];
+            int crew_type = static_cast<int>(crew->type);
+            if (overlay.renderButton(Rectangle{330, y, 200, 30}, crew->description(crew_status, sizeof crew_status), crew_hover_text[crew_type], crew_text_colors[crew_type]))
+            {
+                // perform action with crew
+                switch (crew_type)
+                {
+                case 0:
+                    // Assign to craft
+                    if (craft && craft->crew == nullptr)
+                    {
+                        // assign crew to craft
+                        craft->crew = crew;
+                        facility->barracks.crew[idx] = nullptr;
+                        crew = nullptr;
+                        TraceLog(LOG_INFO, "Crew assigned to craft");
+                    }
+                    break;
+                case 1:
+                    // Send to engineering
+                    if (facility && facility->factory_crew == nullptr)
+                    {
+                        // send crew to engineering
+                        facility->factory_crew = crew;
+                        facility->barracks.crew[idx] = nullptr;
+                        crew = nullptr;
+                        TraceLog(LOG_INFO, "Crew sent to engineering");
+                    }
+                    break;
+                case 2:
+                    // Send to research
+                    // TODO
+                    break;
+                case 3:
+                    break;
+                }
+            }
+
+            y += 30;
+        }
+    }
+
+    if (section == 0)
+    {
+        // report crew if any
+        if (craft->crew)
+        {
+            char crew_status[128];
+            DrawText(craft->crew->description(crew_status, sizeof crew_status), cockpit_crew_dest.x, cockpit_crew_dest.y, 20, YELLOW);
+            std::snprintf(crew_status, sizeof crew_status, "%d marines", craft->crew->size);
+            DrawText(crew_status, cockpit_crew_dest.x, cockpit_crew_dest.y + 20, 20, YELLOW);
+        }
+    }
+
+    // new craft button
     Rectangle buttonDest{400, 900, 120, 50};
     const char *toolTip = (type == BT_SHUTTLE) ? "Construct a new shuttle from this bay" : "Construct a new IOS in this bay";
 

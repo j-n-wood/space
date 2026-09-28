@@ -10,6 +10,21 @@
 
 class Crew;
 
+// transfer slots for crews
+const int MAX_BARRACKS_CREW = 4;
+
+class Barracks
+{
+public:
+    // array of Crew* slots to accept crews
+    Crew *crew[MAX_BARRACKS_CREW];
+    Barracks() : crew{} {};
+
+    bool hasSpace() const;
+
+    bool addCrew(Crew *c);
+};
+
 // A facility IS a place: a child location of the body it sits on or orbits. That
 // parent is `Location::primary`; its identity is `Location::id`, drawn from the same
 // sequence as bodies; what it is, is `Location::type`.
@@ -36,6 +51,7 @@ public:
     float damage;                  // 0-100, for damage level of facility, if damaged
 
     Crew *factory_crew;
+    Barracks barracks;
 
     // `parent` is the orbit or surface location this facility sits in, and is what makes
     // it orbital or surface. Id and name are assigned by the Game factory that creates

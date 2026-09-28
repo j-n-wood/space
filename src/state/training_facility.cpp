@@ -96,12 +96,16 @@ Crew *TrainingFacility::getOrCreateCrewForType(CrewType type)
 
 void TrainingFacility::update(float delta)
 {
+    if (!facility)
+    {
+        return; // argh
+    }
     // update training progress for each crew type
     // when they achieve enough to rank 1, training is complete
     if (scientists && scientists->addExperience(delta) > 0)
     {
         // if there is a research facility, add the trained scientists to it
-        if (facility != nullptr && facility->research_facility && facility->research_facility->crew == nullptr)
+        if (facility->research_facility && facility->research_facility->crew == nullptr)
         {
             facility->research_facility->assignCrew(scientists);
         }
@@ -110,19 +114,26 @@ void TrainingFacility::update(float delta)
     if (engineers && engineers->addExperience(delta) > 0)
     {
         // assign to local factory if not crewed
-        if (facility != nullptr && facility->factory && facility->factory_crew == nullptr)
+        if (facility->factory && facility->factory_crew == nullptr)
         {
             facility->assignCrew(engineers);
         }
         else
         {
-            // TODO: send to barracks for hangars to reference
+            if (facility->barracks.hasSpace())
+            {
+                facility->barracks.addCrew(engineers);
+            }
         }
         engineers = nullptr;
     }
     if (marines && marines->addExperience(delta) > 0)
     {
-        // TODO: send to barracks for hangars to reference
+        // assign to local barracks if not crewed
+        if (facility->barracks.hasSpace())
+        {
+            facility->barracks.addCrew(marines);
+        }
         marines = nullptr;
     }
 }

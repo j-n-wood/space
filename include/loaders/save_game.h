@@ -14,6 +14,7 @@ class Factory;
 class Loader;
 class SQLiteQuery;
 class Craft;
+class Facility;
 
 /// Saves the current game state into a SQLite database file.
 /// Uses Loader and SQLiteQuery helpers for persistence of systems, locations, facilities, and stores.
@@ -43,6 +44,8 @@ class SaveGame
 
     /// Persist store state belonging to a facility.
     int saveStores(Stores *stores, int facilityId);
+
+    int saveFacilityCrews(Facility *f, int facilityId);
 
     /// Persist item definitions
     int saveItems(Game *game);

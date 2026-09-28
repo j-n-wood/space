@@ -163,6 +163,12 @@ void FactoryView::render()
         DrawText(crew->description(crew_status, sizeof crew_status), 684, 852, 20, YELLOW);
         std::snprintf(crew_status, sizeof crew_status, "%d engineers", crew->size);
         DrawText(crew_status, 684, 872, 20, YELLOW);
+
+        if (factory->facility->barracks.hasSpace() && GuiButton(Rectangle{1070, 852, 100, 20}, "Send to barracks"))
+        {
+            factory->facility->barracks.addCrew(crew);
+            factory->facility->factory_crew = nullptr; // remove crew from factory after sending to barracks
+        }
     }
 
     pageLog.render();

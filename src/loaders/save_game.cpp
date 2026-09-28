@@ -175,6 +175,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS facility_item_stores ( facility_id INT, item_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS events ( id INTEGER PRIMARY KEY, name TEXT, log_message TEXT, email_message TEXT, completed INT, raise_at FLOAT );"
         "CREATE TABLE IF NOT EXISTS event_unlock_research_topics ( event_id INT, topic_id INT );"
+        "CREATE TABLE IF NOT EXISTS facility_crews ( facility_id INT, crew_id INT );"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -516,6 +517,12 @@ int SaveGame::saveBase(ResourceFacility *rf)
         return rc;
     }
 
+    rc = saveFacilityCrews(rf, facilityId);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
     return saveResearchState(rf, facilityId);
 }
 
@@ -566,6 +573,12 @@ int SaveGame::saveOrbital(Orbital *orbital)
     }
 
     int rc = saveStores(&orbital->stores, facilityId);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    rc = saveFacilityCrews(orbital, facilityId);
     if (rc != 0)
     {
         return rc;
@@ -637,6 +650,49 @@ int SaveGame::saveStores(Stores *stores, int facilityId)
                  .bind(2, itemid)
                  .bind(3, amount)
                  .step("SaveGame: Failed to execute items insert"))
+        {
+            return -13;
+        }
+    }
+
+    return 0;
+}
+
+int SaveGame::saveFacilityCrews(Facility *f, int facilityId)
+{
+    if (!loader || !loader->db)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Null loader pointer");
+        return -6;
+    }
+
+    if (!f)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Null facility pointer");
+        return -8;
+    }
+
+    SQLiteQuery crewQuery(loader, "INSERT INTO facility_crews (facility_id, crew_id) VALUES (?, ?);");
+    if (!crewQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare facility crews insert");
+        return -9;
+    }
+
+    for (int i = 0; i < MAX_BARRACKS_CREW; ++i)
+    {
+        Crew *c = f->barracks.crew[i];
+        if (!c)
+        {
+            continue;
+        }
+
+        sqlite3_reset(crewQuery.stmt);
+        sqlite3_clear_bindings(crewQuery.stmt);
+
+        if (!crewQuery.bind(1, facilityId)
+                 .bind(2, c->id)
+                 .step("SaveGame: Failed to execute facility crews insert"))
         {
             return -13;
         }
