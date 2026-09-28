@@ -677,14 +677,7 @@ bool Game::setCryoPodContent(Pod *pod, Crew *crew, Facility *facility)
     pod->crew = crew;
 
     // remove from facility
-    for (int i = 0; i < MAX_BARRACKS_CREW; ++i)
-    {
-        if (facility->barracks.crew[i] == crew)
-        {
-            facility->barracks.crew[i] = nullptr;
-            break;
-        }
-    }
+    facility->barracks.removeCrew(crew);
 
     return true;
 }

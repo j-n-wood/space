@@ -23,6 +23,8 @@ public:
     bool hasSpace() const;
 
     bool addCrew(Crew *c);
+
+    bool removeCrew(Crew *c);
 };
 
 // A facility IS a place: a child location of the body it sits on or orbits. That

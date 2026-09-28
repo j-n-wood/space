@@ -35,3 +35,16 @@ bool Barracks::addCrew(Crew *c)
     }
     return false;
 }
+
+bool Barracks::removeCrew(Crew *c)
+{
+    for (int i = 0; i < MAX_BARRACKS_CREW; ++i)
+    {
+        if (crew[i] == c)
+        {
+            crew[i] = nullptr;
+            return true;
+        }
+    }
+    return false;
+}
