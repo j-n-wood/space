@@ -27,13 +27,20 @@ Remeber: Need to disband crew via Game.
 * control of orbitals, craft
 * visibility in views
 
+## Fuel model
+
+What happens when it runs out? drifting is just slower? Can dock without fuel?
+
+Fuel model might be an argument for 'build more orbitals' - i.e. refuelling stops
+ for transport - though MTX weakens that eventually. Relates to multiple orbitals - if can do that, why build elsewhere?
+
 ## locations
 
 * asteriod locations for major asteriods? Future: allow 'marking' scanned asteroids so you can return to them and mine some more?
 
-### AMA
+## AMA
 
-### Grapple
+## Grapple
 
 In progress - need graphics, click to remove content.
 

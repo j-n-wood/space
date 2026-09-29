@@ -39,6 +39,53 @@ void Factory::repeatQueueItem(const int index, const bool r)
     }
 }
 
+bool Factory::sendToStores(const int item_id)
+{
+    // some items will be installed at facility instead
+    if (facility)
+    {
+        switch (item_id)
+        {
+        case ItemType::SDM:
+            if (!facility->sdm_installed)
+            {
+                facility->sdm_installed = true;
+                return false;
+            }
+            break;
+        case ItemType::AOC:
+            if (!aoc_installed)
+            {
+                aoc_installed = true;
+                // send crew to barracks
+                if (crew)
+                {
+                    facility->barracks.addCrew(crew); // TODO could fail if full
+                }
+                return false;
+            }
+            break;
+        case ItemType::MTX:
+            if (!facility->mtx_installed)
+            {
+                facility->mtx_installed = true;
+                return false;
+            }
+            return true;
+        default:
+            break;
+        }
+    }
+
+    if (!stores)
+    {
+        return false;
+    }
+
+    ++stores->items[item_id];
+    return true;
+}
+
 void Factory::update()
 {
 
@@ -86,7 +133,9 @@ void Factory::update()
 
         if (++queueItem.progress >= queueItem.build_time)
         {
-            ++stores->items[queueItem.item_id];
+            // if a facility feature (SDM, AOC, MTX) this activates the feature if not present.
+            // otherwise fall through to stores
+            sendToStores(queueItem.item_id);
 
             Game::getCurrent()->raiseProductionCompleteEvent(this, queueItem.item_id);
 

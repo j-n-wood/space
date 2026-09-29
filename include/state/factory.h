@@ -49,4 +49,6 @@ public:
 
     int getTechLevel() const;
     bool assignCrewFromFacility(Crew *c);
+
+    bool sendToStores(const int item_id);
 };

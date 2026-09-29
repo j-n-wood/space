@@ -54,3 +54,9 @@ Hostile environments -> maintenance costs, crew required.
 ## Hidden stars
 
 Brown dwarf stars nearby that are not necessarily known. Need orbital telescopes.
+
+## stealth & detection
+
+Spot ship movement in advance - can then potentially reduce grace time to respond.
+Build listening posts.
+Detection of stations, posts, etc - normally detect an orbital immediately (otherwise story is hard to start).
