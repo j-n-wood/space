@@ -39,6 +39,18 @@ listening posts. Probes. Early detection of enemy fleets.
 
 As per M2.2.
 
-### faster design ships
+## faster design ships
 
 i.e. waverider, less cargo but faster delivery of say vaccine. Or critical resources as above.
+
+## atmospheric stations
+
+you can't land on Jupiter. Make gas processing stations.
+
+### station degradation
+
+Hostile environments -> maintenance costs, crew required.
+
+## Hidden stars
+
+Brown dwarf stars nearby that are not necessarily known. Need orbital telescopes.

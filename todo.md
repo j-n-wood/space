@@ -10,16 +10,11 @@ Lots of waiting at the start. Set up experience limits for rank 1 s.t. initial t
 Production time of e.g. OF -> shorter.
 Some clue that Luna base exists?
 
-## tech levels
+## move training, research to 'facility'
 
-* cannot produce IOS as need tech level two, not implemented
+Not needed now, but why restrict it?
 
 ## staff model
-
-* on craft
-* at factories
-* cryo pod to transport (if not ships crew)
-* transfer at docks
 
 Remeber: Need to disband crew via Game.
 
@@ -50,7 +45,7 @@ In progress - need graphics, click to remove content.
 
 ## production details
 
-* need restrictions, tech level speed
+* need restrictions, tech level, speed
 
 ## seam model
 
@@ -60,9 +55,14 @@ In progress - need graphics, click to remove content.
 
 ## Capture of orbitals
 
-In progress.
+In progress. Can capture (by player).
+Consider capture by enemy and damage to facilities.
 
 ## MTX
+
+## AOC
+
+Basically a fake crew that cannot be removed (normally)?
 
 ## orrery position caching
 
