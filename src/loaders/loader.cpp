@@ -183,7 +183,7 @@ bool Loader::loadFacilities()
                     TraceLog(LOG_ERROR, "Failed to find crew %d for facility %d", factory_crew_id, id);
                     return false;
                 }
-                fac->factory_crew = crew;
+                fac->factory->crew = crew;
             }
         }
     }

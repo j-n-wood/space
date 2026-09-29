@@ -1447,8 +1447,16 @@ TEST_CASE("SaveGame round-trips crews and everything that references them")
     IOS *ios = game->createIOS(static_cast<Location *>(orb));
     REQUIRE(ios != nullptr);
 
-    // one crew per reference site
-    CHECK(orb->assignCrew(engineers) == nullptr); // returns the displaced crew, if any
+    // one crew per reference site. A factory crew is drawn from the facility's barracks,
+    // so stage the engineers there first as a docking craft would.
+    REQUIRE(orb->factory != nullptr);
+    REQUIRE(orb->barracks.addCrew(engineers));
+    CHECK(orb->factory->assignCrewFromFacility(engineers));
+    CHECK(orb->factory->crew == engineers);
+    for (Crew *c : orb->barracks.crew)
+    {
+        CHECK(c != engineers); // moved out of the barracks, not copied
+    }
     ec->research_facility->assignCrew(scientists);
     ios->assignCrew(marines);
 
@@ -1481,8 +1489,13 @@ TEST_CASE("SaveGame round-trips crews and everything that references them")
     // The three references, which is what the load order decides.
     Orbital *lOrb = static_cast<Orbital *>(loaded.locationByID(orbId));
     REQUIRE(lOrb != nullptr);
-    REQUIRE_MESSAGE(lOrb->factory_crew != nullptr, "facility crew lost -- crews must load before facilities");
-    CHECK(lOrb->factory_crew == lEngineers);
+    REQUIRE(lOrb->factory != nullptr);
+    REQUIRE_MESSAGE(lOrb->factory->crew != nullptr, "factory crew lost -- crews must load before facilities");
+    CHECK(lOrb->factory->crew == lEngineers);
+    for (Crew *c : lOrb->barracks.crew)
+    {
+        CHECK_MESSAGE(c != lEngineers, "factory crew also saved in the barracks");
+    }
 
     ResourceFacility *lEc = static_cast<ResourceFacility *>(loaded.locationByID(ecId));
     REQUIRE(lEc != nullptr);

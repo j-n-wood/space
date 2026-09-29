@@ -398,11 +398,10 @@ void BayView::render()
                         break;
                     case 1:
                         // Send to engineering
-                        if (facility && facility->factory_crew == nullptr)
+                        if (facility && facility->factory)
                         {
                             // send crew to engineering
-                            facility->factory_crew = crew;
-                            facility->barracks.crew[idx] = nullptr;
+                            facility->factory->assignCrewFromFacility(crew);
                             crew = nullptr;
                             TraceLog(LOG_INFO, "Crew sent to engineering");
                         }

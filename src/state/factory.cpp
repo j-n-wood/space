@@ -43,7 +43,7 @@ void Factory::update()
 {
 
     // if no crew, cannot do anything
-    if (!facility->factory_crew)
+    if (!crew)
     {
         return;
     }
@@ -82,7 +82,7 @@ void Factory::update()
         }
 
         // add some crew experience
-        facility->factory_crew->addExperience(1.0f); // adjust rate as needed
+        crew->addExperience(1.0f); // adjust rate as needed
 
         if (++queueItem.progress >= queueItem.build_time)
         {
@@ -142,5 +142,25 @@ int Factory::getTechLevel() const
     {
         return 0; // default tech level if no facility
     }
-    return facility->factory_crew ? facility->factory_crew->rank : 0;
+    return crew ? crew->rank : 0;
+}
+
+bool Factory::assignCrewFromFacility(Crew *c)
+{
+    if (!c || !facility)
+    {
+        TraceLog(LOG_INFO, "Cannot assign crew: invalid crew or no facility");
+        return false;
+    }
+
+    Crew *prior_crew = crew;
+
+    facility->barracks.removeCrew(c);
+    if (prior_crew)
+    {
+        facility->barracks.addCrew(prior_crew);
+    }
+
+    crew = c;
+    return true;
 }

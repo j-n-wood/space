@@ -6,6 +6,7 @@
 
 class Stores;
 class Facility; // for crew transfer
+class Crew;
 
 class QueueItem
 {
@@ -28,7 +29,9 @@ class Factory
 public:
     bool is_orbital;
 
-    explicit Factory(Facility *f, Stores *s) : facility{f}, stores{s}, is_orbital{true} {}
+    Crew *crew;
+
+    explicit Factory(Facility *f, Stores *s) : facility{f}, stores{s}, is_orbital{true}, crew{nullptr} {}
 
     Facility *facility;
     Stores *stores;
@@ -44,4 +47,5 @@ public:
     void repeatQueueItem(const int index, const bool r);
 
     int getTechLevel() const;
+    bool assignCrewFromFacility(Crew *c);
 };

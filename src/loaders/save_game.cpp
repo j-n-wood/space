@@ -490,6 +490,13 @@ int SaveGame::saveBase(ResourceFacility *rf)
 
     // `type` is stored, never inferred from the fitted facilities: a plain resource
     // facility with a research facility in it is still a resource facility.
+
+    int factory_crew_id = 0;
+    if (rf->factory && rf->factory->crew)
+    {
+        factory_crew_id = rf->factory->crew->id;
+    }
+
     if (!facilityQuery.bind(1, facilityId)
              .bind(2, rf->primary->system->id)
              .bind(3, rf->primary->id)
@@ -500,7 +507,7 @@ int SaveGame::saveBase(ResourceFacility *rf)
              .bind(8, rf->damage)
              .bind(9, rf->faction_id)
              .bind(9, rf->faction_id)
-             .bind(10, rf->factory_crew ? rf->factory_crew->id : 0)
+             .bind(10, factory_crew_id)
              .step("SaveGame: Failed to execute facility insert for base"))
     {
         return -14;
@@ -554,6 +561,12 @@ int SaveGame::saveOrbital(Orbital *orbital)
         return -9;
     }
 
+    int factory_crew_id = 0;
+    if (orbital->factory && orbital->factory->crew)
+    {
+        factory_crew_id = orbital->factory->crew->id;
+    }
+
     if (!facilityQuery.bind(1, facilityId)
              .bind(2, orbital->primary->system->id)
              .bind(3, orbital->primary->id)
@@ -566,7 +579,7 @@ int SaveGame::saveOrbital(Orbital *orbital)
              .bind(10, orbital->aoc_installed)
              .bind(11, orbital->sdm_installed)
              .bind(12, orbital->mtx_installed)
-             .bind(13, orbital->factory_crew ? orbital->factory_crew->id : 0)
+             .bind(13, factory_crew_id)
              .step("SaveGame: Failed to execute facility insert for orbital"))
     {
         return -14;

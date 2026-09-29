@@ -114,16 +114,13 @@ void TrainingFacility::update(float delta)
     if (engineers && engineers->addExperience(delta) > 0)
     {
         // assign to local factory if not crewed
-        if (facility->factory && facility->factory_crew == nullptr)
+        if (facility->barracks.hasSpace())
         {
-            facility->assignCrew(engineers);
+            facility->barracks.addCrew(engineers);
         }
-        else
+        if (facility->factory && facility->factory->crew == nullptr)
         {
-            if (facility->barracks.hasSpace())
-            {
-                facility->barracks.addCrew(engineers);
-            }
+            facility->factory->assignCrewFromFacility(engineers);
         }
         engineers = nullptr;
     }
