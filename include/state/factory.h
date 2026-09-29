@@ -30,8 +30,9 @@ public:
     bool is_orbital;
 
     Crew *crew;
+    bool aoc_installed;
 
-    explicit Factory(Facility *f, Stores *s) : facility{f}, stores{s}, is_orbital{true}, crew{nullptr} {}
+    explicit Factory(Facility *f, Stores *s) : facility{f}, stores{s}, is_orbital{true}, crew{nullptr}, aoc_installed{false} {}
 
     Facility *facility;
     Stores *stores;

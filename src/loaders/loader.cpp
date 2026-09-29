@@ -151,9 +151,12 @@ bool Loader::loadFacilities()
             orbital->operational = operational;
             orbital->construction_progress = construction_progress;
             orbital->damage = damage;
-            orbital->aoc_installed = aoc_installed > 0;
             orbital->sdm_installed = sdm_installed > 0;
             orbital->mtx_installed = mtx_installed > 0;
+            if (aoc_installed > 0)
+            {
+                orbital->factory->aoc_installed = true;
+            }
             fac = orbital;
             break;
         }

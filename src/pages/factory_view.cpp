@@ -156,7 +156,11 @@ void FactoryView::render()
     DrawTexturePro(*backgroundTexture, source, grinderTarget, (Vector2){0, 0}, 0.f, WHITE);
 
     // report crew
-    if (factory->crew)
+    if (factory->aoc_installed)
+    {
+        DrawText("Automated Operations Computer", 684, 832, 20, GRAY);
+    }
+    else if (factory->crew)
     {
         Crew *crew = factory->crew;
         char crew_status[128];

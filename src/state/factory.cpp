@@ -142,6 +142,10 @@ int Factory::getTechLevel() const
     {
         return 0; // default tech level if no facility
     }
+    if (aoc_installed)
+    {
+        return 5;
+    }
     return crew ? crew->rank : 0;
 }
 
@@ -150,6 +154,12 @@ bool Factory::assignCrewFromFacility(Crew *c)
     if (!c || !facility)
     {
         TraceLog(LOG_INFO, "Cannot assign crew: invalid crew or no facility");
+        return false;
+    }
+
+    if (aoc_installed)
+    {
+        TraceLog(LOG_INFO, "Cannot assign crew: AOC installed");
         return false;
     }
 
