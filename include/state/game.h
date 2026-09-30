@@ -241,6 +241,7 @@ public:
     void setToolPodContent(Pod *pod, Stores *stores, int item_id);
     bool setCryoPodContent(Pod *pod, Crew *crew, Facility *facility);
     void unloadAllPods(Craft *craft, Facility *facility);
+    void unloadObjectFromPod(Pod *pod, Facility *facility);
     bool loadWeapon(Craft *craft, int item_id, Facility *facility);
     bool canActivatePod(Craft *craft, int pod_index);
     bool activatePod(Craft *craft, int pod_index);

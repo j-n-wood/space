@@ -683,6 +683,36 @@ bool Game::setCryoPodContent(Pod *pod, Crew *crew, Facility *facility)
     return true;
 }
 
+void Game::unloadObjectFromPod(Pod *pod, Facility *facility)
+{
+    if (!pod || !facility)
+    {
+        TraceLog(LOG_ERROR, "Missing pod or facility to unloadObjectFromPod");
+        return;
+    }
+
+    if (pod->object)
+    {
+        // handle unload of object // TODO
+        switch (pod->object->type)
+        {
+        case ObjectType::Asteroid:
+            facility->stores.resources[pod->object->resource_id] += pod->amount;
+            break;
+        case ObjectType::Artefact:
+            // TODO
+            break;
+        case ObjectType::ResearchUnlock:
+            researchTopics[pod->object->research_topic_id].available = true;
+            break;
+        default:
+            TraceLog(LOG_ERROR, "Unknown object type in pod");
+            break;
+        }
+        pod->object = nullptr;
+    }
+}
+
 void Game::unloadAllPods(Craft *craft, Facility *facility)
 {
     if (!craft || !facility)
@@ -702,6 +732,10 @@ void Game::unloadAllPods(Craft *craft, Facility *facility)
             {
                 facility->stores.items[pod.contentType] += pod.amount;
             }
+            if (pod.object)
+            {
+                unloadObjectFromPod(&pod, facility);
+            }
             break;
         case PT_SUPPLY:
             if (pod.amount)
@@ -718,7 +752,11 @@ void Game::unloadAllPods(Craft *craft, Facility *facility)
             }
             break;
         case PT_CRYO:
-            // TODO
+            if (pod.crew)
+            {
+                facility->barracks.addCrew(pod.crew);
+                pod.crew = nullptr;
+            }
             break;
         default:
             break;
