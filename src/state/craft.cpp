@@ -778,3 +778,8 @@ Craft &Craft::stopScanning()
     state = CS_IDLE;
     return *this;
 }
+
+void Craft::applyDamage()
+{
+    // basic damage // TODO
+}

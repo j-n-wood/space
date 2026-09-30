@@ -285,6 +285,8 @@ public:
         return prior;
     }
 
+    void applyDamage();
+
     // transition events
     virtual void onDocked();
 };
