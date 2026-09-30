@@ -1,5 +1,6 @@
 #include "state/sdm_event.h"
 #include "state/facility.h"
+#include "state/game.h"
 
 bool SDMEvent::update(double delta)
 {
@@ -20,4 +21,5 @@ bool SDMEvent::update(double delta)
 void SDMEvent::onComplete()
 {
     // destroy facility
+    Game::getCurrent()->destroyFacility(facility);
 }

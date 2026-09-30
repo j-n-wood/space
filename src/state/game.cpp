@@ -1562,6 +1562,8 @@ void Game::destroyCraft(Craft *craft)
         return;
     }
 
+    TraceLog(LOG_INFO, "Destroying craft: %s", craft->name);
+
     // iterate pods and destroy any crew or objects held
     for (int idx = 0; idx < craft->max_pods; idx++)
     {
@@ -1581,7 +1583,7 @@ void Game::destroyCraft(Craft *craft)
     // could be in multiple collections (shuttles, ios, scg)
 
     auto it = std::remove_if(ios.begin(), ios.end(),
-                             [craft](const std::unique_ptr<Craft> &c)
+                             [craft](const std::unique_ptr<IOS> &c)
                              { return c.get() == craft; });
     if (it != ios.end())
     {
@@ -1589,7 +1591,7 @@ void Game::destroyCraft(Craft *craft)
     }
 
     auto it2 = std::remove_if(shuttles.begin(), shuttles.end(),
-                              [craft](const std::unique_ptr<Craft> &c)
+                              [craft](const std::unique_ptr<Shuttle> &c)
                               { return c.get() == craft; });
     if (it2 != shuttles.end())
     {
@@ -1603,6 +1605,8 @@ void Game::destroyFacility(Facility *facility)
     {
         return;
     }
+
+    TraceLog(LOG_INFO, "Destroying facility: %s", facility->name);
 
     // destroy crew in barracks
     for (int idx = 0; idx < MAX_BARRACKS_CREW; idx++)
@@ -1635,4 +1639,25 @@ void Game::destroyFacility(Facility *facility)
     {
         destroyCraft(craft);
     }
+
+    // remove factory reference from game->factories collection
+    if (facility->factory)
+    {
+        this->factories.erase(std::remove_if(this->factories.begin(), this->factories.end(),
+                                             [facility](Factory *f)
+                                             { return f == facility->factory.get(); }),
+                              this->factories.end());
+    }
+
+    this->orbitals.erase(std::remove_if(this->orbitals.begin(), this->orbitals.end(),
+                                        [facility](Orbital *o)
+                                        { return o == facility; }),
+                         this->orbitals.end());
+
+    this->bases.erase(std::remove_if(this->bases.begin(), this->bases.end(),
+                                     [facility](ResourceFacility *b)
+                                     { return b == facility; }),
+                      this->bases.end());
+
+    // need to update viewState if it is referencing this facility
 }
