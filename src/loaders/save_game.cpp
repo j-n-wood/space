@@ -170,7 +170,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS craft_autopilot_cursors ( craft_id int, endpoint_index int, cursor_position int );"
         "CREATE TABLE IF NOT EXISTS factory_queue ( facility_id INT, queue_position INT, item_id INT, build_time INT, progress INT, started INT, repeat INT );"
         "CREATE TABLE IF NOT EXISTS research_facilities ( facility_id INT, current_project INT, crew_id INT );"
-        "CREATE TABLE IF NOT EXISTS objects ( id INT, type INT, location_id INT, quantity INT, resource_id INT );"
+        "CREATE TABLE IF NOT EXISTS objects ( id INT, type INT, location_id INT, quantity INT, resource_id INT, research_topic_id INT );"
         "CREATE TABLE IF NOT EXISTS crews ( id INT, type int, leader_name TEXT, rank int, size int, experience float );"
         "CREATE TABLE IF NOT EXISTS facility_item_stores ( facility_id INT, item_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS events ( id INTEGER PRIMARY KEY, name TEXT, log_message TEXT, email_message TEXT, completed INT, raise_at FLOAT );"
@@ -1148,7 +1148,7 @@ int SaveGame::saveObjects(Game *game)
         return -6;
     }
 
-    SQLiteQuery query(loader, "INSERT INTO objects (id, type, location_id, quantity, resource_id) VALUES (?, ?, ?, ?, ?);");
+    SQLiteQuery query(loader, "INSERT INTO objects (id, type, location_id, quantity, resource_id, research_topic_id) VALUES (?, ?, ?, ?, ?, ?);");
     if (!query.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare objects insert");
@@ -1163,6 +1163,7 @@ int SaveGame::saveObjects(Game *game)
                  .bind(3, obj->location ? obj->location->id : 0)
                  .bind(4, obj->quantity)
                  .bind(5, obj->resource_id)
+                 .bind(6, obj->research_topic_id)
                  .step("SaveGame: Failed to insert object row"))
         {
             return -14;

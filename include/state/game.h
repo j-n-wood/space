@@ -276,7 +276,7 @@ public:
 
     // objects
     std::vector<std::unique_ptr<Object>> &allObjects() { return objects; }
-    Object *createObject(int id, ObjectType type, Location *location, int quantity, int resource_id);
+    Object *createObject(int id, ObjectType type, Location *location, int quantity, int resource_id, int research_topic_id = 0);
     Object *objectByID(int id);
     Object *randomiseAsteroid(Object *asteroid);
     void releaseScanTarget(Object *scan_object);

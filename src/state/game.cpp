@@ -1357,7 +1357,7 @@ bool Game::hostilesAt(Location *location, int faction_id)
     return false;
 }
 
-Object *Game::createObject(int id, ObjectType type, Location *location, int quantity, int resource_id)
+Object *Game::createObject(int id, ObjectType type, Location *location, int quantity, int resource_id, int research_topic_id)
 {
     // create (owned) object and return raw pointer.
     // if ID is 0, generate a new one from max ID
@@ -1377,6 +1377,7 @@ Object *Game::createObject(int id, ObjectType type, Location *location, int quan
     obj->location = location;
     obj->quantity = quantity;
     obj->resource_id = resource_id;
+    obj->research_topic_id = research_topic_id;
 
     Object *raw_ptr = obj.get();
     objects.push_back(std::move(obj));

@@ -762,7 +762,7 @@ bool Loader::loadResearchFacilities()
 
 bool Loader::loadObjects()
 {
-    SQLiteQuery query(this, "SELECT id, type, location_id, quantity, resource_id FROM objects");
+    SQLiteQuery query(this, "SELECT id, type, location_id, quantity, resource_id, research_topic_id FROM objects");
 
     while (query.next())
     {
@@ -771,6 +771,7 @@ bool Loader::loadObjects()
         int location_id = sqlite3_column_int(query, 2);
         int quantity = sqlite3_column_int(query, 3);
         int resource_id = sqlite3_column_int(query, 4);
+        int research_topic_id = sqlite3_column_int(query, 5);
 
         Location *loc = game->locationByID(location_id);
         if (!loc)
@@ -779,7 +780,7 @@ bool Loader::loadObjects()
             return false;
         }
 
-        game->createObject(id, ObjectType(type), loc, quantity, resource_id);
+        game->createObject(id, ObjectType(type), loc, quantity, resource_id, research_topic_id);
     }
 
     return true;
