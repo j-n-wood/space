@@ -47,6 +47,7 @@ public:
     std::unique_ptr<Factory> factory; // RF bases typically do not have factory, orbitals do
     bool operational;                 // fully constructed
     bool sdm_installed;
+    bool sdm_active; // realtime only
     bool mtx_installed;
     uint8_t construction_progress; // 0-100, for construction progress of facility, if under construction
     float damage;                  // 0-100, for damage level of facility, if damaged
@@ -59,7 +60,7 @@ public:
     Facility(Location *parent, LocationType t)
         : Location(parent ? parent->system : nullptr, -1, "", t),
           faction_id{0}, operational{false},
-          sdm_installed{false}, mtx_installed{false}, construction_progress{0}, damage{0}
+          sdm_installed{false}, sdm_active{false}, mtx_installed{false}, construction_progress{0}, damage{0}
     {
         primary = parent;
         radius = 0.0f; // not drawn or hit-tested in the orrery yet

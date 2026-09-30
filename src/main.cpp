@@ -79,6 +79,7 @@ void buildTestData(Game *game)
 	Location *mars = game->locationByID(6);
 	Orbital *mars_orbital{game->createOrbital(mars)};
 	mars_orbital->operational = true;
+	mars_orbital->sdm_installed = true;
 
 	// test IOS
 	IOS *ios = game->createIOS(of);
@@ -299,6 +300,7 @@ int main(const int argc, const char **argv)
 				// test save/load
 				if (IsKeyPressed(KEY_F5))
 				{
+					game->completeRealtimeEvents(); // ensure all realtime events are completed before saving
 					// save to quicksave.db
 					SaveGame savegame;
 					if (savegame.save("./quicksave.db") != 0)
@@ -356,13 +358,17 @@ int main(const int argc, const char **argv)
 					TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
 				}
 
+				// TODO pause mode can stop realtime events and page animation
 				// time
 				double currentTime = GetTime();
 				double deltaTime = currentTime - lastTime;
+
+				game->updateRealtimeEvents(deltaTime); // advance realtime events
+
 				lastTime = currentTime;
 				if (advanceTime || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused
 				{
-					game->update(deltaTime);
+					game->update(deltaTime); // advance game time
 				}
 
 				currentPage->update(deltaTime); // not game state, view state. Happens after render.

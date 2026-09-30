@@ -5,6 +5,7 @@
 #include "state/event_sink.h"
 #include "state/craft_action.h"
 #include "state/strings.h"
+#include "state/sdm_event.h"
 
 #include <cstdio>
 #include <cmath>
@@ -1106,6 +1107,18 @@ void Game::update(double delta)
         advanceTick();
         --difference;
     }
+
+    // update realtime events - any outstanding events are automatically completed
+    completeRealtimeEvents();
+}
+
+void Game::completeRealtimeEvents()
+{
+    for (auto &event : realtime_events)
+    {
+        event->onComplete();
+    }
+    realtime_events.clear(); // remove all completed realtime events
 }
 
 void Game::advanceTick()
@@ -1314,85 +1327,6 @@ void Game::raiseProductionCompleteEvent(Factory *factory, int item_id)
     }
 }
 
-bool Game::processConsoleCommand(const char *command, Location *l, Facility *f)
-{
-    TraceLog(LOG_INFO, "Console command entered: %s", command);
-
-    int item_id{ItemType::None};
-    int amount{0};
-
-    if (std::strcmp(command, "help") == 0)
-    {
-        TraceLog(LOG_INFO, "Available commands:\n"
-                           "help - show this message\n"
-                           "give {item_id} {amount} - add items to current facility\n"
-                           "orbital - create an orbital at the current location for testing\n"
-                           "shuttle - spawn shuttle at current facility for testing\n"
-                           "research {topic_id} - set research progress for a topic (use -1 for all topics)");
-        return true;
-    }
-    else if (std::sscanf(command, "give %d %d", &item_id, &amount) == 2) // give {item id} {amount} command to add items to current location for testing
-    {
-        if (f)
-        {
-            f->stores.items[item_id] += amount;
-            TraceLog(LOG_INFO, "Added %d of item %d to current location %s", amount, item_id, f->body()->name);
-            return true;
-        }
-    }
-    // 'orbital' command to create an orbital at the current location for testing, if not present
-    else if (std::strcmp(command, "orbital") == 0)
-    {
-        if (!orbitalAt(l))
-        {
-            Orbital *orbital{createOrbital(l)};
-            orbital->operational = true;
-            TraceLog(LOG_INFO, "Orbital created at location: %s", l->name);
-            return true;
-        }
-    }
-    // 'shuttle' to spawn shuttle at current facility if any
-    else if (std::strcmp(command, "shuttle") == 0)
-    {
-        if (f && !locationHasShuttle(f->body())) // shuttles hang off the body, not the region
-        {
-            Shuttle *shuttle{createShuttle(f->body())};
-            if (shuttle)
-            {
-                setDefaultRoute(shuttle, f); // debug spawn, so no chassis cost
-            }
-            TraceLog(LOG_INFO, "Shuttle created at facility: %s", f->body()->name);
-            return true;
-        }
-    }
-    // research {topic id} command to set research progress for testing
-    else if (std::sscanf(command, "research %d", &item_id) == 1)
-    {
-        if (item_id == -1)
-        {
-            // set all research to complete
-            for (auto &topic : researchTopics)
-            {
-                topic.progress = topic.requiredTime;
-            }
-            // set all items to researched as well
-            for (auto &item : items)
-            {
-                item.researched = true;
-            }
-            TraceLog(LOG_INFO, "All research topics set to complete");
-        }
-        else if (item_id >= 0 && item_id < researchTopics.size())
-        {
-            researchTopics[item_id].progress = researchTopics[item_id].requiredTime;
-            TraceLog(LOG_INFO, "Research topic %d set to complete", item_id);
-        }
-        return true;
-    }
-
-    return false;
-}
-
 void Game::setFactionHostility(int faction_id, bool hostile)
 {
     if (faction_id >= 0 && faction_id < factions.size())
@@ -1556,4 +1490,149 @@ bool Game::completeEvent(int id)
     }
 
     return true;
+}
+
+void Game::addRealtimeEvent(RealtimeEvent *event)
+{
+    if (event)
+    {
+        realtime_events.push_back(std::unique_ptr<RealtimeEvent>(event));
+    }
+}
+
+void Game::cancelRealtimeEvent(RealtimeEvent *event)
+{
+    if (!event)
+    {
+        return;
+    }
+
+    auto it = std::remove_if(realtime_events.begin(), realtime_events.end(),
+                             [event](const std::unique_ptr<RealtimeEvent> &e)
+                             { return e.get() == event; });
+    if (it != realtime_events.end())
+    {
+        realtime_events.erase(it, realtime_events.end());
+    }
+}
+
+void Game::updateRealtimeEvents(double delta)
+{
+    for (auto it = realtime_events.begin(); it != realtime_events.end();)
+    {
+        if (!(*it)->update(delta))
+        {
+            it = realtime_events.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
+bool Game::activateSDM(Facility *facility)
+{
+    if (facility && facility->sdm_installed && !facility->sdm_active)
+    {
+        facility->sdm_active = true;
+
+        // create realtime SDM event
+        addRealtimeEvent(new SDMEvent(10.0, facility));
+
+        return true;
+    }
+    return false;
+}
+
+bool Game::deactivateSDM(Facility *facility)
+{
+    if (facility && facility->sdm_installed && facility->sdm_active)
+    {
+        facility->sdm_active = false;
+        return true;
+    }
+    return false;
+}
+
+void Game::destroyCraft(Craft *craft)
+{
+    if (!craft)
+    {
+        return;
+    }
+
+    // iterate pods and destroy any crew or objects held
+    for (int idx = 0; idx < craft->max_pods; idx++)
+    {
+        Pod &pod = craft->pods[idx];
+
+        if (pod.crew)
+        {
+            releaseCrew(pod.crew);
+        }
+        if (pod.object)
+        {
+            releaseScanTarget(pod.object);
+        }
+    }
+
+    // finally, remove the craft itself
+    // could be in multiple collections (shuttles, ios, scg)
+
+    auto it = std::remove_if(ios.begin(), ios.end(),
+                             [craft](const std::unique_ptr<Craft> &c)
+                             { return c.get() == craft; });
+    if (it != ios.end())
+    {
+        ios.erase(it, ios.end());
+    }
+
+    auto it2 = std::remove_if(shuttles.begin(), shuttles.end(),
+                              [craft](const std::unique_ptr<Craft> &c)
+                              { return c.get() == craft; });
+    if (it2 != shuttles.end())
+    {
+        shuttles.erase(it2, shuttles.end());
+    }
+}
+
+void Game::destroyFacility(Facility *facility)
+{
+    if (!facility)
+    {
+        return;
+    }
+
+    // destroy crew in barracks
+    for (int idx = 0; idx < MAX_BARRACKS_CREW; idx++)
+    {
+        Crew *crew = facility->barracks.crew[idx];
+        if (crew)
+        {
+            releaseCrew(crew);
+        }
+    }
+
+    // destroy any docked shuttle or other craft
+    std::vector<Craft *> crafts_to_destroy;
+    for (auto &shuttle : shuttles)
+    {
+        if (shuttle->location == facility)
+        {
+            crafts_to_destroy.push_back(shuttle.get());
+        }
+    }
+    for (auto &io : ios)
+    {
+        if (io->location == facility)
+        {
+            crafts_to_destroy.push_back(io.get());
+        }
+    }
+
+    for (auto craft : crafts_to_destroy)
+    {
+        destroyCraft(craft);
+    }
 }

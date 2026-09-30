@@ -16,6 +16,7 @@
 #include "state/resources.h"
 #include "state/crew.h"
 #include "state/event.h"
+#include "state/realtime_event.h"
 
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
@@ -80,6 +81,9 @@ class Game
     // owning collection of crews
     uint32_t max_crew_id{0}; // highest crew id seen, so new crews get unique ids
     std::vector<std::unique_ptr<Crew>> crews;
+
+    // realtime events
+    std::vector<std::unique_ptr<RealtimeEvent>> realtime_events;
 
     // current game instance
     static std::unique_ptr<Game> current;
@@ -267,6 +271,9 @@ public:
     void onWorkComplete(Craft *craft);
     void onWorkCancelled(Craft *craft);
 
+    void destroyCraft(Craft *craft);
+    void destroyFacility(Facility *facility);
+
     // objects
     std::vector<std::unique_ptr<Object>> &allObjects() { return objects; }
     Object *createObject(int id, ObjectType type, Location *location, int quantity, int resource_id);
@@ -283,6 +290,14 @@ public:
     // events
     Event *eventByID(int id);
     bool completeEvent(int id);
+
+    // realtime events
+    void addRealtimeEvent(RealtimeEvent *event);
+    void cancelRealtimeEvent(RealtimeEvent *event);
+    void updateRealtimeEvents(double delta);
+    void completeRealtimeEvents();
+    bool activateSDM(Facility *facility);
+    bool deactivateSDM(Facility *facility);
 
     // console input
     bool processConsoleCommand(const char *command, Location *l, Facility *f);
