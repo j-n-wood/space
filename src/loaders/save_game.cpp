@@ -154,7 +154,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT, operational INT, construction_progress INT, damage INT, faction_id INT, aoc_installed INT, sdm_installed INT, mtx_installed INT, factory_crew_id int );"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT, ios_number INT, scg_number INT );"
-        "CREATE TABLE IF NOT EXISTS factions ( id INT, name TEXT, hostile INT );"
+        "CREATE TABLE IF NOT EXISTS factions ( id INT, name TEXT, hostile INT, trades INT );"
         "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, pod_type int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);"
         "CREATE TABLE IF NOT EXISTS item_build_requirements ( item_id int, resource_id int, amount int);"
         "CREATE TABLE IF NOT EXISTS item_work ( item_id int, work_time numeric, consumption int, abort_consumes int, auto_continue int);"
@@ -176,6 +176,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS events ( id INTEGER PRIMARY KEY, name TEXT, log_message TEXT, email_message TEXT, completed INT, raise_at FLOAT );"
         "CREATE TABLE IF NOT EXISTS event_unlock_research_topics ( event_id INT, topic_id INT );"
         "CREATE TABLE IF NOT EXISTS facility_crews ( facility_id INT, crew_id INT );"
+        "CREATE TABLE IF NOT EXISTS faction_trades ( faction_id INT, resource_id INT, traded_resource_id INT, rate NUMERIC );"
         "COMMIT;";
 
     ScopedSqliteError errorMessage;
@@ -302,18 +303,36 @@ int SaveGame::saveFactions(Game *game)
 
     ScopedSqliteError errorMessage;
 
-    SQLiteQuery query(loader, "INSERT INTO factions (id, name, hostile) VALUES (?, ?, ?);");
+    SQLiteQuery query(loader, "INSERT INTO factions (id, name, hostile, trades) VALUES (?, ?, ?, ?);");
     if (!query.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare factions insert");
         return -6;
     }
 
+    // trade table
+    SQLiteQuery tradeQuery(loader, "INSERT INTO faction_trades (faction_id, traded_resource_id, rate) VALUES (?, ?, ?);");
+    if (!tradeQuery.stmt)
+    {
+        TraceLog(LOG_ERROR, "SaveGame: Failed to prepare faction_trades insert");
+        return -6;
+    }
+
     for (const auto &faction : game->factions)
     {
-        if (!query.reset().bind(1, faction.id).bind(2, faction.name).bind(3, faction.hostile).step("SaveGame: Failed to insert faction record"))
+        if (!query.reset().bind(1, faction.id).bind(2, faction.name).bind(3, faction.hostile).bind(4, faction.trades).step("SaveGame: Failed to insert faction record"))
         {
             return -7;
+        }
+
+        // Save the trade table for this faction
+        for (int j = 0; j < ResourceType::Count; ++j)
+        {
+            const FactionTrade &trade = faction.tradeTable[j];
+            if (!tradeQuery.reset().bind(1, faction.id).bind(2, trade.traded_resource_id).bind(3, trade.rate).step("SaveGame: Failed to insert faction trade record"))
+            {
+                return -7;
+            }
         }
     }
 
