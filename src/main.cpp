@@ -366,12 +366,12 @@ int main(const int argc, const char **argv)
 				double currentTime = GetTime();
 				double deltaTime = currentTime - lastTime;
 
-				game->updateRealtimeEvents(deltaTime); // advance realtime events
+				game->advanceRealTime(deltaTime);
 
 				lastTime = currentTime;
 				if (advanceTime || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused
 				{
-					game->update(deltaTime); // advance game time
+					game->advanceGameTime(deltaTime); // advance game time
 				}
 
 				currentPage->update(deltaTime); // not game state, view state. Happens after render.

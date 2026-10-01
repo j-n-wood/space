@@ -110,6 +110,7 @@ public:
     // game state
     double game_time;
     double time_rate;
+    bool paused;
 
     // name counters
     int ios_number{1};
@@ -165,6 +166,9 @@ public:
         Game::current = std::make_unique<Game>();
         return current.get();
     }
+
+    void advanceRealTime(double deltaTime);
+    void advanceGameTime(double deltaTime);
 
     // add game state
     System *createSystem(int id, const char *name);

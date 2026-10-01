@@ -39,7 +39,7 @@ float LinearTransitTimeCalculator::calculateTransitTime(Location *from, Location
     return distance / speed;
 }
 
-Game::Game() : game_time(0.0), time_rate(1.0), transitTimeCalculator(std::make_unique<LinearTransitTimeCalculator>())
+Game::Game() : game_time(0.0), time_rate(1.0), paused(false), transitTimeCalculator(std::make_unique<LinearTransitTimeCalculator>())
 {
     locations.reserve(INITIAL_LOCATION_CAPACITY);
     events.resize(EVENT_MAX); // preallocate events vector to hold all events by ID
@@ -47,6 +47,22 @@ Game::Game() : game_time(0.0), time_rate(1.0), transitTimeCalculator(std::make_u
 
 Game::~Game()
 {
+}
+
+void Game::advanceRealTime(double deltaTime)
+{
+    if (paused)
+        return;
+
+    updateRealtimeEvents(deltaTime); // advance realtime events
+}
+
+void Game::advanceGameTime(double deltaTime)
+{
+    if (paused)
+        return;
+
+    update(deltaTime); // advance game time
 }
 
 System *Game::createSystem(int id, const char *name)

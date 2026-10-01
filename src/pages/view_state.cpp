@@ -34,6 +34,16 @@ System *ViewState::getCurrentSystem() const
     return (place && place->system) ? place->system : browsedSystem;
 }
 
+Location *ViewState::getCurrentPlace() const
+{
+    return focusCraft && (!focusCraft->destroyed) ? craftPlace() : focusPlace;
+}
+
+Craft *ViewState::getCurrentCraft() const
+{
+    return focusCraft && (!focusCraft->destroyed) ? focusCraft : nullptr;
+}
+
 ViewState &ViewState::setCurrentCraft(Craft *c)
 {
     if (!c && focusCraft)

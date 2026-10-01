@@ -51,7 +51,7 @@ public:
     }
 
     // Exactly where the focus is: a facility, an orbit or surface region, or a body.
-    inline Location *getCurrentPlace() const { return focusCraft && (!focusCraft->destroyed) ? craftPlace() : focusPlace; }
+    Location *getCurrentPlace() const;
 
     // The body whose facilities the sidebar offers. Always a celestial body, or null.
     Location *getCurrentBody() const;
@@ -60,7 +60,7 @@ public:
     // so it can never disagree with the place the way a stored copy could.
     Facility *getCurrentFacility() const;
 
-    inline Craft *getCurrentCraft() const { return focusCraft && (!focusCraft->destroyed) ? focusCraft : nullptr; }
+    Craft *getCurrentCraft() const;
 
     // Stop following, but stay where the craft left us.
     ViewState &setCurrentCraft(Craft *c);
