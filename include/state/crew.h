@@ -24,9 +24,10 @@ public:
     int rank;
     int size;
     float experience; // experience gain to rank up
+    bool destroyed;   // whether the crew is destroyed
 
     Crew(int crew_id, CrewType crew_type, const char *leader, int crew_rank, int crew_size, float crew_experience)
-        : id(crew_id), type(crew_type), rank(crew_rank), size(crew_size), experience(crew_experience)
+        : id(crew_id), type(crew_type), rank(crew_rank), size(crew_size), experience(crew_experience), destroyed{false}
     {
         std::snprintf(leader_name, MAX_CREW_LEADER_NAME_LEN, "%s", leader);
     }

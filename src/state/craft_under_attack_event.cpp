@@ -7,7 +7,7 @@ CraftUnderAttackEvent::CraftUnderAttackEvent(double duration, Craft *craft)
 
 bool CraftUnderAttackEvent::cancelled()
 {
-    return craft->location != initial_location;
+    return (craft->location != initial_location) || (craft->destroyed);
 }
 
 bool CraftUnderAttackEvent::update(double delta)
@@ -43,7 +43,7 @@ void CraftUnderAttackEvent::onComplete()
     if (!cancelled())
     {
         // destroy craft
-        Game::getCurrent()->queueDestroyedCraft(craft);
+        Game::getCurrent()->destroyCraft(craft);
     }
     craft = nullptr;
 }

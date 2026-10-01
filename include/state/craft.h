@@ -92,6 +92,8 @@ public:
     Pod pods[6];
     int8_t active_pod_index; // a pod that is working, -1 -> none
     bool drive;              // fitted
+    bool drive_damaged;      // TODO
+    bool destroyed;
 
     // current location if any
     Location *location;

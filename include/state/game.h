@@ -106,9 +106,6 @@ class Game
     // persisted one so identity survives a round trip.
     void attachFacilityLocation(Facility *facility, Location *parent, const char *label);
 
-    void destroyCraft(Craft *craft);
-    void destroyFacility(Facility *facility);
-
 public:
     // game state
     double game_time;
@@ -145,10 +142,6 @@ public:
 
     // game events
     Events events;
-
-    // GC destroyed objects
-    std::vector<Facility *> destroyedFacilities;
-    std::vector<Craft *> destroyedCraft;
 
     Game();
     ~Game();
@@ -189,6 +182,9 @@ public:
     Orbital *createOrbital(Location *location, int id = -1);
     ResearchFacility *createResearchFacility(ResourceFacility *facility);
     TrainingFacility *createTrainingFacility(ResourceFacility *facility);
+
+    void destroyCraft(Craft *craft);
+    void destroyFacility(Facility *facility);
 
     // locate game state
     ResourceFacility *resourceFacilityAt(Location *location);
@@ -303,17 +299,6 @@ public:
     void completeRealtimeEvents();
     bool activateSDM(Facility *facility);
     bool deactivateSDM(Facility *facility);
-
-    // destroyed objects
-    inline void queueDestroyedFacility(Facility *facility)
-    {
-        destroyedFacilities.push_back(facility);
-    }
-    inline void queueDestroyedCraft(Craft *craft)
-    {
-        destroyedCraft.push_back(craft);
-    }
-    void processDestroyedObjects();
 
     // console input
     bool processConsoleCommand(const char *command, Location *l, Facility *f);

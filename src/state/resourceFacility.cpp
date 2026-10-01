@@ -12,6 +12,10 @@ ResourceFacility::~ResourceFacility() {};
 
 void ResourceFacility::update()
 {
+    if (destroyed)
+    {
+        return;
+    }
     Facility::update();
 
     // Collect from the BODY. Availability is loaded onto bodies, while `primary` is the

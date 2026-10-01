@@ -38,7 +38,7 @@ ViewState &ViewState::setCurrentCraft(Craft *c)
 ViewState &ViewState::setFacilityFocus(Facility *f)
 {
     // not valid to use with null facility
-    if (f)
+    if (f && (!f->destroyed))
     {
         focusCraft = nullptr;
         focusPlace = f; // a facility IS a place; the body follows from body()
@@ -52,7 +52,7 @@ ViewState &ViewState::setFacilityFocus(Facility *f)
 
 ViewState &ViewState::setCraftFocus(Craft *c)
 {
-    if (c)
+    if (c && (!c->destroyed))
     {
         // The craft's own location is exact -- docked, it IS the facility. Nothing is
         // looked up, so there is nothing to guess wrong.

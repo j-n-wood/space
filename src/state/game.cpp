@@ -233,7 +233,7 @@ ResourceFacility *Game::resourceFacilityAt(Location *location)
         Location *b = location->body();
         for (ResourceFacility *base : bases)
         {
-            if (base->body() == b)
+            if ((base->body() == b) && (!base->destroyed))
             {
                 return base;
             }
@@ -271,7 +271,7 @@ Orbital *Game::orbitalAt(Location *location) const
         const Location *b = location->body();
         for (Orbital *orbital : orbitals)
         {
-            if (orbital->body() == b)
+            if ((orbital->body() == b) && (!orbital->destroyed))
             {
                 return orbital;
             }
@@ -1598,21 +1598,6 @@ bool Game::deactivateSDM(Facility *facility)
     return false;
 }
 
-void Game::processDestroyedObjects()
-{
-    for (auto facility : destroyedFacilities)
-    {
-        destroyFacility(facility);
-    }
-    destroyedFacilities.clear();
-
-    for (auto craft : destroyedCraft)
-    {
-        destroyCraft(craft);
-    }
-    destroyedCraft.clear();
-}
-
 void Game::destroyCraft(Craft *craft)
 {
     if (!craft)
@@ -1622,6 +1607,8 @@ void Game::destroyCraft(Craft *craft)
 
     TraceLog(LOG_INFO, "Destroying craft: %s", craft->name);
 
+    craft->destroyed = true;
+
     // iterate pods and destroy any crew or objects held
     for (int idx = 0; idx < craft->max_pods; idx++)
     {
@@ -1629,36 +1616,17 @@ void Game::destroyCraft(Craft *craft)
 
         if (pod.crew)
         {
-            releaseCrew(pod.crew);
+            pod.crew->destroyed = true;
         }
         if (pod.object)
         {
-            releaseScanTarget(pod.object);
+            releaseScanTarget(pod.object); // TODO or drop it
         }
     }
 
     if (craft->crew)
     {
-        releaseCrew(craft->crew);
-    }
-
-    // finally, remove the craft itself
-    // could be in multiple collections (shuttles, ios, scg)
-
-    auto it = std::remove_if(ios.begin(), ios.end(),
-                             [craft](const std::unique_ptr<IOS> &c)
-                             { return c.get() == craft; });
-    if (it != ios.end())
-    {
-        ios.erase(it, ios.end());
-    }
-
-    auto it2 = std::remove_if(shuttles.begin(), shuttles.end(),
-                              [craft](const std::unique_ptr<Shuttle> &c)
-                              { return c.get() == craft; });
-    if (it2 != shuttles.end())
-    {
-        shuttles.erase(it2, shuttles.end());
+        craft->crew->destroyed = true;
     }
 }
 
@@ -1671,56 +1639,42 @@ void Game::destroyFacility(Facility *facility)
 
     TraceLog(LOG_INFO, "Destroying facility: %s", facility->name);
 
+    facility->destroyed = true;
+    facility->operational = false;
+
     // destroy crew in barracks
     for (int idx = 0; idx < MAX_BARRACKS_CREW; idx++)
     {
         Crew *crew = facility->barracks.crew[idx];
         if (crew)
         {
-            releaseCrew(crew);
+            crew->destroyed = true;
         }
     }
 
+    // if any factory crew, that too
+    if (facility->factory && facility->factory->crew)
+    {
+        facility->factory->crew->destroyed = true;
+    }
+
+    // TODO research crew - not an issue yet as losing Earth City is game-over
+
     // destroy any docked shuttle or other craft
-    std::vector<Craft *> crafts_to_destroy;
     for (auto &shuttle : shuttles)
     {
         if (shuttle->location == facility)
         {
-            crafts_to_destroy.push_back(shuttle.get());
+            destroyCraft(shuttle.get());
         }
     }
     for (auto &io : ios)
     {
         if (io->location == facility)
         {
-            crafts_to_destroy.push_back(io.get());
+            destroyCraft(io.get());
         }
     }
-
-    for (auto craft : crafts_to_destroy)
-    {
-        destroyCraft(craft);
-    }
-
-    // remove factory reference from game->factories collection
-    if (facility->factory)
-    {
-        this->factories.erase(std::remove_if(this->factories.begin(), this->factories.end(),
-                                             [facility](Factory *f)
-                                             { return f == facility->factory.get(); }),
-                              this->factories.end());
-    }
-
-    this->orbitals.erase(std::remove_if(this->orbitals.begin(), this->orbitals.end(),
-                                        [facility](Orbital *o)
-                                        { return o == facility; }),
-                         this->orbitals.end());
-
-    this->bases.erase(std::remove_if(this->bases.begin(), this->bases.end(),
-                                     [facility](ResourceFacility *b)
-                                     { return b == facility; }),
-                      this->bases.end());
 
     // need to update viewState if it is referencing this facility
 }

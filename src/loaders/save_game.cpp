@@ -500,6 +500,12 @@ int SaveGame::saveBase(ResourceFacility *rf)
         return -8;
     }
 
+    if (rf->destroyed)
+    {
+        // skip saving destroyed resource facilities
+        return 0;
+    }
+
     SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, factory_crew_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!facilityQuery.stmt)
     {
@@ -571,6 +577,12 @@ int SaveGame::saveOrbital(Orbital *orbital)
     {
         TraceLog(LOG_ERROR, "SaveGame: Orbital location has no system");
         return -8;
+    }
+
+    if (orbital->destroyed)
+    {
+        // skip saving destroyed orbitals
+        return 0;
     }
 
     SQLiteQuery facilityQuery(loader, "INSERT INTO facilities (id, system_id, location_id, type, num_derricks, operational, construction_progress, damage, faction_id, aoc_installed, sdm_installed, mtx_installed, factory_crew_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
@@ -906,6 +918,12 @@ int SaveGame::saveCraft(Craft *craft)
         return -7;
     }
 
+    if (craft->destroyed)
+    {
+        // skip
+        return 0;
+    }
+
     SQLiteQuery craftQuery(loader, "INSERT INTO craft (id, name, type, state, state_timer, total_state_timer, location_id, fuel, max_pods, drive, destination_index, faction_id, active_pod_index, scan_object_id, crew_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!craftQuery.stmt)
     {
@@ -1190,6 +1208,12 @@ int SaveGame::saveCrews(Game *game)
 
     for (const auto &crew : game->allCrews())
     {
+        if (crew->destroyed)
+        {
+            // skip saving destroyed crews
+            continue;
+        }
+
         if (!query.reset()
                  .bind(1, crew->id)
                  .bind(2, static_cast<int>(crew->type))

@@ -4,7 +4,7 @@
 
 bool SDMEvent::cancelled()
 {
-    return facility && !facility->sdm_active;
+    return !facility || !facility->sdm_active || facility->destroyed;
 }
 
 bool SDMEvent::update(double delta)
@@ -28,6 +28,6 @@ void SDMEvent::onComplete()
     if (!cancelled())
     {
         // destroy facility
-        Game::getCurrent()->queueDestroyedFacility(facility);
+        Game::getCurrent()->destroyFacility(facility);
     }
 }

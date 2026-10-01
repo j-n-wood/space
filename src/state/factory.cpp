@@ -88,6 +88,10 @@ bool Factory::sendToStores(const int item_id)
 
 void Factory::update()
 {
+    if (facility->destroyed)
+    {
+        return;
+    }
 
     // if no crew, cannot do anything
     if (!crew)
