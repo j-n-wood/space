@@ -7,6 +7,7 @@ public:
 
     RealtimeEvent(double t) : time_remaining{t} {};
     virtual ~RealtimeEvent() = default;
+    virtual bool cancelled() = 0;          // true -> event was cancelled
     virtual bool update(double delta) = 0; // true -> still active
     virtual void onComplete() = 0;
 };

@@ -2,10 +2,15 @@
 #include "state/facility.h"
 #include "state/game.h"
 
+bool SDMEvent::cancelled()
+{
+    return facility && !facility->sdm_active;
+}
+
 bool SDMEvent::update(double delta)
 {
     // check for cancellation
-    if (facility && !facility->sdm_active)
+    if (cancelled())
     {
         return false; // cancelled
     }
@@ -20,6 +25,9 @@ bool SDMEvent::update(double delta)
 
 void SDMEvent::onComplete()
 {
-    // destroy facility
-    Game::getCurrent()->destroyFacility(facility);
+    if (!cancelled())
+    {
+        // destroy facility
+        Game::getCurrent()->queueDestroyedFacility(facility);
+    }
 }

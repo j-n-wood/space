@@ -106,6 +106,9 @@ class Game
     // persisted one so identity survives a round trip.
     void attachFacilityLocation(Facility *facility, Location *parent, const char *label);
 
+    void destroyCraft(Craft *craft);
+    void destroyFacility(Facility *facility);
+
 public:
     // game state
     double game_time;
@@ -142,6 +145,10 @@ public:
 
     // game events
     Events events;
+
+    // GC destroyed objects
+    std::vector<Facility *> destroyedFacilities;
+    std::vector<Craft *> destroyedCraft;
 
     Game();
     ~Game();
@@ -272,9 +279,6 @@ public:
     void onWorkComplete(Craft *craft);
     void onWorkCancelled(Craft *craft);
 
-    void destroyCraft(Craft *craft);
-    void destroyFacility(Facility *facility);
-
     // objects
     std::vector<std::unique_ptr<Object>> &allObjects() { return objects; }
     Object *createObject(int id, ObjectType type, Location *location, int quantity, int resource_id, int research_topic_id = 0);
@@ -299,6 +303,17 @@ public:
     void completeRealtimeEvents();
     bool activateSDM(Facility *facility);
     bool deactivateSDM(Facility *facility);
+
+    // destroyed objects
+    inline void queueDestroyedFacility(Facility *facility)
+    {
+        destroyedFacilities.push_back(facility);
+    }
+    inline void queueDestroyedCraft(Craft *craft)
+    {
+        destroyedCraft.push_back(craft);
+    }
+    void processDestroyedObjects();
 
     // console input
     bool processConsoleCommand(const char *command, Location *l, Facility *f);

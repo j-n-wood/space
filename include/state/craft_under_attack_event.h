@@ -12,6 +12,7 @@ class CraftUnderAttackEvent : public CraftRealtimeEvent
 public:
     CraftUnderAttackEvent(double duration, Craft *craft);
 
+    bool cancelled();
     bool update(double delta);
     void onComplete();
 };

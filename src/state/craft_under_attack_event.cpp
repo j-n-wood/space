@@ -5,11 +5,16 @@
 CraftUnderAttackEvent::CraftUnderAttackEvent(double duration, Craft *craft)
     : CraftRealtimeEvent(duration, craft), time_until_damage(4.0), initial_location(craft->location) {}
 
+bool CraftUnderAttackEvent::cancelled()
+{
+    return craft->location != initial_location;
+}
+
 bool CraftUnderAttackEvent::update(double delta)
 {
     // check for cancellation
     // if craft location changes, cancel the event
-    if (craft->location != initial_location)
+    if (cancelled())
     {
         return false; // cancelled
     }
@@ -35,7 +40,10 @@ bool CraftUnderAttackEvent::update(double delta)
 
 void CraftUnderAttackEvent::onComplete()
 {
-    // destroy craft
-    Game::getCurrent()->destroyCraft(craft);
+    if (!cancelled())
+    {
+        // destroy craft
+        Game::getCurrent()->queueDestroyedCraft(craft);
+    }
     craft = nullptr;
 }

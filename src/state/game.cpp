@@ -1102,6 +1102,13 @@ int Game::droneCountForCraft(const Craft *craft) const
 
 void Game::update(double delta)
 {
+    if (delta > 0.0)
+    {
+        // update realtime events - any outstanding events are automatically completed
+        // done early in case processing were to create new realtime events
+        completeRealtimeEvents();
+    }
+
     // add to time, if ticks over one second call advanceTick
     double dt = delta * time_rate;
     if (dt > MAX_TIMESTEP)
@@ -1145,9 +1152,6 @@ void Game::update(double delta)
         advanceTick();
         --difference;
     }
-
-    // update realtime events - any outstanding events are automatically completed
-    completeRealtimeEvents();
 }
 
 void Game::completeRealtimeEvents()
@@ -1594,6 +1598,21 @@ bool Game::deactivateSDM(Facility *facility)
     return false;
 }
 
+void Game::processDestroyedObjects()
+{
+    for (auto facility : destroyedFacilities)
+    {
+        destroyFacility(facility);
+    }
+    destroyedFacilities.clear();
+
+    for (auto craft : destroyedCraft)
+    {
+        destroyCraft(craft);
+    }
+    destroyedCraft.clear();
+}
+
 void Game::destroyCraft(Craft *craft)
 {
     if (!craft)
@@ -1616,6 +1635,11 @@ void Game::destroyCraft(Craft *craft)
         {
             releaseScanTarget(pod.object);
         }
+    }
+
+    if (craft->crew)
+    {
+        releaseCrew(craft->crew);
     }
 
     // finally, remove the craft itself
