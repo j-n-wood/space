@@ -1600,7 +1600,7 @@ bool Game::deactivateSDM(Facility *facility)
 
 void Game::destroyCraft(Craft *craft)
 {
-    if (!craft)
+    if (!craft || craft->destroyed)
     {
         return;
     }
@@ -1620,7 +1620,8 @@ void Game::destroyCraft(Craft *craft)
         }
         if (pod.object)
         {
-            releaseScanTarget(pod.object); // TODO or drop it
+            // drop it
+            pod.object->location = craft->location->body(); // TODO see if we can scan and locate them again
         }
     }
 
@@ -1632,7 +1633,7 @@ void Game::destroyCraft(Craft *craft)
 
 void Game::destroyFacility(Facility *facility)
 {
-    if (!facility)
+    if (!facility || facility->destroyed)
     {
         return;
     }

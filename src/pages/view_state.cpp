@@ -3,7 +3,17 @@
 
 Location *ViewState::craftPlace() const
 {
-    return focusCraft ? focusCraft->location : nullptr;
+    auto candidate = focusCraft ? focusCraft->location : nullptr;
+    if (!candidate)
+    {
+        return nullptr;
+    }
+    if (candidate->isFacility())
+    {
+        Facility *f = asFacility(candidate);
+        return f && (!f->destroyed) ? f : nullptr;
+    }
+    return candidate;
 }
 
 Location *ViewState::getCurrentBody() const
@@ -14,7 +24,8 @@ Location *ViewState::getCurrentBody() const
 
 Facility *ViewState::getCurrentFacility() const
 {
-    return asFacility(getCurrentPlace());
+    Facility *f = asFacility(getCurrentPlace());
+    return f && (!f->destroyed) ? f : nullptr;
 }
 
 System *ViewState::getCurrentSystem() const

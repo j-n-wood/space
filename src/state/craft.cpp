@@ -76,7 +76,7 @@ const char *Pod::description(char *dest, size_t len)
     return dest;
 }
 
-Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : id{0}, faction_id{0}, state{cs}, state_timer{0.0f}, max_pods{mp}, active_pod_index{-1}, drive{false}, location{loc}, destination_index{0}, scan_object{nullptr}, autopilot{std::make_unique<Autopilot>()}, crew{nullptr}, drive_damaged{false}, destroyed{false}, destroyed{false}
+Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : id{0}, faction_id{0}, state{cs}, state_timer{0.0f}, max_pods{mp}, active_pod_index{-1}, drive{false}, location{loc}, destination_index{0}, scan_object{nullptr}, autopilot{std::make_unique<Autopilot>()}, crew{nullptr}, drive_damaged{false}, destroyed{false}
 {
     name[0] = '\0';
 };

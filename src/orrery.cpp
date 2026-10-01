@@ -223,7 +223,7 @@ void Orrery::render()
 
     for (auto &craft : game->allIOS())
     {
-        if (craft->inTransit())
+        if (!craft->destroyed && craft->inTransit())
         {
             // determine source and destination locations from craft endpoints
             auto &current_dest{craft->currentDestination()};

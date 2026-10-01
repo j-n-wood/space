@@ -171,6 +171,14 @@ void Autopilot::update(Craft *craft, float delta)
             else
             {
                 // TODO - wait? Abort?
+                Facility *f = asFacility(dest.location);
+                if (f && (!f->destroyed))
+                {
+                    TraceLog(LOG_INFO, "Autopilot: %s waiting to dock at destination facility", craft->name);
+                    abort();
+                }
+
+                // if cannot dock due to dock occupied, just wait
             }
         }
         else

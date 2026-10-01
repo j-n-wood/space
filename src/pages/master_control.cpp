@@ -63,7 +63,7 @@ void MasterControlView::renderOrbitals()
     for (auto &orbital : game->allOrbitals())
     {
         // is it in the current system?
-        if ((orbital->body()->system == currentSystem) && (orbital->faction_id == faction_id))
+        if ((orbital->body()->system == currentSystem) && (orbital->faction_id == faction_id) && (!orbital->destroyed))
         {
             // render it
             Rectangle target{x, y, 32 * 4, 16 * 4};
@@ -112,7 +112,7 @@ void MasterControlView::renderIOS()
     for (auto &ios : game->allIOS())
     {
         // is it in the current system?
-        if ((ios->location->system == currentSystem) && (ios->faction_id == faction_id))
+        if ((ios->location->system == currentSystem) && (ios->faction_id == faction_id) && (!ios->destroyed))
         {
             // render it
             Rectangle target{x, y, 32 * 4, 16 * 4};

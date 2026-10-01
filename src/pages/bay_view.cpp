@@ -307,7 +307,7 @@ Craft *BayView::getSpacecraft()
             // Compare bodies: the facility hangs off its orbit region, while the craft
             // is still located at the body. Tightens to `ios->location == facility` once
             // craft locations become precise, which also disambiguates two orbitals.
-            if (ios->location == facility)
+            if ((ios->location == facility) && (!ios->destroyed))
             {
                 return ios.get();
             }

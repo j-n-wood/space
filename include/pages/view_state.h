@@ -60,7 +60,7 @@ public:
     // so it can never disagree with the place the way a stored copy could.
     Facility *getCurrentFacility() const;
 
-    inline Craft *getCurrentCraft() const { return focusCraft->destroyed ? nullptr : focusCraft; }
+    inline Craft *getCurrentCraft() const { return focusCraft && (!focusCraft->destroyed) ? focusCraft : nullptr; }
 
     // Stop following, but stay where the craft left us.
     ViewState &setCurrentCraft(Craft *c);
