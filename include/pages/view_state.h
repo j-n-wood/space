@@ -91,6 +91,28 @@ public:
         return *this;
     }
 
+    // remove focus if it matches the given craft
+    inline bool clearCraftFocus(Craft *c)
+    {
+        if (focusCraft == c)
+        {
+            focusCraft = nullptr;
+            return true;
+        }
+        return false;
+    }
+
+    // remove focus if it matches the given facility
+    inline bool clearFacilityFocus(Facility *f)
+    {
+        if (focusPlace == f)
+        {
+            focusPlace = nullptr;
+            return true;
+        }
+        return false;
+    }
+
 private:
     // Craft is an incomplete type here, so the dereference lives in the .cpp.
     Location *craftPlace() const;

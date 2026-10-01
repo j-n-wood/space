@@ -33,6 +33,7 @@ void takeDefaultFocus()
 {
 	auto &pm{PageManager::getInstance()};
 	Game *game = Game::getCurrent();
+	game->addEventSink(&pm);
 	System *system = game->allSystems()[1].get();
 	Location *earth = game->locationByID(4);
 	pm.viewState.setCurrentSystem(system);
@@ -192,9 +193,6 @@ int main(const int argc, const char **argv)
 	SearchAndSetResourceDir("resources");
 
 	Game *game = Game::createCurrent();
-
-	// attach pagemanager event listener
-	game->addEventSink(&PageManager::getInstance());
 
 	{
 		{

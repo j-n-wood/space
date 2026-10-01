@@ -81,7 +81,7 @@ BasePage *PageManager::reactivateCurrentPage()
 void PageManager::onFacilityDestroyed(Facility *f)
 {
     // if current facility was destroyed, jump to system view
-    if (currentPage && this->viewState.getCurrentFacility() == f)
+    if (currentPage && viewState.clearFacilityFocus(f))
     {
         switchToPage(PAGE_SYSTEM_VIEW);
     }
@@ -89,7 +89,7 @@ void PageManager::onFacilityDestroyed(Facility *f)
 
 void PageManager::onCraftDestroyed(Craft *c)
 {
-    if (currentPage && this->viewState.getCurrentCraft() == c)
+    if (currentPage && viewState.clearCraftFocus(c))
     {
         switchToPage(PAGE_MASTER_CONTROL);
     }

@@ -1385,6 +1385,22 @@ void Game::raiseProductionCompleteEvent(Factory *factory, int item_id)
     }
 }
 
+void Game::raiseFacilityDestructionEvent(Facility *facility)
+{
+    for (auto sink : eventSinks)
+    {
+        sink->onFacilityDestroyed(facility);
+    }
+}
+
+void Game::raiseCraftDestructionEvent(Craft *craft)
+{
+    for (auto sink : eventSinks)
+    {
+        sink->onCraftDestroyed(craft);
+    }
+}
+
 void Game::setFactionHostility(int faction_id, bool hostile)
 {
     if (faction_id >= 0 && faction_id < factions.size())
@@ -1636,8 +1652,11 @@ void Game::destroyCraft(Craft *craft)
         }
         if (pod.object)
         {
-            // drop it
-            pod.object->location = craft->location->body(); // TODO see if we can scan and locate them again
+            // drop it?
+            if (craft->location && craft->location->body())
+            {
+                pod.object->location = craft->location->body(); // TODO see if we can scan and locate them again
+            }
         }
     }
 
@@ -1645,6 +1664,14 @@ void Game::destroyCraft(Craft *craft)
     {
         craft->crew->destroyed = true;
     }
+
+    auto b = craft->location->body();
+    if (b && b->shuttle == craft)
+    {
+        b->shuttle = nullptr;
+    }
+
+    raiseCraftDestructionEvent(craft);
 }
 
 void Game::destroyFacility(Facility *facility)
@@ -1692,6 +1719,8 @@ void Game::destroyFacility(Facility *facility)
             destroyCraft(io.get());
         }
     }
+
+    raiseFacilityDestructionEvent(facility);
 
     // need to update viewState if it is referencing this facility
 }

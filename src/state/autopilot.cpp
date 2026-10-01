@@ -175,7 +175,8 @@ void Autopilot::update(Craft *craft, float delta)
                 if (f && (!f->destroyed))
                 {
                     TraceLog(LOG_INFO, "Autopilot: %s waiting to dock at destination facility", craft->name);
-                    abort();
+                    state = AS_OFF;
+                    return;
                 }
 
                 // if cannot dock due to dock occupied, just wait
