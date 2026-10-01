@@ -2,6 +2,7 @@
 
 #include "base_page.h"
 #include "view_state.h"
+#include "state/event_sink.h"
 
 typedef enum
 {
@@ -34,7 +35,7 @@ typedef enum
 
 class BasePage; // forward declaration
 
-class PageManager
+class PageManager : public EventSink
 {
     // array of page implementations
     BasePage *pages[PAGE_COUNT];
@@ -61,4 +62,10 @@ public:
         static PageManager instance; // guaranteed to be destroyed, instantiated on first use
         return instance;
     }
+
+    // on facility destroyed event
+    virtual void onFacilityDestroyed(Facility *f) override;
+
+    // on craft destroyed event
+    virtual void onCraftDestroyed(Craft *c) override;
 };

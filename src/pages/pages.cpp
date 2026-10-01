@@ -78,3 +78,19 @@ BasePage *PageManager::reactivateCurrentPage()
     }
     return currentPage;
 }
+void PageManager::onFacilityDestroyed(Facility *f)
+{
+    // if current facility was destroyed, jump to system view
+    if (currentPage && this->viewState.getCurrentFacility() == f)
+    {
+        switchToPage(PAGE_SYSTEM_VIEW);
+    }
+}
+
+void PageManager::onCraftDestroyed(Craft *c)
+{
+    if (currentPage && this->viewState.getCurrentCraft() == c)
+    {
+        switchToPage(PAGE_MASTER_CONTROL);
+    }
+}

@@ -193,6 +193,9 @@ int main(const int argc, const char **argv)
 
 	Game *game = Game::createCurrent();
 
+	// attach pagemanager event listener
+	game->addEventSink(&PageManager::getInstance());
+
 	{
 		{
 			Loader loader("initial.db");

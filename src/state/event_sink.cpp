@@ -29,3 +29,15 @@ void EventSink::onProductionComplete(Factory *factory, int item_id)
     (void)factory; // suppress unused parameter warning
     (void)item_id; // suppress unused parameter warning
 }
+
+void EventSink::onFacilityDestroyed(Facility *f)
+{
+    // default implementation does nothing - can be overridden by derived classes to react to facility destruction events
+    (void)f; // suppress unused parameter warning
+}
+
+void EventSink::onCraftDestroyed(Craft *c)
+{
+    // default implementation does nothing - can be overridden by derived classes to react to craft destruction events
+    (void)c; // suppress unused parameter warning
+}
