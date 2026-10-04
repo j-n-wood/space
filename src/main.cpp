@@ -123,13 +123,27 @@ void buildTestData(Game *game)
 	ios3->enterRegion(true);
 	ios3->drive = true;
 	ios3->fuel = 250;
+	// trade test
+	// 1. no equipment - get asked to bring a grapple
+	// 2. grapple equipped - given Comms research object
+	ios3->setPodType(0, PT_TOOL);
+	ios3->pods[0].contentType = ItemType::Grapple;
+	ios3->pods[0].amount = 1;
+
+	Location *ganymede = game->locationByID(14);
+	Orbital *ganymede_orbital{game->createOrbital(ganymede)};
+	ganymede_orbital->operational = true;
+	ganymede_orbital->sdm_installed = true;
+
+	/*
+	// combat test
 	ios3->setPodType(0, PT_WEAPON);
 	ios3->pods[0].contentType = ItemType::DFCC;
 	ios3->pods[0].amount = 100;
 
 	game->setFactionHostility(1, true);								  // methanoids hostile to player
 	game->orbitalAt(jupiter)->stores.items[ItemType::Ios_Drone] = 50; // orbital created from starting data
-
+	*/
 	// test IOS 4 at asteroids
 	Location *asteroid_belt = game->locationByID(9);
 	IOS *ios4 = game->createIOS(asteroid_belt);
@@ -242,14 +256,19 @@ int main(const int argc, const char **argv)
 			// Setup the back buffer for drawing (clear color and depth buffers)
 			ClearBackground(BLACK);
 
+			pageManager.update();
+
 			auto currentPage = pageManager.getCurrentPage();
 
-			currentPage->render();
+			pageManager.render();
 
 			// input can affect rendering as tooltips can come from buttons
 			if (!overlay.console) // only process game input if console is not open, so that we can type into the console without affecting the game
 			{
-				currentPage->input();
+				if (!pageManager.isModal())
+				{
+					currentPage->input();
+				}
 			}
 
 			// handle overlay input (console toggle) BEFORE rendering the console, so the
@@ -282,20 +301,27 @@ int main(const int argc, const char **argv)
 				}
 
 				// hotkeys to switch pages
-				if (IsKeyPressed(KEY_F1))
-				{
-					pageManager.switchToPage(PAGE_SYSTEM_VIEW);
-				}
-				else if (IsKeyPressed(KEY_F2))
-				{
-					Location *earth = game->locationByID(4);
-					pageManager.viewState.setFacilityFocus(game->resourceFacilityAt(earth)); // set focus to resource facility to show correct buttons on page
-					pageManager.switchToPage(PAGE_EARTH_CITY);
-				}
-				else if (IsKeyPressed(KEY_F3))
-				{
-					pageManager.viewState.setLocationFocus(game->locationByID(0)); // set focus to space location to show correct buttons on page
-					pageManager.switchToPage(PAGE_MASTER_CONTROL);
+				if (!pageManager.isModal())
+				{ // these fail in modal state
+					if (IsKeyPressed(KEY_F1))
+					{
+						pageManager.switchToPage(PAGE_SYSTEM_VIEW);
+					}
+					else if (IsKeyPressed(KEY_F2))
+					{
+						if (pageManager.switchToPage(PAGE_EARTH_CITY))
+						{
+							Location *earth = game->locationByID(4);
+							pageManager.viewState.setFacilityFocus(game->resourceFacilityAt(earth)); // set focus to resource facility to show correct buttons on page
+						}
+					}
+					else if (IsKeyPressed(KEY_F3))
+					{
+						if (pageManager.switchToPage(PAGE_MASTER_CONTROL))
+						{
+							pageManager.viewState.setLocationFocus(game->locationByID(0)); // set focus to space location to show correct buttons on page
+						}
+					}
 				}
 
 				// test save/load
@@ -335,45 +361,45 @@ int main(const int argc, const char **argv)
 						TraceLog(LOG_ERROR, "Quickload failed");
 					}
 				}
-
-				// backtick/tilde (`/~) toggles the console (see Overlay::input)
-				// reserve F10 for debug tools, specific to some pages
-
-				// gui design output
-				if (IsKeyPressed(KEY_F11))
-				{
-					// emit mouse coords
-					Vector2 mousePos = GetMousePosition();
-					TraceLog(LOG_INFO, "Mouse Position: (%.2f, %.2f)", mousePos.x, mousePos.y);
-				}
-
-				// time rate
-				if (IsKeyPressed(KEY_EQUAL))
-				{
-					game->time_rate *= 2.0;
-					TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
-				}
-				else if (IsKeyPressed(KEY_MINUS))
-				{
-					game->time_rate *= 0.5;
-					TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
-				}
-
-				// TODO pause mode can stop realtime events and page animation
-				// time
-				double currentTime = GetTime();
-				double deltaTime = currentTime - lastTime;
-
-				game->advanceRealTime(deltaTime);
-
-				lastTime = currentTime;
-				if (advanceTime || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused
-				{
-					game->advanceGameTime(deltaTime); // advance game time
-				}
-
-				currentPage->update(deltaTime); // not game state, view state. Happens after render.
 			}
+
+			// backtick/tilde (`/~) toggles the console (see Overlay::input)
+			// reserve F10 for debug tools, specific to some pages
+
+			// gui design output
+			if (IsKeyPressed(KEY_F11))
+			{
+				// emit mouse coords
+				Vector2 mousePos = GetMousePosition();
+				TraceLog(LOG_INFO, "Mouse Position: (%.2f, %.2f)", mousePos.x, mousePos.y);
+			}
+
+			// time rate
+			if (IsKeyPressed(KEY_EQUAL))
+			{
+				game->time_rate *= 2.0;
+				TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
+			}
+			else if (IsKeyPressed(KEY_MINUS))
+			{
+				game->time_rate *= 0.5;
+				TraceLog(LOG_INFO, "Time rate: %.2fx", game->time_rate);
+			}
+
+			// TODO pause mode can stop realtime events and page animation
+			// time
+			double currentTime = GetTime();
+			double deltaTime = currentTime - lastTime;
+
+			game->advanceRealTime(deltaTime);
+
+			lastTime = currentTime;
+			if (advanceTime || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused
+			{
+				game->advanceGameTime(deltaTime); // advance game time
+			}
+
+			currentPage->update(deltaTime); // not game state, view state. Happens after render.
 		}
 
 		TextureManager::getInstance().dispose(); // explicitly dispose of textures before exiting, to ensure proper cleanup, though the destructor should also handle this when the program exits and static objects are destroyed

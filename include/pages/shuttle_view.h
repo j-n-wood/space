@@ -7,6 +7,7 @@
 #include "pages/destination_view.h"
 #include "pages/drone_control_view.h"
 #include "pages/page_log.h"
+#include "pages/comms_view.h"
 
 const int DroneControlViewLeft = 150;
 const int DroneControlViewTop = 180;
@@ -19,6 +20,7 @@ class ShuttleView : public BasePage, EventSink
     const TextureAsset *uiTexture;
     std::unique_ptr<AutopilotView> autopilotView;
     std::unique_ptr<DroneControlView> droneControlView;
+    std::unique_ptr<CommsView> commsView;
 
     PageLog pageLog;
 
@@ -26,17 +28,7 @@ public:
     Craft *craft;
     DestinationPickerPtr destinationPicker;
 
-    ShuttleView()
-    {
-        bodyTexture = TextureManager::getInstance().getTexture(TEXTURE_BODIES);
-        itemsTexture = TextureManager::getInstance().getTexture(TEXTURE_ITEMS);
-        uiTexture = TextureManager::getInstance().getTexture(TEXTURE_UI);
-        backgroundSource = pageBackgroundSources[PB_COCKPIT];
-        std::snprintf(title, sizeof title, "Shuttle");
-        pageLog.top = 750;
-        pageLog.left = 350;
-        droneControlView = std::make_unique<DroneControlView>(DroneControlViewLeft, DroneControlViewTop);
-    }
+    ShuttleView();
 
     void activate(ViewState &viewState) override;
     void deactivate() override;

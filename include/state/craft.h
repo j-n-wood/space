@@ -7,6 +7,7 @@
 #include "state/craft_type.h"
 #include "state/craft_action.h"
 #include "state/object.h"
+#include "state/item.h"
 
 typedef enum
 {
@@ -120,6 +121,7 @@ public:
 
     bool isPodEmpty(const int index);
     void setPodType(const int index, const PodType pt);
+    int hasTool(const ItemType it) const;
     void update(float delta);
 
     const char *statusText(char *status, size_t len);

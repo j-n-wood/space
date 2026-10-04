@@ -22,6 +22,13 @@ void Overlay::start()
 
 bool Overlay::clickedArea(const Rectangle &area, const char *toolTip)
 {
+    auto &pm{PageManager::getInstance()};
+
+    if (pm.isModal())
+    {
+        return false;
+    }
+
     if (CheckCollisionPointRec(GetMousePosition(), area))
     {
         setCurrentToolTip(toolTip);
@@ -35,6 +42,13 @@ bool Overlay::clickedArea(const Rectangle &area, const char *toolTip)
 
 bool Overlay::mouseDownArea(const Rectangle &area, const char *toolTip, RepeatButtonState *state)
 {
+    auto &pm{PageManager::getInstance()};
+
+    if (pm.isModal())
+    {
+        return false;
+    }
+
     if (CheckCollisionPointRec(GetMousePosition(), area))
     {
         auto mb{IsMouseButtonDown(MOUSE_LEFT_BUTTON)};

@@ -17,6 +17,7 @@
 #include "state/crew.h"
 #include "state/event.h"
 #include "state/realtime_event.h"
+#include "state/faction.h"
 
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
@@ -198,6 +199,8 @@ public:
     // faction related
     void setFactionHostility(int faction_id, bool hostile);
     bool hostilesAt(Location *location, int faction_id);
+    Faction &factionByID(int faction_id);
+    FactionInteraction factionInteractionForCraft(Craft *craft, int faction_id);
 
     // logic to support UI
     inline bool locationHasShuttle(Location *location) const
@@ -253,7 +256,9 @@ public:
     bool canActivatePod(Craft *craft, int pod_index);
     bool activatePod(Craft *craft, int pod_index);
     bool updateActivePod(Craft *craft, Pod &pod, float delta); // returns true if pod still active after update, false if completed
-    bool updateCraftScanning(Craft *craft);                    // returns true scan target changed
+    bool updateCraftScanning(Craft *craft);
+    bool canPerformTrade(Craft *craft);
+    bool performTrade(Craft *craft); // return true if trade occurred
 
     // weapon functions
     ItemType droneTypeForCraft(const Craft *craft) const;
@@ -271,6 +276,8 @@ public:
     void raiseOrbitalConstructionEvent(Orbital *orbital);
     void raiseResourceFacilityConstructionEvent(ResourceFacility *rf);
     void raiseProductionCompleteEvent(Factory *factory, int item_id);
+    void raiseFacilityDestructionEvent(Facility *facility);
+    void raiseCraftDestructionEvent(Craft *craft);
 
     void onSpacecraftArrival(Craft *craft);
     void onSpacecraftDocked(Craft *craft);

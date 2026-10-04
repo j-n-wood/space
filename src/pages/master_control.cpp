@@ -79,8 +79,11 @@ void MasterControlView::renderOrbitals()
             {
                 // switch to orbital page for this location
                 PageManager &pm = PageManager::getInstance();
-                pm.viewState.setFacilityFocus(orbital);
-                pm.switchToPage(PAGE_ORBITAL); // orbital page has production info and access to factory, stores, etc.
+
+                if (pm.switchToPage(PAGE_ORBITAL)) // orbital page has production info and access to factory, stores, etc.
+                {
+                    pm.viewState.setFacilityFocus(orbital);
+                }
             }
             y += 80.0; // Move to the next position
             ++count;
@@ -157,8 +160,10 @@ void MasterControlView::renderIOS()
             {
                 // switch to orbital page for this location
                 PageManager &pm = PageManager::getInstance();
-                pm.viewState.setCraftFocus(ios.get());
-                pm.switchToPage(PAGE_SHUTTLE);
+                if (pm.switchToPage(PAGE_SHUTTLE))
+                {
+                    pm.viewState.setCraftFocus(ios.get());
+                }
             }
             y += 80.0; // Move to the next position
             ++count;

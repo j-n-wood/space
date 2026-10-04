@@ -13,8 +13,9 @@
 #include "pages/master_control.h"
 #include "pages/orbital_view.h"
 #include "pages/training_view.h"
+#include "assets/ui_elements.h"
 
-PageManager::PageManager() : currentPage(nullptr)
+PageManager::PageManager() : currentPage(nullptr), desiredPage(PAGE_NONE), modal(false)
 {
     // initialize page resources
     for (int i = 0; i < PAGE_COUNT; i++)
@@ -50,23 +51,53 @@ PageManager::~PageManager()
     }
 }
 
-BasePage *PageManager::switchToPage(Page newPage)
+bool PageManager::switchToPage(Page newPage)
 {
     // logic to switch to the specified page, for example by creating a new page instance and setting it as the current page
     // this is just a placeholder, actual implementation would depend on how you manage page instances and rendering
 
+    if (modal)
+    {
+        return false; // cannot switch pages while a modal page is active
+    }
+
     BasePage *newPageInstance = pages[newPage];
 
-    if (newPageInstance != nullptr && newPageInstance != currentPage)
+    if (newPageInstance == nullptr)
     {
-        if (currentPage)
-        {
-            currentPage->deactivate(); // call deactivate on the old page to clean up any state
-        }
-        currentPage = newPageInstance;
-        currentPage->activate(viewState); // call activate on the new page to set it up
+
+        return false;
     }
-    return currentPage;
+
+    desiredPage = newPage;
+    return true;
+}
+
+void PageManager::render()
+{
+    ControlLockToggle lock(modal); // lock controls during rendering if there is a modal
+    if (currentPage)
+    {
+        currentPage->render();
+    }
+}
+
+void PageManager::update()
+{
+    if (desiredPage != PAGE_NONE)
+    {
+        BasePage *newPageInstance = pages[desiredPage];
+        if ((newPageInstance != nullptr) && (newPageInstance != currentPage))
+        {
+            if (currentPage)
+            {
+                currentPage->deactivate(); // call deactivate on the old page to clean up any state
+            }
+            currentPage = newPageInstance;
+            currentPage->activate(viewState); // call activate on the new page to set it up
+        }
+        desiredPage = PAGE_NONE;
+    }
 }
 
 BasePage *PageManager::reactivateCurrentPage()
@@ -78,6 +109,8 @@ BasePage *PageManager::reactivateCurrentPage()
     }
     return currentPage;
 }
+
+// note this do not check modal state - need some worked examples
 void PageManager::onFacilityDestroyed(Facility *f)
 {
     // if current facility was destroyed, jump to system view

@@ -103,7 +103,7 @@ public:
     }
 
     // remove focus if it matches the given facility
-    inline bool clearFacilityFocus(Facility *f)
+    inline bool clearFacilityFocus(Location *f)
     {
         if (focusPlace == f)
         {

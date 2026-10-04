@@ -221,3 +221,36 @@ public:
         GuiSetStyle(DEFAULT, TEXT_SIZE, previousTextSize); // Reset to previous text size
     }
 };
+
+// optional lock-out of controls
+class ControlLockToggle
+{
+    bool locked;
+    bool priorLockState;
+
+public:
+    ControlLockToggle(bool lock) : locked(lock)
+    {
+        priorLockState = GuiIsLocked();
+        if (locked && !priorLockState)
+        {
+            GuiLock();
+        }
+        else if (!locked && priorLockState)
+        {
+            GuiUnlock();
+        }
+    }
+
+    ~ControlLockToggle()
+    {
+        if (locked && !priorLockState)
+        {
+            GuiUnlock();
+        }
+        else if (!locked && priorLockState)
+        {
+            GuiLock();
+        }
+    }
+};

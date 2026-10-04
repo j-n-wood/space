@@ -410,6 +410,19 @@ void Craft::setPodType(const int index, const PodType pt)
     }
 }
 
+int Craft::hasTool(const ItemType it) const
+{
+    for (int i = 0; i < max_pods; ++i)
+    {
+        const Pod &pod = pods[i];
+        if (pod.type == PT_TOOL && pod.contentType == it && pod.amount > 0)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void Craft::update(float delta)
 {
     if (destroyed)
@@ -497,10 +510,6 @@ void Craft::update(float delta)
                 break;
             case CS_DOCKING:
                 onDocked();
-                if (hasCapability(CC_INTERPLANETARY))
-                {
-                    game->onSpacecraftDocked(this); // on SPACECRAFT docked, so must be interplanetary
-                }
                 break;
             case CS_TRANSIT:
                 arriveAtLocation();
@@ -562,6 +571,11 @@ void Craft::onDocked()
         if (f)
         {
             location = f;
+
+            if (hasCapability(CC_INTERPLANETARY))
+            {
+                game->onSpacecraftDocked(this); // on SPACECRAFT docked, so must be interplanetary
+            }
         }
     }
 

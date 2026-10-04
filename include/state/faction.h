@@ -29,3 +29,14 @@ public:
 
     Faction(int i, const char *n);
 };
+
+enum FactionInteraction
+{
+    Unset,
+    BeforeCommspod,     // message saying bring a grapple
+    GiveCommspod,       // message saying gave a commspod
+    Trade,              // trade negotiations
+    SympatheticWarning, // warning of war
+    DeclareWar,         // declaration of war
+    Max
+};

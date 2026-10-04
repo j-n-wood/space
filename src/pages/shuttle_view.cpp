@@ -80,6 +80,19 @@ Rectangle pod_icon_coordinates[6] = {
     {1150, 940, 96, 64},
 };
 
+ShuttleView::ShuttleView()
+{
+    bodyTexture = TextureManager::getInstance().getTexture(TEXTURE_BODIES);
+    itemsTexture = TextureManager::getInstance().getTexture(TEXTURE_ITEMS);
+    uiTexture = TextureManager::getInstance().getTexture(TEXTURE_UI);
+    backgroundSource = pageBackgroundSources[PB_COCKPIT];
+    std::snprintf(title, sizeof title, "Shuttle");
+    pageLog.top = 750;
+    pageLog.left = 350;
+    droneControlView = std::make_unique<DroneControlView>(DroneControlViewLeft, DroneControlViewTop);
+    commsView = std::make_unique<CommsView>(DroneControlViewLeft, DroneControlViewTop);
+}
+
 // if viewstate is set to a craft, show cockpit for that
 // if not, look for shuttle at location
 void ShuttleView::activate(ViewState &viewState)
@@ -271,6 +284,16 @@ void ShuttleView::render()
         return;
     }
 
+    // TODO organise this game event stuff
+    if (craft->docked())
+    {
+        Facility *facility = asFacility(craft->location);
+        if (facility->faction_id == 1)
+        {
+            commsView->activate(craft, &Game::getCurrent()->factionByID(facility->faction_id));
+        }
+    }
+
     // set common state
     auto craft_can_dock = craft->canDock();
 
@@ -366,15 +389,20 @@ void ShuttleView::render()
                 {
                     // clicked on pod icon, go to dock view
                     PageManager &pm = PageManager::getInstance();
-                    pm.viewState.setFacilityFocus(asFacility(craft->location));
                     // TODO this sucks
                     if (craft->hasCapability(CC_INTERPLANETARY))
                     {
-                        pm.switchToPage(PAGE_ORBIT_SPACE_BAY);
+                        if (pm.switchToPage(PAGE_ORBIT_SPACE_BAY))
+                        {
+                            pm.viewState.setFacilityFocus(asFacility(craft->location));
+                        }
                     }
                     else
                     {
-                        pm.switchToPage(craft->location->orbit() ? PAGE_ORBIT_SHUTTLE_BAY : PAGE_SURFACE_SHUTTLE_BAY);
+                        if (pm.switchToPage(craft->location->orbit() ? PAGE_ORBIT_SHUTTLE_BAY : PAGE_SURFACE_SHUTTLE_BAY))
+                        {
+                            pm.viewState.setFacilityFocus(asFacility(craft->location));
+                        }
                     }
                 }
             }
@@ -463,6 +491,8 @@ void ShuttleView::render()
     }
 
     droneControlView->render();
+
+    commsView->render();
 
     pageLog.render();
 }

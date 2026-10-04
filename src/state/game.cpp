@@ -897,6 +897,10 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
         }
 
         break;
+
+    case ItemType::Commspod:
+        return canPerformTrade(craft);
+        break;
     default:
         // some other thing
         break;
@@ -916,6 +920,12 @@ bool Game::activatePod(Craft *craft, int pod_index)
 
     Pod &pod{craft->pods[pod_index]};
     const Item &item{items[pod.contentType]};
+
+    // special case: commspod runs through UI
+    if (pod.contentType == ItemType::Commspod)
+    {
+        return true;
+    }
 
     // mark pod as active and set craft state to working
 
@@ -1015,6 +1025,90 @@ bool Game::updateCraftScanning(Craft *craft)
     }
 
     return false;
+}
+
+bool Game::canPerformTrade(Craft *craft)
+{
+    if (!craft)
+    {
+        TraceLog(LOG_ERROR, "Missing craft to canPerformTrade");
+        return false;
+    }
+
+    if (!craft->docked())
+    {
+        return false;
+    }
+
+    Facility *facility = asFacility(craft->location);
+    // must be docked at a different faction station
+    if (facility->faction_id == 0) // TODO identify player faction
+    {
+        return false;
+    }
+
+    // must have a commspod and > 0 supply pods with nonzero content
+    // call path assumes commspod being checked in canActivatePod
+
+    bool have_cargo{false};
+    for (int i = 0; i < craft->max_pods; ++i)
+    {
+        Pod &pod = craft->pods[i];
+        if (pod.type == PodType::PT_SUPPLY && pod.amount > 0 && pod.contentType > 0)
+        {
+            have_cargo = true;
+        }
+    }
+
+    if (!have_cargo)
+    {
+        return false;
+    }
+
+    return have_cargo; // return true if trade can be performed
+}
+
+bool Game::performTrade(Craft *craft)
+{
+    if (!craft)
+    {
+        TraceLog(LOG_ERROR, "Missing craft to performTrade");
+        return false;
+    }
+
+    // occurs on activatePod of type 'CommsPod' when there is cargo to trade
+    if (!canPerformTrade(craft))
+    {
+        TraceLog(LOG_ERROR, "Craft cannot perform trade");
+        return false;
+    }
+
+    Facility *facility = asFacility(craft->location);
+    Faction &faction = factions[facility->faction_id];
+
+    // perform the trade
+    bool traded = false;
+    for (int i = 0; i < craft->max_pods; ++i)
+    {
+        Pod &pod = craft->pods[i];
+        if (pod.type == PodType::PT_SUPPLY && pod.amount > 0 && pod.contentType > 0)
+        {
+            // use faction table to convert types
+            if (faction.tradeTable[pod.contentType].traded_resource_id > 0)
+            {
+                pod.contentType = faction.tradeTable[pod.contentType].traded_resource_id;
+                pod.amount = (int)((float)pod.amount * faction.tradeTable[pod.contentType].rate);
+                traded = true;
+            }
+        }
+    }
+
+    if (traded)
+    {
+        ++faction.trades;
+    }
+
+    return traded; // trade occurred
 }
 
 Object *Game::randomiseAsteroid(Object *asteroid)
@@ -1204,6 +1298,15 @@ void Game::onSpacecraftDocked(Craft *craft)
 {
     // craft->onDocked() already called
     // this can trigger game events that do not relate to 'boarding' e.g. trade.
+
+    Facility *facility = asFacility(craft->location);
+
+    if ((craft->faction_id == 0) && (facility->faction_id == 1))
+    {
+        // diplomacy/trade
+        // need to force view switch to craft
+        // TODO does not belong in game simulation code, it a UI concern
+    }
 
     // if docking location is hostile, trigger capture event
     if (hostilesAt(craft->location, craft->faction_id) && (craft->hasCapability(CC_BOARDING)))
@@ -1429,6 +1532,47 @@ bool Game::hostilesAt(Location *location, int faction_id)
     }
 
     return false;
+}
+
+Faction &Game::factionByID(int faction_id)
+{
+    if (faction_id >= 0 && faction_id < factions.size())
+    {
+        return factions[faction_id];
+    }
+    TraceLog(LOG_ERROR, "Invalid faction_id %d in factionByID", faction_id);
+    throw std::out_of_range("Invalid faction_id in factionByID");
+}
+
+FactionInteraction Game::factionInteractionForCraft(Craft *craft, int faction_id)
+{
+    if (!craft)
+    {
+        return FactionInteraction::Unset;
+    }
+
+    if (factionByID(faction_id).hostile)
+    {
+        return FactionInteraction::DeclareWar;
+    }
+
+    if (factionByID(faction_id).trades > 20)
+    {
+        return FactionInteraction::SympatheticWarning;
+    }
+
+    if (canPerformTrade(craft))
+    {
+        return FactionInteraction::Trade;
+    }
+
+    auto &cp_topic{researchTopics[22]};
+    if (!cp_topic.available && (cp_topic.progress < cp_topic.requiredTime) && craft->hasTool(ItemType::Grapple) > -1)
+    {
+        return FactionInteraction::GiveCommspod;
+    }
+
+    return FactionInteraction::BeforeCommspod;
 }
 
 Object *Game::createObject(int id, ObjectType type, Location *location, int quantity, int resource_id, int research_topic_id)

@@ -41,6 +41,8 @@ class PageManager : public EventSink
     BasePage *pages[PAGE_COUNT];
     BasePage *currentPage; // currently active page
 
+    Page desiredPage; // during a tick, the page we want to switch to
+    bool modal;       // indicates if a modal page is currently active
 public:
     // UI state
     ViewState viewState;
@@ -52,9 +54,11 @@ public:
     PageManager(const PageManager &) = delete;
     PageManager &operator=(const PageManager &) = delete;
 
-    BasePage *switchToPage(Page newPage);
+    bool switchToPage(Page newPage);   // returns true if allowed (and queued), false if not
     BasePage *reactivateCurrentPage(); // on load of game state, reactivate current page to update any page state based on new game state
     inline BasePage *getCurrentPage() const { return currentPage; }
+    void render();
+    void update(); // process pending changes
 
     // singleton access
     static PageManager &getInstance()
@@ -68,4 +72,8 @@ public:
 
     // on craft destroyed event
     virtual void onCraftDestroyed(Craft *c) override;
+
+    // modal control
+    inline bool isModal() const { return modal; }
+    inline void setModal(bool m) { modal = m; }
 };

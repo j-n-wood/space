@@ -105,6 +105,13 @@ void BayView::loadSupplyPod(Pod *pod)
 
 void BayView::loadToolPod(Pod *pod)
 {
+    // if is a grapple holding an object, remove for study
+    if (pod->object != nullptr)
+    {
+        Game::getCurrent()->unloadObjectFromPod(pod, facility);
+        TraceLog(LOG_INFO, "Unloaded object from tool pod for study");
+    }
+
     // set item list selection to current pod content, if any
 
     itemList.itemActive = -1;
@@ -273,13 +280,18 @@ void BayView::input()
         auto &pm{PageManager::getInstance()};
         if (craft->type == CT_SHUTTLE)
         {
-            pm.viewState.setCraftFocus(craft);
-            pm.switchToPage(PAGE_SHUTTLE);
+
+            if (pm.switchToPage(PAGE_SHUTTLE))
+            {
+                pm.viewState.setCraftFocus(craft);
+            }
         }
         else if (craft->type == CT_IOS)
         {
-            pm.viewState.setCraftFocus(craft);
-            pm.switchToPage(PAGE_COCKPIT);
+            if (pm.switchToPage(PAGE_COCKPIT))
+            {
+                pm.viewState.setCraftFocus(craft);
+            }
         }
     }
 }
