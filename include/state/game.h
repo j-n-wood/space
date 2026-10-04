@@ -278,6 +278,7 @@ public:
     void raiseProductionCompleteEvent(Factory *factory, int item_id);
     void raiseFacilityDestructionEvent(Facility *facility);
     void raiseCraftDestructionEvent(Craft *craft);
+    void raiseFactionInteractionEvent(Faction *faction, FactionInteraction interaction, Craft *craft);
 
     void onSpacecraftArrival(Craft *craft);
     void onSpacecraftDocked(Craft *craft);

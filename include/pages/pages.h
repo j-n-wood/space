@@ -73,6 +73,9 @@ public:
     // on craft destroyed event
     virtual void onCraftDestroyed(Craft *c) override;
 
+    // faction interaction event
+    virtual void onFactionInteraction(Faction *faction, FactionInteraction interaction, Craft *craft) override;
+
     // modal control
     inline bool isModal() const { return modal; }
     inline void setModal(bool m) { modal = m; }

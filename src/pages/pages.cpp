@@ -127,3 +127,18 @@ void PageManager::onCraftDestroyed(Craft *c)
         switchToPage(PAGE_MASTER_CONTROL);
     }
 }
+
+void PageManager::onFactionInteraction(Faction *faction, FactionInteraction interaction, Craft *craft)
+{
+    // show faction interaction modal or notification
+    // may shift focus to craft that initiated the interaction
+    // as change page is a delayed action, so must be opening a modal
+    if (faction && interaction != FactionInteraction::Unset && craft)
+    {
+        // open faction interaction modal or notification
+        viewState.setCraftFocus(craft);
+        switchToPage(PAGE_COCKPIT);
+        // trigger needs to be set s.t. page shows comms dialog on open
+        // currently detected by the page on activation
+    }
+}

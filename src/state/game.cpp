@@ -1304,8 +1304,12 @@ void Game::onSpacecraftDocked(Craft *craft)
     if ((craft->faction_id == 0) && (facility->faction_id == 1))
     {
         // diplomacy/trade
-        // need to force view switch to craft
-        // TODO does not belong in game simulation code, it a UI concern
+        auto fi{factionInteractionForCraft(craft, facility->faction_id)};
+        if (fi != FactionInteraction::Unset)
+        {
+            // raise faction interaction event
+            raiseFactionInteractionEvent(facility->faction_id ? &factionByID(facility->faction_id) : nullptr, fi, craft);
+        }
     }
 
     // if docking location is hostile, trigger capture event
@@ -1501,6 +1505,14 @@ void Game::raiseCraftDestructionEvent(Craft *craft)
     for (auto sink : eventSinks)
     {
         sink->onCraftDestroyed(craft);
+    }
+}
+
+void Game::raiseFactionInteractionEvent(Faction *faction, FactionInteraction interaction, Craft *craft)
+{
+    for (auto sink : eventSinks)
+    {
+        sink->onFactionInteraction(faction, interaction, craft);
     }
 }
 

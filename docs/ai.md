@@ -37,3 +37,55 @@ The opposing faction (id 1, methanoids) in the source material operates like so.
 * Once SDM is researched, the controls in the SDM page are available, and players can stop self-destruct.
 * An active SDM has 10s of real time (same rules as per unarmed craft under attack) to be disabled, or the orbital is destroyed, including any docked craft.
 * Advancing game time automatically expires any realtime timers (craft under attack, SDM). This means that save can expire such timers by performing a game time advance of say 0.01s.
+
+## Implementation
+
+Ideally game logic remains in Game.
+
+UI interaction can be driven by events (which can be game Events).
+
+We have mechanics like:
+
+* realtime game updates (SDM, craft under attack)
+* modal dialogs
+* research objects
+* game Events
+* event bus from Game to subscribers - PageManager is a subscriber.
+
+### Dock at methanoid station with no relevant tools
+
+Desired outcome: on craft page, show comms dialog requesting 'bring a grapple'.
+
+Trigger: docked at methanoid station, no grapple or commspod.
+
+Action: switch to that craft, show dialog, trigger craft launch.
+
+How: Game::onSpacecraftDocked() can detect the condition. Game should not alter UI state. PageManager
+'modal' state stops game time advance. Therefore game can trigger an event message that PM picks up
+to set state.
+
+What is that event message? Largely a hardcoded 'game event' or 'comms event'. Do we need both?
+Note that this event can be repeated. 'Events' are stored in the DB without triggers but with
+message text - though not all events are faction related (e.g. reach orbit). They are more about
+'what to show'.
+
+Proposal: triggers are just code.
+The 'game event' is sent via the event bus. Receivers (other than Game) can check/update game status.
+
+Is this a 'game event' or a 'craft/faction interaction event'? I.e. how do we know what craft to
+focus on (show message) from the _trigger_ in the 'game event'? Game events may not have consistent
+triggers. Optional parameters for craft/facility reference?
+
+Alternative: make onSpacecraftDocked an eventsink handler? So something meta-game can handle it?
+Probably not: want to retain logic in 'Game'. Therefore additional event times for the faction
+events. Existing handlers are fairly specific.
+
+e.g. onFactionInteraction(type, craft, facility, event)
+PageManager can switch UI to cockpit page, on craft c, and go modal with comms dialog - stopping
+game time advance.
+Reference to an 'Event' could add some state (e.g. events that only fire once) and is a place to 
+reference stored message text outside code.
+
+Game::completeEvent() is already called from inside one of the 'raiseXXX' methods.
+
+This can work with PageManager to e.g. show a message from research on achieving orbital status.

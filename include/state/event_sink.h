@@ -1,5 +1,7 @@
 #pragma once
 
+#include "state/faction.h"
+
 class Orbital;
 class ResourceFacility;
 class Factory;
@@ -17,4 +19,6 @@ public:
 
     virtual void onFacilityDestroyed(Facility *f);
     virtual void onCraftDestroyed(Craft *c);
+
+    virtual void onFactionInteraction(Faction *faction, FactionInteraction interaction, Craft *craft);
 };
