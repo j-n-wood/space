@@ -36,6 +36,7 @@ enum FactionInteraction
     BeforeCommspod,     // message saying bring a grapple
     GiveCommspod,       // message saying gave a commspod
     Trade,              // trade negotiations
+    NothingToTrade,     // commspod but no supplies
     SympatheticWarning, // warning of war
     DeclareWar,         // declaration of war
     Max

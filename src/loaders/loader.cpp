@@ -66,28 +66,18 @@ bool Loader::loadFactions()
     }
 
     // read trade tables
-    SQLiteQuery tradeQuery(this, "SELECT faction_id, traded_resource_id, rate FROM faction_trades ORDER BY faction_id");
+    SQLiteQuery tradeQuery(this, "SELECT faction_id, resource_id, traded_resource_id, rate FROM faction_trades ORDER BY faction_id");
     while (tradeQuery.next())
     {
         int faction_id = sqlite3_column_int(tradeQuery, 0);
-        int traded_resource_id = sqlite3_column_int(tradeQuery, 1);
-        float rate = static_cast<float>(sqlite3_column_double(tradeQuery, 2));
+        int resource_id = sqlite3_column_int(tradeQuery, 1);
+        int traded_resource_id = sqlite3_column_int(tradeQuery, 2);
+        float rate = static_cast<float>(sqlite3_column_double(tradeQuery, 3));
 
-        auto it = std::find_if(game->factions.begin(), game->factions.end(),
-                               [faction_id](const Faction &f)
-                               { return f.id == faction_id; });
-        if (it != game->factions.end())
-        {
-            for (int j = 0; j < ResourceType::Count; ++j)
-            {
-                if (it->tradeTable[j].traded_resource_id == 0)
-                {
-                    it->tradeTable[j].traded_resource_id = traded_resource_id;
-                    it->tradeTable[j].rate = rate;
-                    break;
-                }
-            }
-        }
+        Faction &faction = game->factionByID(faction_id);
+
+        faction.tradeTable[resource_id].traded_resource_id = traded_resource_id;
+        faction.tradeTable[resource_id].rate = rate;
     }
 
     return true;

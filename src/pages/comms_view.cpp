@@ -75,6 +75,16 @@ void CommsView::render()
 
         // TODO: set hostility
         break;
+    case FactionInteraction::NothingToTrade:
+        // render nothing to trade state
+        DrawText("You have nothing to trade.", left + 20, top + 40, 20, WHITE);
+
+        if (overlay.renderButton(yesButton, "OK", "Depart", GREEN))
+        {
+            craft->launch();
+            deactivate();
+        }
+        break;
     case FactionInteraction::Trade:
         // render trade state
         DrawText("Trade available.", left + 20, top + 40, 20, WHITE);

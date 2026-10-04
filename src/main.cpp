@@ -126,9 +126,14 @@ void buildTestData(Game *game)
 	// trade test
 	// 1. no equipment - get asked to bring a grapple
 	// 2. grapple equipped - given Comms research object
+	// 3. Commspod but no supplies - no trade
+	// 4. Commspod and supplies available - trade possible
 	ios3->setPodType(0, PT_TOOL);
-	ios3->pods[0].contentType = ItemType::Grapple;
+	ios3->pods[0].contentType = ItemType::Commspod;
 	ios3->pods[0].amount = 1;
+	ios3->setPodType(1, PT_SUPPLY);
+	ios3->pods[1].contentType = ResourceType::Deuterium;
+	ios3->pods[1].amount = 250;
 
 	Location *ganymede = game->locationByID(14);
 	Orbital *ganymede_orbital{game->createOrbital(ganymede)};
@@ -392,6 +397,8 @@ int main(const int argc, const char **argv)
 			double deltaTime = currentTime - lastTime;
 
 			game->advanceRealTime(deltaTime);
+
+			game->paused = pageManager.isModal();
 
 			lastTime = currentTime;
 			if (advanceTime || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused

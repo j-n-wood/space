@@ -1096,8 +1096,8 @@ bool Game::performTrade(Craft *craft)
             // use faction table to convert types
             if (faction.tradeTable[pod.contentType].traded_resource_id > 0)
             {
-                pod.contentType = faction.tradeTable[pod.contentType].traded_resource_id;
                 pod.amount = (int)((float)pod.amount * faction.tradeTable[pod.contentType].rate);
+                pod.contentType = faction.tradeTable[pod.contentType].traded_resource_id;
                 traded = true;
             }
         }
@@ -1576,6 +1576,11 @@ FactionInteraction Game::factionInteractionForCraft(Craft *craft, int faction_id
     if (canPerformTrade(craft))
     {
         return FactionInteraction::Trade;
+    }
+
+    if (craft->hasTool(ItemType::Commspod) > -1)
+    {
+        return FactionInteraction::NothingToTrade;
     }
 
     auto &cp_topic{researchTopics[22]};
