@@ -4,12 +4,12 @@
 #include "pages/pages.h"
 #include "assets/ui_elements.h"
 
-CommsView::CommsView(int l, int t) : top(t), left(l), craft(nullptr), faction(nullptr), visible(false), state(FactionInteraction::Unset)
+CommsView::CommsView(int l, int t) : Modal(l, t), craft(nullptr), faction(nullptr), state(FactionInteraction::Unset)
 {
     state = FactionInteraction::Unset;
 }
 
-void CommsView::activate(Craft *c, Faction *f)
+void CommsView::initialise(Craft *c, Faction *f)
 {
     craft = c;
     faction = f;
@@ -17,14 +17,7 @@ void CommsView::activate(Craft *c, Faction *f)
     Game *game = Game::getCurrent();
     state = game->factionInteractionForCraft(craft, faction->id);
 
-    visible = true;
-    PageManager::getInstance().setModal(true);
-}
-
-void CommsView::deactivate()
-{
-    visible = false;
-    PageManager::getInstance().setModal(false);
+    Modal::activate();
 }
 
 void CommsView::input()
@@ -42,11 +35,7 @@ void CommsView::render()
         return;
     }
 
-    ControlLockToggle lock(false); // unlock controls for this modal
-
-    // add a dimmed background to make it clear this is an overlay
-    DrawRectangle(left, top, GetScreenWidth() - 2 * left, GetScreenHeight() - 2 * top, (Color){0, 0, 0, 128});
-    DrawRectangleLines(left, top, GetScreenWidth() - 2 * left, GetScreenHeight() - 2 * top, (Color){200, 180, 170, 255});
+    Modal::render();
 
     auto &overlay = Overlay::getInstance();
     Rectangle yesButton = {left + 20.0f, top + 80.0f, 100.0f, 40.0f};

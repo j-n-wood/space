@@ -1,24 +1,21 @@
 #pragma once
 
+#include "pages/modal.h"
 #include "state/faction.h"
 
 // view overlay for comms from another faction
 class Craft;
 
-class CommsView
+class CommsView : public Modal
 {
 public:
     Craft *craft;
     Faction *faction;
-    bool visible;
     FactionInteraction state;
-    int top;
-    int left;
 
     CommsView(int l, int t);
 
-    void activate(Craft *c, Faction *f);
-    void deactivate();
+    void initialise(Craft *c, Faction *f);
     void input();
     void render();
 };

@@ -2,6 +2,7 @@
 #include "state/game.h"
 #include "pages/pages.h"
 #include <cstdio>
+#include "pages/message_box.h"
 
 extern "C"
 {
@@ -172,6 +173,12 @@ void Overlay::render()
     sprintf(buf, "%.2f", game->game_time);
     DrawText(buf, BasePage::timeDest.x, BasePage::timeDest.y, 20, WHITE);
 
+    // modals
+    if (activeModal)
+    {
+        activeModal->render();
+    }
+
     // help text
     if (help)
     {
@@ -338,4 +345,10 @@ void Overlay::input()
     {
         help = !help;
     }
+}
+
+void Overlay::showMessage(const char *message)
+{
+    activeModal = std::make_unique<MessageBox>(100, 100, message); // example position
+    activeModal->activate();
 }

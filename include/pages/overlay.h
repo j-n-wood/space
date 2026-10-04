@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstring>
+#include <memory>
+
+#include "pages/modal.h"
 
 extern "C"
 {
@@ -41,6 +44,8 @@ class Overlay
 
     char consoleInput[256] = {0};
 
+    std::unique_ptr<Modal> activeModal;
+
 public:
     bool console = false;
     bool debug = false; // debug-tools flag; gates BasePage::renderDebug (toggled by F10)
@@ -77,6 +82,8 @@ public:
         }
         return false; // not shown
     }
+
+    void showMessage(const char *message);
 
     // singleton pattern
     static Overlay &getInstance()

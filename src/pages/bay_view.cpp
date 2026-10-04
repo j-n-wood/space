@@ -108,8 +108,21 @@ void BayView::loadToolPod(Pod *pod)
     // if is a grapple holding an object, remove for study
     if (pod->object != nullptr)
     {
+        switch (pod->object->type)
+        {
+        case ObjectType::Asteroid:
+            // handle asteroid case if needed
+            break;
+        case ObjectType::ResearchUnlock:
+            // handle research unlock case if needed
+            TraceLog(LOG_INFO, "Unloaded object from tool pod for study");
+            Overlay::getInstance().showMessage("Unloaded object from tool pod for study");
+            break;
+        default:
+            // handle default case if needed
+            break;
+        }
         Game::getCurrent()->unloadObjectFromPod(pod, facility);
-        TraceLog(LOG_INFO, "Unloaded object from tool pod for study");
     }
 
     // set item list selection to current pod content, if any

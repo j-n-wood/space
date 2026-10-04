@@ -290,7 +290,7 @@ void ShuttleView::render()
         Facility *facility = asFacility(craft->location);
         if (facility->faction_id == 1)
         {
-            commsView->activate(craft, &Game::getCurrent()->factionByID(facility->faction_id));
+            commsView->initialise(craft, &Game::getCurrent()->factionByID(facility->faction_id));
         }
     }
 
@@ -492,7 +492,7 @@ void ShuttleView::render()
 
     droneControlView->render();
 
-    commsView->render();
+    commsView->renderModal();
 
     pageLog.render();
 }
