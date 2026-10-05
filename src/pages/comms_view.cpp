@@ -70,10 +70,10 @@ void CommsView::render()
             craft->pods[0].amount = 1;
             craft->pods[0].object = Game::getCurrent()->objectByID(2);
             craft->launch();
+            auto game{Game::getCurrent()};
+            game->setFactionHostility(faction->id, true);
             deactivate();
         }
-
-        // TODO: set hostility
         break;
     case FactionInteraction::NothingToTrade:
         // render nothing to trade state

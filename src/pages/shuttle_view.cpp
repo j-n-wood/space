@@ -324,6 +324,12 @@ void ShuttleView::render()
 
     char status[128];
 
+    // if there are hostiles at the current location, indicate it
+    if (Game::getCurrent()->hostilesAt(craft->location, 0))
+    {
+        DrawText("Hostiles present!", 320, 130, 20, RED);
+    }
+
     DrawText(craft->statusText(status, sizeof status), 320, 160, 20, YELLOW);
 
     // crew (224,866)

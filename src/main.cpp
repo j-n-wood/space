@@ -128,12 +128,15 @@ void buildTestData(Game *game)
 	// 2. grapple equipped - given Comms research object
 	// 3. Commspod but no supplies - no trade
 	// 4. Commspod and supplies available - trade possible
+	// 5. more than _n_ trades -> warning of war
 	ios3->setPodType(0, PT_TOOL);
 	ios3->pods[0].contentType = ItemType::Commspod;
 	ios3->pods[0].amount = 1;
 	ios3->setPodType(1, PT_SUPPLY);
 	ios3->pods[1].contentType = ResourceType::Deuterium;
 	ios3->pods[1].amount = 250;
+
+	game->factionByID(1).trades = 20;
 
 	Location *ganymede = game->locationByID(14);
 	Orbital *ganymede_orbital{game->createOrbital(ganymede)};

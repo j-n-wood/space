@@ -1521,6 +1521,11 @@ void Game::setFactionHostility(int faction_id, bool hostile)
     if (faction_id >= 0 && faction_id < factions.size())
     {
         factions[faction_id].hostile = hostile;
+
+        if (faction_id == 1)
+        {
+            eventByID(EVENT_FACTION_HOSTILITY)->completed = true;
+        }
         TraceLog(LOG_INFO, "Faction %d hostility set to %s", faction_id, hostile ? "true" : "false");
     }
     else
@@ -1568,7 +1573,7 @@ FactionInteraction Game::factionInteractionForCraft(Craft *craft, int faction_id
         return FactionInteraction::DeclareWar;
     }
 
-    if (factionByID(faction_id).trades > 20)
+    if (factionByID(faction_id).trades >= 20)
     {
         return FactionInteraction::SympatheticWarning;
     }
