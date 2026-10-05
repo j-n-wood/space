@@ -130,7 +130,7 @@ void PageManager::onCraftDestroyed(Craft *c)
 
 void PageManager::onCraftUnderAttack(Craft *c)
 {
-    viewState.setAutoAdvanceTime(false); // stop auto-advance when a craft is under attack
+    viewState.setNotifyPlayer(true); // notify player that a craft is under attack
 }
 
 void PageManager::onFactionInteraction(Faction *faction, FactionInteraction interaction, Craft *craft)

@@ -835,6 +835,7 @@ Craft &Craft::stopScanning()
 void Craft::applyDamage()
 {
     // basic damage // TODO
+    drive_damaged = true;
 }
 
 bool Craft::isWarship() const

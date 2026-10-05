@@ -32,9 +32,10 @@ class ViewState
 
     int faction_id;
     bool auto_advance_time;
+    bool notify_player; // trigger for UI that time advance should stop
 
 public:
-    ViewState() : focusPlace(nullptr), focusCraft(nullptr), browsedSystem(nullptr), currentResearchFacility(nullptr), currentTrainingFacility(nullptr), faction_id(0), auto_advance_time(false) {};
+    ViewState() : focusPlace(nullptr), focusCraft(nullptr), browsedSystem(nullptr), currentResearchFacility(nullptr), currentTrainingFacility(nullptr), faction_id(0), auto_advance_time(false), notify_player(false) {};
 
     inline int getFactionId() const { return faction_id; }
     inline ViewState &setFactionId(int id)
@@ -47,6 +48,17 @@ public:
     inline ViewState &setAutoAdvanceTime(bool aat)
     {
         auto_advance_time = aat;
+        return *this;
+    }
+
+    inline bool getNotifyPlayer() const { return notify_player; }
+    inline ViewState &setNotifyPlayer(bool np)
+    {
+        notify_player = np;
+        if (np)
+        {
+            auto_advance_time = false; // stop auto-advance when notifying player
+        }
         return *this;
     }
 

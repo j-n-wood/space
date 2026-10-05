@@ -403,7 +403,20 @@ int main(const int argc, const char **argv)
 			game->advanceRealTime(deltaTime);
 
 			lastTime = currentTime;
-			if (pageManager.viewState.getAutoAdvanceTime() || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused
+
+			bool manualAdvanceTime = IsKeyDown(KEY_SPACE); // hold space to manually advance time
+
+			if (pageManager.viewState.getNotifyPlayer())
+			{
+				// require keyup before continuing, so the player must release the space key to acknowledge the notification
+				manualAdvanceTime = false; // require keyup before continuing
+				if (IsKeyReleased(KEY_SPACE))
+				{
+					pageManager.viewState.setNotifyPlayer(false);
+				}
+			}
+
+			if (pageManager.viewState.getAutoAdvanceTime() || manualAdvanceTime)
 			{
 				game->advanceGameTime(deltaTime); // advance game time
 			}
