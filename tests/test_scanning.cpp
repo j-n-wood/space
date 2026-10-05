@@ -44,7 +44,7 @@ namespace
     // itself is the place a craft occupies.
     IOS *iosAtBelt(Game *game, Location *belt)
     {
-        IOS *ios = game->createIOS(belt);
+        IOS *ios = game->createIOS(belt, 0);
         if (!ios)
         {
             return nullptr;

@@ -592,9 +592,6 @@ TEST_CASE("SaveGame round-trips game-level counters")
     Game *game = createTestGame();
     REQUIRE(game != nullptr);
 
-    game->ios_number = 42;
-    game->scg_number = 99;
-
     SaveGame saver;
     REQUIRE(saver.save(SAVE_PATH) == 0);
 
@@ -602,9 +599,6 @@ TEST_CASE("SaveGame round-trips game-level counters")
     Loader loader(SAVE_PATH);
     REQUIRE(loader.isValid());
     REQUIRE(loaded.initialise(&loader));
-
-    CHECK(loaded.ios_number == 42);
-    CHECK(loaded.scg_number == 99);
 
     removeSaveFile();
 }
@@ -931,7 +925,7 @@ TEST_CASE("SaveGame round-trips craft, pods, destinations, and autopilot")
     // --- IOS: caught MID-MANOEUVRE, autopilot AS_COMPLETE. The partial timer is the
     // point: state_timer and total_state_timer differ, which is the one shape neither
     // setState nor setTimedState can express and so the one assignState exists for.
-    IOS *ios = game->createIOS(static_cast<Location *>(orb));
+    IOS *ios = game->createIOS(static_cast<Location *>(orb), 0);
     REQUIRE(ios != nullptr);
     std::snprintf(ios->name, sizeof ios->name, "IOS-Test");
     ios->location = orb->body()->orbit(); // approaching the orbital from the region
@@ -1220,7 +1214,7 @@ TEST_CASE("a destination resolves a body to an exact place")
         Location *belt = game->locationByID(9);
         REQUIRE(belt != nullptr);
 
-        IOS *ios = game->createIOS(static_cast<Location *>(earthOrbital));
+        IOS *ios = game->createIOS(static_cast<Location *>(earthOrbital), 0);
         REQUIRE(ios != nullptr);
         ios->drive = true;
         ios->setDestination(0, belt);
@@ -1364,7 +1358,7 @@ TEST_CASE("SaveGame round-trips objects and the references into them")
 
     Orbital *orb = game->orbitalAt(earth);
     REQUIRE(orb != nullptr);
-    IOS *ios = game->createIOS(static_cast<Location *>(orb));
+    IOS *ios = game->createIOS(static_cast<Location *>(orb), 0);
     REQUIRE(ios != nullptr);
     ios->scan_object = asteroid; // currently scanning one
     ios->setPodType(0, PT_TOOL);
@@ -1444,7 +1438,7 @@ TEST_CASE("SaveGame round-trips crews and everything that references them")
     REQUIRE(marines != nullptr);
     CHECK(engineers->id != scientists->id); // allocated, not shared
 
-    IOS *ios = game->createIOS(static_cast<Location *>(orb));
+    IOS *ios = game->createIOS(static_cast<Location *>(orb), 0);
     REQUIRE(ios != nullptr);
 
     // one crew per reference site. A factory crew is drawn from the facility's barracks,

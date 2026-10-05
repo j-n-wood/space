@@ -36,13 +36,11 @@ Loader::~Loader()
 
 bool Loader::loadGame()
 {
-    SQLiteQuery query(this, "SELECT game_time, ios_number, scg_number FROM game LIMIT 1");
+    SQLiteQuery query(this, "SELECT game_time FROM game LIMIT 1");
 
     if (query.next())
     {
         game->game_time = sqlite3_column_double(query, 0);
-        game->ios_number = sqlite3_column_int(query, 1);
-        game->scg_number = sqlite3_column_int(query, 2);
         return true;
     }
 
@@ -52,7 +50,7 @@ bool Loader::loadGame()
 
 bool Loader::loadFactions()
 {
-    SQLiteQuery query(this, "SELECT id, name, hostile, trades FROM factions ORDER BY id");
+    SQLiteQuery query(this, "SELECT id, name, hostile, trades, ios_number, scg_number FROM factions ORDER BY id");
 
     while (query.next())
     {
@@ -60,9 +58,13 @@ bool Loader::loadFactions()
         const char *name = (const char *)sqlite3_column_text(query, 1);
         bool hostile = sqlite3_column_int(query, 2) > 0;
         int trades = sqlite3_column_int(query, 3);
+        int ios_number = sqlite3_column_int(query, 4);
+        int scg_number = sqlite3_column_int(query, 5);
         game->factions.emplace_back(id, name);
         game->factions.back().hostile = hostile;
         game->factions.back().trades = trades;
+        game->factions.back().ios_number = ios_number;
+        game->factions.back().scg_number = scg_number;
     }
 
     // read trade tables
@@ -508,7 +510,7 @@ bool Loader::loadCraft()
         }
         else if (type == CT_IOS)
         {
-            craft = game->createIOS(loc);
+            craft = game->createIOS(loc, faction_id);
         }
         else
         {
@@ -528,7 +530,6 @@ bool Loader::loadCraft()
         craft->max_pods = max_pods;
         craft->drive = drive;
         craft->destination_index = destination_index;
-        craft->faction_id = faction_id;
         craft->active_pod_index = static_cast<int8_t>(active_pod_index);
         craft->id = id;
 

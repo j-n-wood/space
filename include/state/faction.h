@@ -19,10 +19,12 @@ public:
     char name[NAME_MAX_LEN];
     bool hostile;
     int trades;
+    int ios_number;
+    int scg_number;
 
     FactionTrade tradeTable[ResourceType::Count];
 
-    Faction() : id{0}, hostile{false}, trades{0}
+    Faction() : id{0}, hostile{false}, trades{0}, ios_number{1}, scg_number{1}
     {
         name[0] = '\0';
     }

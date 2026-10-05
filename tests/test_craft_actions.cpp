@@ -102,7 +102,7 @@ TEST_CASE("capability refusals do not depend on position or fitment")
 
     SUBCASE("an IOS cannot descend, and so cannot ascend either")
     {
-        IOS *ios = f.game->createIOS(f.earth->orbit());
+        IOS *ios = f.game->createIOS(f.earth->orbit(), 0);
         REQUIRE(ios != nullptr);
         ios->drive = true;
         ios->location = f.earth->orbit();
@@ -128,7 +128,7 @@ TEST_CASE("guards answer the most specific tier first")
     SUBCASE("capability outranks fitment")
     {
         // An IOS in the wrong place with no drive still cannot ever descend.
-        IOS *ios = f.game->createIOS(f.earth->orbit());
+        IOS *ios = f.game->createIOS(f.earth->orbit(), 0);
         REQUIRE(ios != nullptr);
         ios->drive = false;
         ios->location = f.earth->surface();
@@ -380,7 +380,7 @@ TEST_CASE("only the pod being worked has an effect")
     f.station->damage = 50.0f;
     f.orbital->stores.resources[ResourceType::Iron] = 500;
 
-    IOS *ios = f.game->createIOS(static_cast<Location *>(f.orbital));
+    IOS *ios = f.game->createIOS(static_cast<Location *>(f.orbital), 0);
     REQUIRE(ios != nullptr);
     REQUIRE(ios->max_pods > 1);
     ios->drive = true;
@@ -426,7 +426,7 @@ TEST_CASE("construction chains across pods and stops when the facility is done")
     REQUIRE(luna->orbit() != nullptr);
     REQUIRE(f.game->orbitalAt(luna) == nullptr); // Luna has a base, no orbital
 
-    IOS *ios = f.game->createIOS(luna->orbit());
+    IOS *ios = f.game->createIOS(luna->orbit(), 0);
     REQUIRE(ios != nullptr);
     REQUIRE(ios->max_pods >= 3);
     ios->drive = true;
@@ -496,7 +496,7 @@ TEST_CASE("a craft saved mid-deployment resumes and finishes the section")
     REQUIRE(luna != nullptr);
     REQUIRE(f.game->orbitalAt(luna) == nullptr);
 
-    IOS *ios = f.game->createIOS(luna->orbit());
+    IOS *ios = f.game->createIOS(luna->orbit(), 0);
     REQUIRE(ios != nullptr);
     ios->drive = true;
     ios->location = luna->orbit();

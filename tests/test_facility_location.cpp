@@ -445,7 +445,7 @@ TEST_CASE("a craft is always somewhere")
     REQUIRE(game != nullptr);
 
     CHECK(game->createShuttle(nullptr) == nullptr);
-    CHECK(game->createIOS(static_cast<Location *>(nullptr)) == nullptr);
+    CHECK(game->createIOS(static_cast<Location *>(nullptr), 0) == nullptr);
 
     // id 0 is Sol space: the "nowhere in particular" location, and a real one
     Location *space = game->locationByID(0);
@@ -460,7 +460,7 @@ TEST_CASE("a craft is always somewhere")
     // one docked, one adrift -- the two shapes that have to survive a round trip
     Shuttle *docked = game->createShuttle(orbital);
     REQUIRE(docked != nullptr);
-    IOS *adrift = game->createIOS(space);
+    IOS *adrift = game->createIOS(space, 0);
     REQUIRE(adrift != nullptr);
     adrift->assignState(CS_TRANSIT, 0.0f, 0.0f);
 

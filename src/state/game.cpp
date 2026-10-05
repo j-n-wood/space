@@ -421,7 +421,7 @@ IOS *Game::commissionIOS(Facility *facility)
     }
     // remove required item from stores
     facility->stores.items[ItemType::I_Chassis] -= 1;
-    auto i = createIOS(facility);
+    auto i = createIOS(facility, facility->faction_id);
     // assign drive if available
     if (facility->stores.items[ItemType::I_Drive] > 0)
     {
@@ -513,7 +513,7 @@ void Game::setDefaultRoute(Shuttle *shuttle, Facility *facility)
     shuttle->destinations[1] = Endpoint(facility);
 }
 
-IOS *Game::createIOS(Location *location)
+IOS *Game::createIOS(Location *location, int faction_id)
 {
     // A craft is always somewhere: "nowhere in particular" is a system's space location,
     // not a null pointer.
@@ -523,14 +523,14 @@ IOS *Game::createIOS(Location *location)
         return nullptr;
     }
 
-    ios.emplace_back(std::make_unique<IOS>(CS_IDLE, 3, location));
+    ios.emplace_back(std::make_unique<IOS>(CS_IDLE, 3, location, faction_id));
     auto i = ios.back().get();
     // Aim at the orbital if the body has one, otherwise its orbit region.
     Location *target = targetFor(location, true);
     i->destinations[0] = Endpoint(target);
     i->destinations[1] = Endpoint(target);
-    // generate a name based on creation count
-    std::snprintf(i->name, sizeof i->name, "IOS-%04d", ios_number++);
+    // generate a name based on creation count, per faction
+    std::snprintf(i->name, sizeof i->name, "IOS-%04d", factions[faction_id].ios_number++);
     i->id = ++craft_max_id;
     return i;
 }
@@ -545,7 +545,7 @@ IOS *Game::createIOS(Facility *facility)
         return nullptr;
     }
 
-    auto i = createIOS(location);
+    auto i = createIOS(location, facility->faction_id);
 
     return i;
 }

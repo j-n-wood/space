@@ -114,8 +114,6 @@ public:
     bool paused;
 
     // name counters
-    int ios_number{1};
-    int scg_number{1};
     int craft_max_id{0};
 
     // Highest location id seen, so ids allocated at runtime continue the sequence
@@ -233,7 +231,7 @@ public:
     Location *targetFor(Location *location, bool wantOrbit);
     // Create an IOS AT a location, which must be given: a craft is always somewhere, so
     // "nowhere in particular" is a system's space location rather than a null pointer.
-    IOS *createIOS(Location *location);
+    IOS *createIOS(Location *location, int faction_id);
     IOS *createIOS(Facility *facility); // at that facility's body
 
     // locations

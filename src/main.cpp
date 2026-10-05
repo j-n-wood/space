@@ -83,7 +83,7 @@ void buildTestData(Game *game)
 	mars_orbital->sdm_installed = true;
 
 	// test IOS
-	IOS *ios = game->createIOS(of);
+	IOS *ios = game->createIOS(of, 0);
 	ios->drive = true;
 	ios->fuel = 250;
 	ios->setPodType(0, PT_SUPPLY);
@@ -92,7 +92,7 @@ void buildTestData(Game *game)
 
 	// test IOS 2 at luna
 	Location *luna = game->locationByID(5); // by id: children now include the regions too
-	IOS *ios2 = game->createIOS(luna);
+	IOS *ios2 = game->createIOS(luna, 0);
 	ios2->enterRegion(true); // in orbit at Luna -- there is no orbital to dock at
 	ios2->drive = true;
 	ios2->fuel = 250;
@@ -119,7 +119,7 @@ void buildTestData(Game *game)
 
 	// test IOS 3 at Jupiter
 	Location *jupiter = game->locationByID(10);
-	IOS *ios3 = game->createIOS(jupiter);
+	IOS *ios3 = game->createIOS(jupiter, 0);
 	ios3->enterRegion(true);
 	ios3->drive = true;
 	ios3->fuel = 250;
@@ -154,7 +154,7 @@ void buildTestData(Game *game)
 	*/
 	// test IOS 4 at asteroids
 	Location *asteroid_belt = game->locationByID(9);
-	IOS *ios4 = game->createIOS(asteroid_belt);
+	IOS *ios4 = game->createIOS(asteroid_belt, 0);
 	ios4->enterRegion(true);
 	ios4->drive = true;
 	ios4->fuel = 250;
@@ -164,7 +164,7 @@ void buildTestData(Game *game)
 	ios4->startScanning();
 	ios4->assignCrew(game->createCrew(0, CrewType::Marine, "Hudson", 1, 35, 0.0f));
 
-	IOS *ios5 = game->createIOS(of);
+	IOS *ios5 = game->createIOS(of, 0);
 	ios5->enterRegion(true);
 	ios5->drive = true;
 	ios5->fuel = 250;
