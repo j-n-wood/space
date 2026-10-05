@@ -245,7 +245,6 @@ int main(const int argc, const char **argv)
 		// set game UI state to focus on default selection
 		takeDefaultFocus();
 
-		bool advanceTime = false;
 		float lastTime = GetTime();
 
 		PageManager &pageManager = PageManager::getInstance();
@@ -305,7 +304,7 @@ int main(const int argc, const char **argv)
 
 				if (IsKeyPressed(KEY_TAB))
 				{
-					advanceTime = !advanceTime; // auto-advance mode
+					pageManager.viewState.setAutoAdvanceTime(!pageManager.viewState.getAutoAdvanceTime()); // auto-advance mode
 				}
 
 				// hotkeys to switch pages
@@ -399,12 +398,12 @@ int main(const int argc, const char **argv)
 			double currentTime = GetTime();
 			double deltaTime = currentTime - lastTime;
 
-			game->advanceRealTime(deltaTime);
-
 			game->paused = pageManager.isModal();
 
+			game->advanceRealTime(deltaTime);
+
 			lastTime = currentTime;
-			if (advanceTime || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused
+			if (pageManager.viewState.getAutoAdvanceTime() || IsKeyDown(KEY_SPACE)) // hold space to advance time while paused
 			{
 				game->advanceGameTime(deltaTime); // advance game time
 			}

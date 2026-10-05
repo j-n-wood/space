@@ -8,9 +8,10 @@ class CraftUnderAttackEvent : public CraftRealtimeEvent
 {
     double time_until_damage;
     Location *initial_location;
+    Craft *attacker;
 
 public:
-    CraftUnderAttackEvent(double duration, Craft *craft);
+    CraftUnderAttackEvent(double duration, Craft *attacker, Craft *target);
 
     bool cancelled();
     bool update(double delta);

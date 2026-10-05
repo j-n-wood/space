@@ -5,6 +5,7 @@
 #include "state/resources.h"
 #include "state/autopilot.h"
 #include "state/craft_action.h"
+#include "state/craft_under_attack_event.h"
 
 const char *PodTypeName[PT_COUNT] = {
     "EMPTY",
@@ -76,7 +77,7 @@ const char *Pod::description(char *dest, size_t len)
     return dest;
 }
 
-Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : id{0}, faction_id{0}, state{cs}, state_timer{0.0f}, max_pods{mp}, active_pod_index{-1}, drive{false}, location{loc}, destination_index{0}, scan_object{nullptr}, autopilot{std::make_unique<Autopilot>()}, crew{nullptr}, drive_damaged{false}, destroyed{false}
+Craft::Craft(CraftState cs, uint8_t mp, Location *loc) : id{0}, faction_id{0}, state{cs}, state_timer{0.0f}, max_pods{mp}, active_pod_index{-1}, drive{false}, location{loc}, destination_index{0}, scan_object{nullptr}, autopilot{std::make_unique<Autopilot>()}, crew{nullptr}, drive_damaged{false}, destroyed{false}, engagement{nullptr}
 {
     name[0] = '\0';
 };
@@ -423,6 +424,19 @@ int Craft::hasTool(const ItemType it) const
     return -1;
 }
 
+int Craft::hasDrones() const
+{
+    for (int i = 0; i < max_pods; ++i)
+    {
+        const Pod &pod = pods[i];
+        if (pod.type == PT_WEAPON && pod.amount > 0)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void Craft::update(float delta)
 {
     if (destroyed)
@@ -432,6 +446,26 @@ void Craft::update(float delta)
 
     // state transitions
     Game *game = Game::getCurrent();
+
+    // hostilities checks
+
+    // am I under attack? anything to do?
+
+    // do I initiate hostilities?
+    if ((engagement == nullptr) && isWarship() && !moving())
+    {
+        // anything to attack?
+        // scan for craft from other factions in the same orbit
+        Craft *target = game->targetCraftAt(faction_id, location);
+        if (target)
+        {
+            // initiate attack on the target
+            engagement = new CraftUnderAttackEvent(10.0, this, target);
+            game->addRealtimeEvent(engagement);
+            game->raiseCraftUnderAttackEvent(target);
+        }
+        // TODO attack orbitals
+    }
 
     // timed states
     if (state_timer > 0.0f)
@@ -801,4 +835,16 @@ Craft &Craft::stopScanning()
 void Craft::applyDamage()
 {
     // basic damage // TODO
+}
+
+bool Craft::isWarship() const
+{
+    // basic check for warship capability
+    // has a DFCC and nonzero drones
+    int weapon_pod = hasDrones();
+    if (weapon_pod >= 0)
+    {
+        return true;
+    }
+    return false;
 }

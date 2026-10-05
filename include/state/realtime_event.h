@@ -1,11 +1,20 @@
 #pragma once
 
+enum RealtimeEventType
+{
+    Empty_Event,
+    SDM_Active,
+    Craft_Under_Attack,
+    Facility_Under_Attack
+};
+
 class RealtimeEvent
 {
 public:
     double time_remaining;
+    RealtimeEventType type;
 
-    RealtimeEvent(double t) : time_remaining{t} {};
+    RealtimeEvent(double t) : time_remaining{t}, type{Empty_Event} {};
     virtual ~RealtimeEvent() = default;
     virtual bool cancelled() = 0;          // true -> event was cancelled
     virtual bool update(double delta) = 0; // true -> still active

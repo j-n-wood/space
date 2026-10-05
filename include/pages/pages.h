@@ -73,6 +73,9 @@ public:
     // on craft destroyed event
     virtual void onCraftDestroyed(Craft *c) override;
 
+    // on craft under attack event
+    virtual void onCraftUnderAttack(Craft *c) override;
+
     // faction interaction event
     virtual void onFactionInteraction(Faction *faction, FactionInteraction interaction, Craft *craft) override;
 

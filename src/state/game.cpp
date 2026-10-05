@@ -1508,12 +1508,30 @@ void Game::raiseCraftDestructionEvent(Craft *craft)
     }
 }
 
+void Game::raiseCraftUnderAttackEvent(Craft *craft)
+{
+    for (auto sink : eventSinks)
+    {
+        sink->onCraftUnderAttack(craft);
+    }
+}
+
 void Game::raiseFactionInteractionEvent(Faction *faction, FactionInteraction interaction, Craft *craft)
 {
     for (auto sink : eventSinks)
     {
         sink->onFactionInteraction(faction, interaction, craft);
     }
+}
+
+bool Game::factionIsHostile(int faction_id)
+{
+    if (faction_id >= 0 && faction_id < factions.size())
+    {
+        return factions[faction_id].hostile;
+    }
+    TraceLog(LOG_ERROR, "Invalid faction_id %d in factionIsHostile", faction_id);
+    return false;
 }
 
 void Game::setFactionHostility(int faction_id, bool hostile)
@@ -1589,7 +1607,7 @@ FactionInteraction Game::factionInteractionForCraft(Craft *craft, int faction_id
     }
 
     auto &cp_topic{researchTopics[22]};
-    if (!cp_topic.available && (cp_topic.progress < cp_topic.requiredTime) && craft->hasTool(ItemType::Grapple) > -1)
+    if (!cp_topic.available && (cp_topic.progress < cp_topic.requiredTime) && (craft->hasTool(ItemType::Grapple) > -1))
     {
         return FactionInteraction::GiveCommspod;
     }

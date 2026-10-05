@@ -197,8 +197,11 @@ public:
     EarthCity *earthCity() const { return earth_city; };
 
     // faction related
+    bool factionIsHostile(int faction_id);
     void setFactionHostility(int faction_id, bool hostile);
     bool hostilesAt(Location *location, int faction_id);
+    bool craftIsUnderAttack(Craft *craft);
+    Craft *targetCraftAt(int faction_id, Location *location);
     Faction &factionByID(int faction_id);
     FactionInteraction factionInteractionForCraft(Craft *craft, int faction_id);
 
@@ -279,6 +282,7 @@ public:
     void raiseFacilityDestructionEvent(Facility *facility);
     void raiseCraftDestructionEvent(Craft *craft);
     void raiseFactionInteractionEvent(Faction *faction, FactionInteraction interaction, Craft *craft);
+    void raiseCraftUnderAttackEvent(Craft *craft);
 
     void onSpacecraftArrival(Craft *craft);
     void onSpacecraftDocked(Craft *craft);
@@ -311,6 +315,9 @@ public:
     void completeRealtimeEvents();
     bool activateSDM(Facility *facility);
     bool deactivateSDM(Facility *facility);
+
+    // faction behaviour
+    Craft *spawnWarship(int faction_id, Location *location, int crew_rank, int initial_drones = 0);
 
     // console input
     bool processConsoleCommand(const char *command, Location *l, Facility *f);

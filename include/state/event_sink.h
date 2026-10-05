@@ -21,4 +21,5 @@ public:
     virtual void onCraftDestroyed(Craft *c);
 
     virtual void onFactionInteraction(Faction *faction, FactionInteraction interaction, Craft *craft);
+    virtual void onCraftUnderAttack(Craft *c);
 };

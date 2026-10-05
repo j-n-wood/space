@@ -71,7 +71,12 @@ void CommsView::render()
             craft->pods[0].object = Game::getCurrent()->objectByID(2);
             craft->launch();
             auto game{Game::getCurrent()};
-            game->setFactionHostility(faction->id, true);
+            if (!game->factionIsHostile(faction->id))
+            {
+                game->setFactionHostility(faction->id, true);
+                // spawn a warship at the current location, it should menace the player craft on orbit
+                game->spawnWarship(faction->id, craft->location->body()->orbit(), 1, 5);
+            }
             deactivate();
         }
         break;

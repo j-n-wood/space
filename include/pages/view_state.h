@@ -31,14 +31,22 @@ class ViewState
     TrainingFacility *currentTrainingFacility;
 
     int faction_id;
+    bool auto_advance_time;
 
 public:
-    ViewState() : focusPlace(nullptr), focusCraft(nullptr), browsedSystem(nullptr), currentResearchFacility(nullptr), currentTrainingFacility(nullptr), faction_id(0) {};
+    ViewState() : focusPlace(nullptr), focusCraft(nullptr), browsedSystem(nullptr), currentResearchFacility(nullptr), currentTrainingFacility(nullptr), faction_id(0), auto_advance_time(false) {};
 
     inline int getFactionId() const { return faction_id; }
     inline ViewState &setFactionId(int id)
     {
         faction_id = id;
+        return *this;
+    }
+
+    inline bool getAutoAdvanceTime() const { return auto_advance_time; }
+    inline ViewState &setAutoAdvanceTime(bool aat)
+    {
+        auto_advance_time = aat;
         return *this;
     }
 

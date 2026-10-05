@@ -328,6 +328,10 @@ void ShuttleView::render()
     if (Game::getCurrent()->hostilesAt(craft->location, 0))
     {
         DrawText("Hostiles present!", 320, 130, 20, RED);
+        if (Game::getCurrent()->craftIsUnderAttack(craft))
+        {
+            DrawText("Under attack!", 640, 130, 20, RED);
+        }
     }
 
     DrawText(craft->statusText(status, sizeof status), 320, 160, 20, YELLOW);

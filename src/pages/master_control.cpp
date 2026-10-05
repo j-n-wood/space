@@ -135,6 +135,10 @@ void MasterControlView::renderIOS()
             {
                 source = &uiElementSources[UI_BUTTON_CRAFT_LAUNCHING];
             }
+            else if (game->craftIsUnderAttack(ios.get()))
+            {
+                source = &uiElementSources[UI_BUTTON_CRAFT_ALERT];
+            }
             else if (ios->working())
             {
                 source = &uiElementSources[UI_BUTTON_CRAFT_MINING];

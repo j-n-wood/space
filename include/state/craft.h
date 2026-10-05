@@ -61,6 +61,8 @@ class Autopilot;
 
 class Crew;
 
+class CraftUnderAttackEvent;
+
 class CurrentState
 {
 public:
@@ -75,6 +77,7 @@ protected:
     CraftState state;
     float state_timer;
     float total_state_timer; // full value of state timer, used to calculate progress for UI
+
 public:
     int id;
     int faction_id;
@@ -111,6 +114,8 @@ public:
     // crew
     Crew *crew; // optional: crew assigned to this craft
 
+    CraftUnderAttackEvent *engagement;
+
     Craft(CraftState cs, uint8_t mp, Location *loc);
     virtual ~Craft();
 
@@ -122,6 +127,7 @@ public:
     bool isPodEmpty(const int index);
     void setPodType(const int index, const PodType pt);
     int hasTool(const ItemType it) const;
+    int hasDrones() const;
     void update(float delta);
 
     const char *statusText(char *status, size_t len);
@@ -289,6 +295,8 @@ public:
         return prior;
     }
 
+    // hostilities related
+    bool isWarship() const;
     void applyDamage();
 
     // transition events
