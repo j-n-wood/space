@@ -334,6 +334,12 @@ void ShuttleView::render()
         }
     }
 
+    // damage report , following any attack status
+    if (craft->drive_damaged)
+    {
+        DrawText("Drive damaged!", 640, 160, 20, RED);
+    }
+
     DrawText(craft->statusText(status, sizeof status), 320, 160, 20, YELLOW);
 
     // crew (224,866)
