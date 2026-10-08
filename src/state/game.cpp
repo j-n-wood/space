@@ -1779,6 +1779,27 @@ bool Game::applyEvent(Event *event, Craft *craft, bool proceed)
     switch (event->id)
     {
     case EVENT_FACTION_HOSTILITY:
+        if (!factionIsHostile(event->source_faction_id))
+        {
+            // spawn a warship at a default locale - the first defined orbital for the source faction
+            Location *where = nullptr;
+            for (auto &o : orbitals)
+            {
+                if (o->faction_id == event->source_faction_id)
+                {
+                    where = o;
+                    break;
+                }
+                TraceLog(LOG_INFO, "Using orbital %d for faction %d warship", o->id, event->source_faction_id);
+            }
+            if (!where)
+            {
+                TraceLog(LOG_ERROR, "No default orbital found for faction %d", event->source_faction_id);
+                // use Jupiter orbit as a fallback, using constant from game data
+                where = locationByID(195);
+            }
+            spawnWarship(event->source_faction_id, where, 1, 5);
+        }
         setFactionHostility(event->source_faction_id, true);
         break;
     case EVENT_WARNING:
