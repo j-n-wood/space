@@ -100,3 +100,28 @@ ViewState &ViewState::setLocationFocus(Location *l)
     browsedSystem = l->system;
     return *this;
 }
+
+// merge input desired ViewState into the current state
+void ViewState::merge(const ViewState &other)
+{
+    if (other.focusCraft && (!other.focusCraft->destroyed))
+    {
+        setCraftFocus(other.focusCraft);
+    }
+    else if (other.focusPlace)
+    {
+        setLocationFocus(other.focusPlace);
+    }
+
+    if (other.currentResearchFacility)
+    {
+        setCurrentResearchFacility(other.currentResearchFacility);
+    }
+
+    if (other.currentTrainingFacility)
+    {
+        setCurrentTrainingFacility(other.currentTrainingFacility);
+    }
+
+    faction_id = other.faction_id;
+}

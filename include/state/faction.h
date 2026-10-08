@@ -3,6 +3,11 @@
 #include "state/string_caps.h"
 #include "state/resources.h"
 
+// default values
+
+const int FACTION_TERRAN = 0;
+const int FACTION_METHANOID = 1;
+
 class FactionTrade
 {
 public:
@@ -30,16 +35,4 @@ public:
     }
 
     Faction(int i, const char *n);
-};
-
-enum FactionInteraction
-{
-    Unset,
-    BeforeCommspod,     // message saying bring a grapple
-    GiveCommspod,       // message saying gave a commspod
-    Trade,              // trade negotiations
-    NothingToTrade,     // commspod but no supplies
-    SympatheticWarning, // warning of war
-    DeclareWar,         // declaration of war
-    Max
 };

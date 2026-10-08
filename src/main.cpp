@@ -129,14 +129,15 @@ void buildTestData(Game *game)
 	// 3. Commspod but no supplies - no trade
 	// 4. Commspod and supplies available - trade possible
 	// 5. more than _n_ trades -> warning of war
+
 	ios3->setPodType(0, PT_TOOL);
-	ios3->pods[0].contentType = ItemType::Commspod;
+	ios3->pods[0].contentType = ItemType::Commspod; // Commspod, Grapple
 	ios3->pods[0].amount = 1;
+
 	ios3->setPodType(1, PT_SUPPLY);
 	ios3->pods[1].contentType = ResourceType::Deuterium;
 	ios3->pods[1].amount = 250;
-
-	game->factionByID(1).trades = 20;
+	// game->factionByID(1).trades = 20;
 
 	Location *ganymede = game->locationByID(14);
 	Orbital *ganymede_orbital{game->createOrbital(ganymede)};
@@ -272,7 +273,7 @@ int main(const int argc, const char **argv)
 			// input can affect rendering as tooltips can come from buttons
 			if (!overlay.console) // only process game input if console is not open, so that we can type into the console without affecting the game
 			{
-				if (!pageManager.isModal())
+				if (!pageManager.isModalActive())
 				{
 					currentPage->input();
 				}
@@ -304,11 +305,11 @@ int main(const int argc, const char **argv)
 
 				if (IsKeyPressed(KEY_TAB))
 				{
-					pageManager.viewState.setAutoAdvanceTime(!pageManager.viewState.getAutoAdvanceTime()); // auto-advance mode
+					pageManager.toggleAutoAdvanceTime(); // auto-advance mode
 				}
 
 				// hotkeys to switch pages
-				if (!pageManager.isModal())
+				if (!pageManager.isModalActive())
 				{ // these fail in modal state
 					if (IsKeyPressed(KEY_F1))
 					{
@@ -398,25 +399,13 @@ int main(const int argc, const char **argv)
 			double currentTime = GetTime();
 			double deltaTime = currentTime - lastTime;
 
-			game->paused = pageManager.isModal();
+			game->paused = !pageManager.advanceRealTime();
 
 			game->advanceRealTime(deltaTime);
 
 			lastTime = currentTime;
 
-			bool manualAdvanceTime = IsKeyDown(KEY_SPACE); // hold space to manually advance time
-
-			if (pageManager.viewState.getNotifyPlayer())
-			{
-				// require keyup before continuing, so the player must release the space key to acknowledge the notification
-				manualAdvanceTime = false; // require keyup before continuing
-				if (IsKeyReleased(KEY_SPACE))
-				{
-					pageManager.viewState.setNotifyPlayer(false);
-				}
-			}
-
-			if (pageManager.viewState.getAutoAdvanceTime() || manualAdvanceTime)
+			if (pageManager.advanceGameTime())
 			{
 				game->advanceGameTime(deltaTime); // advance game time
 			}

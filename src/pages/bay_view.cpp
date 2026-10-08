@@ -116,7 +116,7 @@ void BayView::loadToolPod(Pod *pod)
         case ObjectType::ResearchUnlock:
             // handle research unlock case if needed
             TraceLog(LOG_INFO, "Unloaded object from tool pod for study");
-            Overlay::getInstance().showMessage("Unloaded object from tool pod for study");
+            PageManager::getInstance().showMessage("Unloaded object from tool pod for study");
             break;
         default:
             // handle default case if needed

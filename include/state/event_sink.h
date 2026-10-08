@@ -7,6 +7,7 @@ class ResourceFacility;
 class Factory;
 class Facility;
 class Craft;
+class Event;
 
 class EventSink
 {
@@ -20,6 +21,6 @@ public:
     virtual void onFacilityDestroyed(Facility *f);
     virtual void onCraftDestroyed(Craft *c);
 
-    virtual void onFactionInteraction(Faction *faction, FactionInteraction interaction, Craft *craft);
+    virtual void onFactionInteraction(Faction *faction, Event *event, Craft *craft);
     virtual void onCraftUnderAttack(Craft *c);
 };

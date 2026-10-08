@@ -181,7 +181,7 @@ TEST_CASE("Game::completeEvent")
     Game game;
     addResearchTopics(game, 4);
     game.events.resize(EVENT_MAX);
-    game.events[EVENT_ORBITAL_FACTORY_COMPLETED] = Event(EVENT_ORBITAL_FACTORY_COMPLETED, "Test", "Something happened", "", false, 0.0);
+    game.events[EVENT_ORBITAL_FACTORY_COMPLETED] = Event(EVENT_ORBITAL_FACTORY_COMPLETED, "Test", "Something happened", "", false, 0.0, 0, MessageDisplayType::NONE, MessageInteractionType::NONE);
     game.events[EVENT_ORBITAL_FACTORY_COMPLETED].unlocksTopics = {1, 3};
     Event &event = game.events[EVENT_ORBITAL_FACTORY_COMPLETED];
 
@@ -345,7 +345,7 @@ TEST_CASE("SaveGame round-trips events with gaps in the id sequence")
     int gap_id = static_cast<int>(game->events.size());
     int new_id = gap_id + 1;
     game->events.resize(new_id + 1);
-    game->events[new_id] = Event(static_cast<EventID>(new_id), "Late event", "", "", false, 0.0);
+    game->events[new_id] = Event(static_cast<EventID>(new_id), "Late event", "", "", false, 0.0, 0, MessageDisplayType::NONE, MessageInteractionType::NONE);
 
     SaveGame saver;
     REQUIRE(saver.save(EVENTS_SAVE_PATH) == 0);

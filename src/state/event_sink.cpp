@@ -42,12 +42,12 @@ void EventSink::onCraftDestroyed(Craft *c)
     (void)c; // suppress unused parameter warning
 }
 
-void EventSink::onFactionInteraction(Faction *faction, FactionInteraction interaction, Craft *craft)
+void EventSink::onFactionInteraction(Faction *faction, Event *event, Craft *craft)
 {
     // default implementation does nothing - can be overridden by derived classes to react to faction interaction events
-    (void)faction;     // suppress unused parameter warning
-    (void)interaction; // suppress unused parameter warning
-    (void)craft;       // suppress unused parameter warning
+    (void)faction; // suppress unused parameter warning
+    (void)event;   // suppress unused parameter warning
+    (void)craft;   // suppress unused parameter warning
 }
 
 void EventSink::onCraftUnderAttack(Craft *c)

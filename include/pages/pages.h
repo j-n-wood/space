@@ -4,6 +4,8 @@
 #include "view_state.h"
 #include "state/event_sink.h"
 
+#include <vector>
+
 typedef enum
 {
     PAGE_NONE,
@@ -35,6 +37,8 @@ typedef enum
 
 class BasePage; // forward declaration
 
+class Modal;
+
 class PageManager : public EventSink
 {
     // array of page implementations
@@ -42,7 +46,11 @@ class PageManager : public EventSink
     BasePage *currentPage; // currently active page
 
     Page desiredPage; // during a tick, the page we want to switch to
-    bool modal;       // indicates if a modal page is currently active
+
+    std::vector<std::unique_ptr<Modal>> modals;
+
+    bool auto_advance_time;
+    bool notify_player; // trigger for UI that time advance should stop
 public:
     // UI state
     ViewState viewState;
@@ -67,6 +75,29 @@ public:
         return instance;
     }
 
+    inline bool getAutoAdvanceTime() const { return auto_advance_time; }
+    inline PageManager &setAutoAdvanceTime(bool aat)
+    {
+        auto_advance_time = aat;
+        return *this;
+    }
+    inline PageManager &toggleAutoAdvanceTime()
+    {
+        auto_advance_time = !auto_advance_time;
+        return *this;
+    }
+
+    inline bool getNotifyPlayer() const { return notify_player; }
+    inline PageManager &setNotifyPlayer(bool np)
+    {
+        notify_player = np;
+        if (np)
+        {
+            auto_advance_time = false; // stop auto-advance when notifying player
+        }
+        return *this;
+    }
+
     // on facility destroyed event
     virtual void onFacilityDestroyed(Facility *f) override;
 
@@ -77,9 +108,15 @@ public:
     virtual void onCraftUnderAttack(Craft *c) override;
 
     // faction interaction event
-    virtual void onFactionInteraction(Faction *faction, FactionInteraction interaction, Craft *craft) override;
+    virtual void onFactionInteraction(Faction *faction, Event *event, Craft *craft) override;
 
-    // modal control
-    inline bool isModal() const { return modal; }
-    inline void setModal(bool m) { modal = m; }
+    // modal management
+    bool isModalActive() const;
+    void pushModal(Modal *modal);
+    void popModal();
+    Modal *getActiveModal() const;
+    void showMessage(const char *message);
+
+    bool advanceRealTime() const { return !isModalActive(); }
+    bool advanceGameTime();
 };

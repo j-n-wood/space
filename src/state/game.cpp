@@ -924,7 +924,35 @@ bool Game::activatePod(Craft *craft, int pod_index)
     // special case: commspod runs through UI
     if (pod.contentType == ItemType::Commspod)
     {
-        return true;
+        // check for warning
+        if (factions[FACTION_METHANOID].trades >= 20)
+        {
+            if (events[EVENT_WARNING].completed || events[EVENT_FACTION_HOSTILITY].completed)
+            {
+                // already done
+                craft->launch();
+            }
+            else
+            {
+                // raise that event
+                raiseFactionInteractionEvent(&factionByID(FACTION_METHANOID), &events[EVENT_WARNING], craft);
+            }
+        }
+        else
+        {
+            // trade if you have cargo
+            if (craft->hasCargo())
+            {
+                // perform trade logic here
+                raiseFactionInteractionEvent(&factionByID(FACTION_METHANOID), &events[EVENT_TRADE_REQUEST], craft);
+            }
+            else
+            {
+                // cannot trade without cargo
+                raiseFactionInteractionEvent(&factionByID(FACTION_METHANOID), &events[EVENT_NOTHING_TO_TRADE], craft);
+            }
+        }
+        return true; // done
     }
 
     // mark pod as active and set craft state to working
@@ -1047,25 +1075,8 @@ bool Game::canPerformTrade(Craft *craft)
         return false;
     }
 
-    // must have a commspod and > 0 supply pods with nonzero content
-    // call path assumes commspod being checked in canActivatePod
-
-    bool have_cargo{false};
-    for (int i = 0; i < craft->max_pods; ++i)
-    {
-        Pod &pod = craft->pods[i];
-        if (pod.type == PodType::PT_SUPPLY && pod.amount > 0 && pod.contentType > 0)
-        {
-            have_cargo = true;
-        }
-    }
-
-    if (!have_cargo)
-    {
-        return false;
-    }
-
-    return have_cargo; // return true if trade can be performed
+    // must have a commspod
+    return craft->hasTool(ItemType::Commspod) > -1;
 }
 
 bool Game::performTrade(Craft *craft)
@@ -1109,6 +1120,23 @@ bool Game::performTrade(Craft *craft)
     }
 
     return traded; // trade occurred
+}
+
+bool Game::loadStoryObject(Craft *craft, int object_id)
+{
+    if (!craft)
+    {
+        TraceLog(LOG_ERROR, "Missing craft to loadStoryObject");
+        return false;
+    }
+
+    // implement story object loading logic here
+    craft->setPodType(0, PodType::PT_TOOL);
+    craft->pods[0].contentType = ItemType::Grapple;
+    craft->pods[0].amount = 1;
+    craft->pods[0].object = Game::getCurrent()->objectByID(object_id);
+
+    return true; // return true if story object was successfully loaded
 }
 
 Object *Game::randomiseAsteroid(Object *asteroid)
@@ -1301,14 +1329,35 @@ void Game::onSpacecraftDocked(Craft *craft)
 
     Facility *facility = asFacility(craft->location);
 
-    if ((craft->faction_id == 0) && (facility->faction_id == 1))
+    bool methanoids_are_hostile{factions[FACTION_METHANOID].hostile};
+
+    if ((craft->faction_id == FACTION_TERRAN) && (facility->faction_id == FACTION_METHANOID) && !methanoids_are_hostile)
     {
         // diplomacy/trade
-        auto fi{factionInteractionForCraft(craft, facility->faction_id)};
-        if (fi != FactionInteraction::Unset)
+        Event *event{nullptr};
+
+        // if have commspod, nothing to do
+        if (craft->hasTool(ItemType::Commspod) > -1)
+        {
+            event = nullptr;
+        }
+        else
+        {
+            auto &cp_topic{researchTopics[22]};
+            if (!cp_topic.available && (cp_topic.progress < cp_topic.requiredTime) && (craft->hasTool(ItemType::Grapple) > -1))
+            {
+                event = eventByID(EVENT_GIVE_COMMSPOD_OBJECT);
+            }
+            else
+            {
+                event = eventByID(EVENT_REQUEST_GRAPPLE);
+            }
+        }
+
+        if (event)
         {
             // raise faction interaction event
-            raiseFactionInteractionEvent(facility->faction_id ? &factionByID(facility->faction_id) : nullptr, fi, craft);
+            raiseFactionInteractionEvent(&factionByID(facility->faction_id), event, craft);
         }
     }
 
@@ -1467,10 +1516,16 @@ void Game::raiseOrbitalConstructionEvent(Orbital *orbital)
                 ++operational_orbitals;
             }
         }
-        if (operational_orbitals == 1)
+        if (events[EVENT_ORBITAL_FACTORY_COMPLETED].completed == false && operational_orbitals == 1)
         {
             // game event 1 trigger
             completeEvent(EVENT_ORBITAL_FACTORY_COMPLETED);
+        }
+        else if (events[EVENT_FACTION_HOSTILITY].completed == false && operational_orbitals == 6)
+        {
+            // drive Methanoid hostility
+            setFactionHostility(FACTION_METHANOID, true);
+            raiseFactionInteractionEvent(&factions[FACTION_METHANOID], eventByID(EVENT_FACTION_HOSTILITY), nullptr);
         }
     }
 }
@@ -1516,11 +1571,11 @@ void Game::raiseCraftUnderAttackEvent(Craft *craft)
     }
 }
 
-void Game::raiseFactionInteractionEvent(Faction *faction, FactionInteraction interaction, Craft *craft)
+void Game::raiseFactionInteractionEvent(Faction *faction, Event *event, Craft *craft)
 {
     for (auto sink : eventSinks)
     {
-        sink->onFactionInteraction(faction, interaction, craft);
+        sink->onFactionInteraction(faction, event, craft);
     }
 }
 
@@ -1536,19 +1591,18 @@ bool Game::factionIsHostile(int faction_id)
 
 void Game::setFactionHostility(int faction_id, bool hostile)
 {
-    if (faction_id >= 0 && faction_id < factions.size())
-    {
-        factions[faction_id].hostile = hostile;
+    auto &f = factionByID(faction_id);
 
-        if (faction_id == 1)
+    if (f.hostile != hostile)
+    {
+        f.hostile = hostile;
+
+        if (faction_id == 1 && hostile)
         {
-            eventByID(EVENT_FACTION_HOSTILITY)->completed = true;
+            completeEvent(EVENT_FACTION_HOSTILITY);
+            completeEvent(EVENT_WARNING);
         }
         TraceLog(LOG_INFO, "Faction %d hostility set to %s", faction_id, hostile ? "true" : "false");
-    }
-    else
-    {
-        TraceLog(LOG_ERROR, "Invalid faction_id %d in setFactionHostility", faction_id);
     }
 }
 
@@ -1577,42 +1631,6 @@ Faction &Game::factionByID(int faction_id)
     }
     TraceLog(LOG_ERROR, "Invalid faction_id %d in factionByID", faction_id);
     throw std::out_of_range("Invalid faction_id in factionByID");
-}
-
-FactionInteraction Game::factionInteractionForCraft(Craft *craft, int faction_id)
-{
-    if (!craft)
-    {
-        return FactionInteraction::Unset;
-    }
-
-    if (factionByID(faction_id).hostile)
-    {
-        return FactionInteraction::DeclareWar;
-    }
-
-    if (factionByID(faction_id).trades >= 20)
-    {
-        return FactionInteraction::SympatheticWarning;
-    }
-
-    if (canPerformTrade(craft))
-    {
-        return FactionInteraction::Trade;
-    }
-
-    if (craft->hasTool(ItemType::Commspod) > -1)
-    {
-        return FactionInteraction::NothingToTrade;
-    }
-
-    auto &cp_topic{researchTopics[22]};
-    if (!cp_topic.available && (cp_topic.progress < cp_topic.requiredTime) && (craft->hasTool(ItemType::Grapple) > -1))
-    {
-        return FactionInteraction::GiveCommspod;
-    }
-
-    return FactionInteraction::BeforeCommspod;
 }
 
 Object *Game::createObject(int id, ObjectType type, Location *location, int quantity, int resource_id, int research_topic_id)
@@ -1746,6 +1764,65 @@ bool Game::completeEvent(int id)
     if (strlen(event->log_message) > 0)
     {
         raiseLogEvent(event->log_message);
+    }
+
+    return true;
+}
+
+bool Game::applyEvent(Event *event, Craft *craft, bool proceed)
+{
+    if (!event)
+    {
+        return false;
+    }
+
+    switch (event->id)
+    {
+    case EVENT_FACTION_HOSTILITY:
+        setFactionHostility(event->source_faction_id, true);
+        break;
+    case EVENT_WARNING:
+        // render sympathetic warning state
+
+        loadStoryObject(craft, 2);
+        craft->launch();
+        if (!factionIsHostile(event->source_faction_id))
+        {
+            // spawn a warship at the current location, it should menace the player craft on orbit
+            spawnWarship(event->source_faction_id, craft->location->body()->orbit(), 1, 5);
+        }
+        setFactionHostility(event->source_faction_id, true);
+
+        break;
+    case EVENT_NOTHING_TO_TRADE:
+        craft->launch();
+        break;
+    case EVENT_TRADE_REQUEST:
+        if (proceed)
+        {
+            performTrade(craft);
+        }
+        // auto launch
+        craft->launch();
+        break;
+    case EVENT_GIVE_COMMSPOD_OBJECT:
+        // text stating that commspod research object is given
+        {
+            int grapple_pod = craft->hasTool(ItemType::Grapple);
+            if (grapple_pod > -1)
+            {
+                // set grapple content to story object
+                craft->pods[grapple_pod].object = Game::getCurrent()->objectByID(1);
+            }
+            craft->launch();
+        }
+        break;
+    case EVENT_REQUEST_GRAPPLE:
+        craft->launch();
+        break;
+    default:
+        return false;
+        break;
     }
 
     return true;

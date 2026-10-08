@@ -424,6 +424,19 @@ int Craft::hasTool(const ItemType it) const
     return -1;
 }
 
+bool Craft::hasCargo() const
+{
+    for (int i = 0; i < max_pods; ++i)
+    {
+        const Pod &pod = pods[i];
+        if (pod.type == PT_SUPPLY && pod.amount > 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 int Craft::hasDrones() const
 {
     for (int i = 0; i < max_pods; ++i)

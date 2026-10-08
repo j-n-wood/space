@@ -1,8 +1,9 @@
 #include "pages/overlay.h"
 #include "state/game.h"
-#include "pages/pages.h"
 #include <cstdio>
+#include "pages/base_page.h"
 #include "pages/message_box.h"
+#include "pages/pages.h"
 
 extern "C"
 {
@@ -23,9 +24,8 @@ void Overlay::start()
 
 bool Overlay::clickedArea(const Rectangle &area, const char *toolTip)
 {
-    auto &pm{PageManager::getInstance()};
 
-    if (pm.isModal())
+    if (GuiIsLocked())
     {
         return false;
     }
@@ -43,9 +43,8 @@ bool Overlay::clickedArea(const Rectangle &area, const char *toolTip)
 
 bool Overlay::mouseDownArea(const Rectangle &area, const char *toolTip, RepeatButtonState *state)
 {
-    auto &pm{PageManager::getInstance()};
 
-    if (pm.isModal())
+    if (GuiIsLocked())
     {
         return false;
     }
@@ -129,7 +128,6 @@ void Overlay::render()
     // renders after the current page is rendered, so will appear on top of page content
 
     auto game{Game::getCurrent()};
-
     auto &pm{PageManager::getInstance()};
 
     // Following a craft needs no work here: ViewState reads the place through the craft,
@@ -172,12 +170,6 @@ void Overlay::render()
     char buf[256];
     sprintf(buf, "%.2f", game->game_time);
     DrawText(buf, BasePage::timeDest.x, BasePage::timeDest.y, 20, WHITE);
-
-    // modals
-    if (activeModal)
-    {
-        activeModal->render();
-    }
 
     // help text
     if (help)
@@ -345,10 +337,4 @@ void Overlay::input()
     {
         help = !help;
     }
-}
-
-void Overlay::showMessage(const char *message)
-{
-    activeModal = std::make_unique<MessageBox>(100, 100, message); // example position
-    activeModal->activate();
 }

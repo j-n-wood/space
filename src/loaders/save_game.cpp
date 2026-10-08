@@ -173,7 +173,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS objects ( id INT, type INT, location_id INT, quantity INT, resource_id INT, research_topic_id INT );"
         "CREATE TABLE IF NOT EXISTS crews ( id INT, type int, leader_name TEXT, rank int, size int, experience float );"
         "CREATE TABLE IF NOT EXISTS facility_item_stores ( facility_id INT, item_id INT, amount INT );"
-        "CREATE TABLE IF NOT EXISTS events ( id INTEGER PRIMARY KEY, name TEXT, log_message TEXT, email_message TEXT, completed INT, raise_at FLOAT );"
+        "CREATE TABLE IF NOT EXISTS events ( id INTEGER PRIMARY KEY, name TEXT, log_message TEXT, email_message TEXT, completed INT, raise_at FLOAT, source_faction_id INT, message_display_type INT, message_interaction_type INT );"
         "CREATE TABLE IF NOT EXISTS event_unlock_research_topics ( event_id INT, topic_id INT );"
         "CREATE TABLE IF NOT EXISTS facility_crews ( facility_id INT, crew_id INT );"
         "CREATE TABLE IF NOT EXISTS faction_trades ( faction_id INT, resource_id INT, traded_resource_id INT, rate NUMERIC );"
@@ -1238,7 +1238,7 @@ int SaveGame::saveEvents(Game *game)
         return -6;
     }
 
-    SQLiteQuery query(loader, "INSERT INTO events (id, name, log_message, email_message, completed, raise_at) VALUES (?, ?, ?, ?, ?, ?);");
+    SQLiteQuery query(loader, "INSERT INTO events (id, name, log_message, email_message, completed, raise_at, source_faction_id, message_display_type, message_interaction_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!query.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare events insert");
@@ -1259,6 +1259,9 @@ int SaveGame::saveEvents(Game *game)
                  .bind(4, event.email_message)
                  .bind(5, event.completed ? 1 : 0)
                  .bind(6, event.raise_at)
+                 .bind(7, event.source_faction_id)
+                 .bind(8, static_cast<int>(event.displayType))
+                 .bind(9, static_cast<int>(event.interactionType))
                  .step("SaveGame: Failed to insert event row"))
         {
             return -14;

@@ -814,7 +814,7 @@ bool Loader::loadEvents()
     game->events.clear();
     game->events.resize(max_event_id + 1);
 
-    SQLiteQuery query(this, "SELECT id, name, log_message, email_message, completed, raise_at FROM events");
+    SQLiteQuery query(this, "SELECT id, name, log_message, email_message, completed, raise_at, source_faction_id, message_display_type, message_interaction_type FROM events");
 
     while (query.next())
     {
@@ -824,9 +824,12 @@ bool Loader::loadEvents()
         const char *email_message = (const char *)sqlite3_column_text(query, 3);
         bool completed = sqlite3_column_int(query, 4) > 0;
         float raise_at = (float)sqlite3_column_double(query, 5);
+        int source_faction_id = sqlite3_column_int(query, 6);
+        MessageDisplayType displayType = static_cast<MessageDisplayType>(sqlite3_column_int(query, 7));
+        MessageInteractionType interactionType = static_cast<MessageInteractionType>(sqlite3_column_int(query, 8));
 
         // emplace at index = id, so that event ID = index in vector
-        game->events[id] = Event(static_cast<EventID>(id), name, log_message, email_message, completed, raise_at);
+        game->events[id] = Event(static_cast<EventID>(id), name, log_message, email_message, completed, raise_at, source_faction_id, displayType, interactionType);
     }
 
     // load event unlocks for research topics

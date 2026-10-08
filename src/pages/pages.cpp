@@ -14,8 +14,9 @@
 #include "pages/orbital_view.h"
 #include "pages/training_view.h"
 #include "assets/ui_elements.h"
+#include "pages/message_box.h"
 
-PageManager::PageManager() : currentPage(nullptr), desiredPage(PAGE_NONE), modal(false)
+PageManager::PageManager() : currentPage(nullptr), desiredPage(PAGE_NONE), auto_advance_time(false), notify_player(false)
 {
     // initialize page resources
     for (int i = 0; i < PAGE_COUNT; i++)
@@ -56,7 +57,7 @@ bool PageManager::switchToPage(Page newPage)
     // logic to switch to the specified page, for example by creating a new page instance and setting it as the current page
     // this is just a placeholder, actual implementation would depend on how you manage page instances and rendering
 
-    if (modal)
+    if (isModalActive())
     {
         return false; // cannot switch pages while a modal page is active
     }
@@ -75,15 +76,33 @@ bool PageManager::switchToPage(Page newPage)
 
 void PageManager::render()
 {
-    ControlLockToggle lock(modal); // lock controls during rendering if there is a modal
+    ControlLockToggle lock(isModalActive()); // lock controls during rendering if there is a modal
     if (currentPage)
     {
         currentPage->render();
+    }
+
+    // render the active modal if any
+    if (isModalActive())
+    {
+        getActiveModal()->renderModal();
     }
 }
 
 void PageManager::update()
 {
+    // if active modal is closed, remove it
+    if (isModalActive())
+    {
+        getActiveModal()->update(0.0f); // update the active modal with a delta of 0, triggers onClose
+        if (getActiveModal()->isClosed())
+        {
+            auto m = std::move(modals.back());
+            modals.pop_back();
+            m->onClose();
+        }
+    }
+
     if (desiredPage != PAGE_NONE)
     {
         BasePage *newPageInstance = pages[desiredPage];
@@ -130,20 +149,85 @@ void PageManager::onCraftDestroyed(Craft *c)
 
 void PageManager::onCraftUnderAttack(Craft *c)
 {
-    viewState.setNotifyPlayer(true); // notify player that a craft is under attack
+    setNotifyPlayer(true); // notify player that a craft is under attack
 }
 
-void PageManager::onFactionInteraction(Faction *faction, FactionInteraction interaction, Craft *craft)
+void PageManager::onFactionInteraction(Faction *faction, Event *event, Craft *craft)
 {
     // show faction interaction modal or notification
     // may shift focus to craft that initiated the interaction
     // as change page is a delayed action, so must be opening a modal
-    if (faction && interaction != FactionInteraction::Unset && craft)
+    if (faction && event)
     {
-        // open faction interaction modal or notification
-        viewState.setCraftFocus(craft);
-        switchToPage(PAGE_COCKPIT);
-        // trigger needs to be set s.t. page shows comms dialog on open
-        // currently detected by the page on activation
+        // push a dialog modal for the event if needed
+        if (event->displayType > MessageDisplayType::NONE)
+        {
+            // open faction interaction modal or notification
+            // else no-craft used as placeholder // TODO
+            switchToPage(PAGE_COCKPIT);
+            if (craft)
+            {
+                viewState.setCraftFocus(craft);
+            }
+            pushModal(new MessageBox(100, 100, event, craft));
+        }
+        // else nothing to display
     }
+}
+
+bool PageManager::isModalActive() const
+{
+    return !modals.empty();
+}
+
+void PageManager::pushModal(Modal *modal)
+{
+    if (modal)
+    {
+        modals.push_back(std::unique_ptr<Modal>(modal));
+    }
+}
+
+void PageManager::popModal()
+{
+    if (!modals.empty())
+    {
+        modals.pop_back();
+    }
+}
+
+Modal *PageManager::getActiveModal() const
+{
+    if (!modals.empty())
+    {
+        return modals.back().get();
+    }
+    return nullptr;
+}
+
+void PageManager::showMessage(const char *message)
+{
+    if (message)
+    {
+        // Example: create a new MessageBox modal with the message
+        Modal *msgBox = new MessageBox(100, 100, message); // example position
+        pushModal(msgBox);
+    }
+}
+
+bool PageManager::advanceGameTime()
+{
+    if (isModalActive())
+    {
+        return false;
+    }
+
+    if (notify_player)
+    {
+        if (IsKeyReleased(KEY_SPACE))
+            notify_player = false; // Space must be released once to acknowledge
+        return false;
+    }
+
+    return auto_advance_time || IsKeyDown(KEY_SPACE);
 }

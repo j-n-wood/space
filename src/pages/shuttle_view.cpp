@@ -5,6 +5,7 @@
 #include "state/location.h"
 #include "state/autopilot.h"
 #include "state/craft_action.h"
+#include "pages/pages.h"
 
 // original images 208 x 120 -> 832 x 480
 Rectangle viewportDest = {300, 200, 832, 480};
@@ -90,7 +91,6 @@ ShuttleView::ShuttleView()
     pageLog.top = 750;
     pageLog.left = 350;
     droneControlView = std::make_unique<DroneControlView>(DroneControlViewLeft, DroneControlViewTop);
-    commsView = std::make_unique<CommsView>(DroneControlViewLeft, DroneControlViewTop);
 }
 
 // if viewstate is set to a craft, show cockpit for that
@@ -284,15 +284,7 @@ void ShuttleView::render()
         return;
     }
 
-    // TODO organise this game event stuff
-    if (craft->docked())
-    {
-        Facility *facility = asFacility(craft->location);
-        if (facility->faction_id == 1)
-        {
-            commsView->initialise(craft, &Game::getCurrent()->factionByID(facility->faction_id));
-        }
-    }
+    auto &pm{PageManager::getInstance()};
 
     // set common state
     auto craft_can_dock = craft->canDock();
@@ -404,7 +396,6 @@ void ShuttleView::render()
                 if (overlay.addToolTip("Service", pod_icon_coordinates[idx]) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                 {
                     // clicked on pod icon, go to dock view
-                    PageManager &pm = PageManager::getInstance();
                     // TODO this sucks
                     if (craft->hasCapability(CC_INTERPLANETARY))
                     {
@@ -507,8 +498,6 @@ void ShuttleView::render()
     }
 
     droneControlView->render();
-
-    commsView->renderModal();
 
     pageLog.render();
 }

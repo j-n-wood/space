@@ -31,34 +31,14 @@ class ViewState
     TrainingFacility *currentTrainingFacility;
 
     int faction_id;
-    bool auto_advance_time;
-    bool notify_player; // trigger for UI that time advance should stop
 
 public:
-    ViewState() : focusPlace(nullptr), focusCraft(nullptr), browsedSystem(nullptr), currentResearchFacility(nullptr), currentTrainingFacility(nullptr), faction_id(0), auto_advance_time(false), notify_player(false) {};
+    ViewState() : focusPlace(nullptr), focusCraft(nullptr), browsedSystem(nullptr), currentResearchFacility(nullptr), currentTrainingFacility(nullptr), faction_id(0) {};
 
     inline int getFactionId() const { return faction_id; }
     inline ViewState &setFactionId(int id)
     {
         faction_id = id;
-        return *this;
-    }
-
-    inline bool getAutoAdvanceTime() const { return auto_advance_time; }
-    inline ViewState &setAutoAdvanceTime(bool aat)
-    {
-        auto_advance_time = aat;
-        return *this;
-    }
-
-    inline bool getNotifyPlayer() const { return notify_player; }
-    inline ViewState &setNotifyPlayer(bool np)
-    {
-        notify_player = np;
-        if (np)
-        {
-            auto_advance_time = false; // stop auto-advance when notifying player
-        }
         return *this;
     }
 
@@ -132,6 +112,8 @@ public:
         }
         return false;
     }
+
+    void merge(const ViewState &other);
 
 private:
     // Craft is an incomplete type here, so the dereference lives in the .cpp.

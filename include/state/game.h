@@ -201,7 +201,6 @@ public:
     bool craftIsUnderAttack(Craft *craft);
     Craft *targetCraftAt(int faction_id, Location *location);
     Faction &factionByID(int faction_id);
-    FactionInteraction factionInteractionForCraft(Craft *craft, int faction_id);
 
     // logic to support UI
     inline bool locationHasShuttle(Location *location) const
@@ -260,6 +259,7 @@ public:
     bool updateCraftScanning(Craft *craft);
     bool canPerformTrade(Craft *craft);
     bool performTrade(Craft *craft); // return true if trade occurred
+    bool loadStoryObject(Craft *craft, int object_id);
 
     // weapon functions
     ItemType droneTypeForCraft(const Craft *craft) const;
@@ -279,7 +279,7 @@ public:
     void raiseProductionCompleteEvent(Factory *factory, int item_id);
     void raiseFacilityDestructionEvent(Facility *facility);
     void raiseCraftDestructionEvent(Craft *craft);
-    void raiseFactionInteractionEvent(Faction *faction, FactionInteraction interaction, Craft *craft);
+    void raiseFactionInteractionEvent(Faction *faction, Event *event, Craft *craft);
     void raiseCraftUnderAttackEvent(Craft *craft);
 
     void onSpacecraftArrival(Craft *craft);
@@ -305,6 +305,7 @@ public:
     // events
     Event *eventByID(int id);
     bool completeEvent(int id);
+    bool applyEvent(Event *event, Craft *craft, bool proceed);
 
     // realtime events
     void addRealtimeEvent(RealtimeEvent *event);

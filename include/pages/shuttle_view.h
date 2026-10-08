@@ -7,7 +7,6 @@
 #include "pages/destination_view.h"
 #include "pages/drone_control_view.h"
 #include "pages/page_log.h"
-#include "pages/comms_view.h"
 
 const int DroneControlViewLeft = 150;
 const int DroneControlViewTop = 180;
@@ -20,7 +19,6 @@ class ShuttleView : public BasePage, EventSink
     const TextureAsset *uiTexture;
     std::unique_ptr<AutopilotView> autopilotView;
     std::unique_ptr<DroneControlView> droneControlView;
-    std::unique_ptr<CommsView> commsView;
 
     PageLog pageLog;
 
