@@ -55,3 +55,15 @@ void EventSink::onCraftUnderAttack(Craft *c)
     // default implementation does nothing - can be overridden by derived classes to react to craft under attack events
     (void)c; // suppress unused parameter warning
 }
+
+void EventSink::onSDMActivated(Orbital *orbital)
+{
+    // default implementation does nothing - can be overridden by derived classes to react to SDM activation events
+    (void)orbital; // suppress unused parameter warning
+}
+
+void EventSink::onBoardingAction(Craft *c)
+{
+    // default implementation does nothing - can be overridden by derived classes to react to boarding action events
+    (void)c; // suppress unused parameter warning
+}

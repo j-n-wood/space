@@ -257,6 +257,8 @@ int main(const int argc, const char **argv)
 		bool quit = false;
 		while (!quit && !WindowShouldClose()) // run the loop until the user presses Ctrl-Q or presses the Close button on the window
 		{
+			game->scanHostileActivities(); // use current state of hostilities while rendering and before state update
+
 			overlay.start(); // start the overlay for this frame, can be used to reset any state tracked by the overlay at the start of each frame
 			// drawing
 			BeginDrawing();

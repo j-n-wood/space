@@ -27,6 +27,7 @@ const float CSTD_ASCENT = 4.0f;
 const float CSTD_DESCENT = 2.0f;
 const float CSTD_LAUNCH = 0.3f;
 const float CSTD_DOCK = 0.3f;
+const float CSTD_BOARD_HOSTILE_ORBITAL = 1.2f;
 const float CSTD_SCANNING = 3.0f;
 
 typedef enum
@@ -131,6 +132,8 @@ public:
     int hasDrones() const;
     void update(float delta);
 
+    void runAI(float delta); // update state for computer controlled opponents
+
     const char *statusText(char *status, size_t len);
     const char *scanTargetText(char *status, size_t len);
 
@@ -186,6 +189,11 @@ public:
         return 1.0f;
     }
 
+    inline float remainingStateTime() const
+    {
+        return state_timer;
+    }
+
     inline bool hasCapability(CraftCapability cap) const
     {
         return craftHasCapability(type, cap);
@@ -221,6 +229,7 @@ public:
     CraftActionResult canEngageDrive() const;
     CraftActionResult canWork() const;
     CraftActionResult canEngageAutopilot() const;
+    Facility *dockingLocation() const;
 
     Craft &engageDrive();
 

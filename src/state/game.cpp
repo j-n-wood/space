@@ -1468,6 +1468,13 @@ void Game::onCaptureOrbital(Orbital *orbital, int new_faction_id)
         TraceLog(LOG_ERROR, "Null orbital provided to onCaptureOrbital");
         return;
     }
+
+    // methanoids will trigger SDM on capture of their orbitals
+    if ((orbital->faction_id == FACTION_METHANOID) && (orbital->sdm_installed))
+    {
+        activateSDM(orbital); // trigger SDM, notification shall stop auto-advance of time so player can react
+    }
+
     orbital->faction_id = new_faction_id;
     TraceLog(LOG_INFO, "Orbital at location %s captured by faction %d", orbital->body()->name, new_faction_id);
 
@@ -1568,6 +1575,14 @@ void Game::raiseCraftUnderAttackEvent(Craft *craft)
     for (auto sink : eventSinks)
     {
         sink->onCraftUnderAttack(craft);
+    }
+}
+
+void Game::raiseBoardingActionEvent(Craft *craft)
+{
+    for (auto sink : eventSinks)
+    {
+        sink->onBoardingAction(craft);
     }
 }
 

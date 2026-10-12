@@ -50,7 +50,7 @@ bool Loader::loadGame()
 
 bool Loader::loadFactions()
 {
-    SQLiteQuery query(this, "SELECT id, name, hostile, trades, ios_number, scg_number FROM factions ORDER BY id");
+    SQLiteQuery query(this, "SELECT id, name, hostile, trades, ios_number, scg_number, orbital_drone_control FROM factions ORDER BY id");
 
     while (query.next())
     {
@@ -60,11 +60,13 @@ bool Loader::loadFactions()
         int trades = sqlite3_column_int(query, 3);
         int ios_number = sqlite3_column_int(query, 4);
         int scg_number = sqlite3_column_int(query, 5);
+        bool orbital_drone_control = sqlite3_column_int(query, 6) > 0;
         game->factions.emplace_back(id, name);
         game->factions.back().hostile = hostile;
         game->factions.back().trades = trades;
         game->factions.back().ios_number = ios_number;
         game->factions.back().scg_number = scg_number;
+        game->factions.back().orbital_drone_control = orbital_drone_control;
     }
 
     // read trade tables

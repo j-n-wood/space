@@ -265,13 +265,27 @@ CraftActionResult Craft::canDock() const
         if (game->factions[o->faction_id].hostile)
         {
             int drone_count = o->stores.items[ItemType::Star_Drone] + o->stores.items[ItemType::Ios_Drone];
-            if (drone_count > 0)
+            if (drone_count > 0 && game->factions[o->faction_id].orbital_drone_control)
             {
                 return CAC_DEFENDED;
             }
         }
     }
     return CAC_OK;
+}
+
+Facility *Craft::dockingLocation() const
+{
+    if (location->type == LOCATION_TYPE_ORBIT)
+    {
+        auto game = Game::getCurrent();
+        Orbital *o = game->orbitalAt(location);
+        if (o)
+        {
+            return static_cast<Facility *>(o);
+        }
+    }
+    return nullptr;
 }
 
 CraftActionResult Craft::canLaunch() const
@@ -317,7 +331,15 @@ Craft &Craft::dock()
     // would report itself arrived before it was.
     if (canDock())
     {
-        setTimedState(CS_DOCKING, CSTD_DOCK);
+        // use CSTD_DOCK if not hostile
+        Game *game = Game::getCurrent();
+        auto time = CSTD_DOCK;
+        if (game->hostilesAt(location, faction_id))
+        {
+            time = CSTD_BOARD_HOSTILE_ORBITAL;
+            game->raiseBoardingActionEvent(this);
+        }
+        setTimedState(CS_DOCKING, time);
     }
     return *this;
 }
@@ -450,6 +472,56 @@ int Craft::hasDrones() const
     return -1;
 }
 
+void Craft::runAI(float delta)
+{
+    // Only run AI for non-player crafts
+    if (faction_id == FACTION_TERRAN)
+    {
+        return;
+    }
+
+    Game *game = Game::getCurrent();
+
+    if (moving()) // let that complete
+    {
+        return;
+    }
+
+    // if already threatening a craft, that is the action
+    if (engagement != nullptr)
+    {
+        return;
+    }
+
+    if (!isWarship()) // nothing to do for AI-controlled non-warships
+    {
+        return;
+    }
+
+    // do I initiate hostilities against opposing craft?
+
+    // anything to attack?
+    // scan for craft from other factions in the same orbit
+    // TODO if they are warships - player controls engagement
+    Craft *target = game->targetCraftAt(faction_id, location);
+    if (target)
+    {
+        // initiate attack on the target
+        engagement = new CraftUnderAttackEvent(10.0, this, target);
+        game->addRealtimeEvent(engagement);
+        game->raiseCraftUnderAttackEvent(target);
+        return; // AI has initiated an engagement, no further action this tick
+    }
+
+    // attack orbitals
+    // this is handled by docking, then capture
+    if (canDock()) // defensive drone screen counts for Methanoid orbitals only, as there is no way to attack a player drone fleet without a warship
+    {
+        // initiate docking procedure
+        dock(); // time to dock at a hostile orbital is longer than friendly
+    }
+}
+
 void Craft::update(float delta)
 {
     if (destroyed)
@@ -464,21 +536,7 @@ void Craft::update(float delta)
 
     // am I under attack? anything to do?
 
-    // do I initiate hostilities?
-    if ((engagement == nullptr) && isWarship() && !moving())
-    {
-        // anything to attack?
-        // scan for craft from other factions in the same orbit
-        Craft *target = game->targetCraftAt(faction_id, location);
-        if (target)
-        {
-            // initiate attack on the target
-            engagement = new CraftUnderAttackEvent(10.0, this, target);
-            game->addRealtimeEvent(engagement);
-            game->raiseCraftUnderAttackEvent(target);
-        }
-        // TODO attack orbitals
-    }
+    runAI(delta);
 
     // timed states
     if (state_timer > 0.0f)

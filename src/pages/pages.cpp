@@ -152,6 +152,19 @@ void PageManager::onCraftUnderAttack(Craft *c)
     setNotifyPlayer(true); // notify player that a craft is under attack
 }
 
+void PageManager::onSDMActivated(Orbital *orbital)
+{
+    setNotifyPlayer(true); // notify player that SDM has been activated, so they can react
+}
+
+void PageManager::onBoardingAction(Craft *c)
+{
+    if (c->faction_id != FACTION_TERRAN)
+    {
+        setNotifyPlayer(true); // notify player that a boarding action is taking place
+    }
+}
+
 void PageManager::onFactionInteraction(Faction *faction, Event *event, Craft *craft)
 {
     // show faction interaction modal or notification

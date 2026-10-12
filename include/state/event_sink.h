@@ -23,4 +23,6 @@ public:
 
     virtual void onFactionInteraction(Faction *faction, Event *event, Craft *craft);
     virtual void onCraftUnderAttack(Craft *c);
+    virtual void onSDMActivated(Orbital *orbital);
+    virtual void onBoardingAction(Craft *c);
 };

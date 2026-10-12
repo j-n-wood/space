@@ -18,6 +18,7 @@
 #include "state/event.h"
 #include "state/realtime_event.h"
 #include "state/faction.h"
+#include "state/hostile_activity.h"
 
 // Game state. Can be initialised, saved, loaded.
 // Singleton for the moment.
@@ -106,6 +107,9 @@ class Game
     // `id` of -1 allocates the next free location id; the loader passes the
     // persisted one so identity survives a round trip.
     void attachFacilityLocation(Facility *facility, Location *parent, const char *label);
+
+    // hostile activities
+    std::vector<HostileActivity> hostile_activities;
 
 public:
     // game state
@@ -281,6 +285,7 @@ public:
     void raiseCraftDestructionEvent(Craft *craft);
     void raiseFactionInteractionEvent(Faction *faction, Event *event, Craft *craft);
     void raiseCraftUnderAttackEvent(Craft *craft);
+    void raiseBoardingActionEvent(Craft *craft);
 
     void onSpacecraftArrival(Craft *craft);
     void onSpacecraftDocked(Craft *craft);
@@ -317,6 +322,9 @@ public:
 
     // faction behaviour
     Craft *spawnWarship(int faction_id, Location *location, int crew_rank, int initial_drones = 0);
+
+    void scanHostileActivities();
+    bool facilityUnderAttack(Facility *facility);
 
     // console input
     bool processConsoleCommand(const char *command, Location *l, Facility *f);

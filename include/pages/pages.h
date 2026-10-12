@@ -107,8 +107,14 @@ public:
     // on craft under attack event
     virtual void onCraftUnderAttack(Craft *c) override;
 
+    // SDM activation event
+    virtual void onSDMActivated(Orbital *orbital) override;
+
     // faction interaction event
     virtual void onFactionInteraction(Faction *faction, Event *event, Craft *craft) override;
+
+    // boarding action event
+    virtual void onBoardingAction(Craft *c) override;
 
     // modal management
     bool isModalActive() const;
