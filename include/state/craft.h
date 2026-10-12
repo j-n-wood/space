@@ -64,6 +64,8 @@ class Crew;
 
 class CraftUnderAttackEvent;
 
+class Facility;
+
 class CurrentState
 {
 public:

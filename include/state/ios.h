@@ -11,7 +11,7 @@ public:
     IOS(CraftState cs, uint8_t mp, Location *loc, int fid) : Craft(cs, mp, loc)
     {
         type = CT_IOS;
-        faction_id = faction_id;
+        faction_id = fid;
     }
 };
 

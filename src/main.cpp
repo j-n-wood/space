@@ -153,6 +153,17 @@ void buildTestData(Game *game)
 	game->setFactionHostility(1, true);								  // methanoids hostile to player
 	game->orbitalAt(jupiter)->stores.items[ItemType::Ios_Drone] = 50; // orbital created from starting data
 	*/
+
+	// test capture by methanoids, notification systems
+	game->setFactionHostility(0, true);
+	game->setFactionHostility(1, true); // methanoids hostile to player
+	Location *callisto = game->locationByID(15);
+	auto warship = game->spawnWarship(FACTION_METHANOID, callisto, 2, 50);
+	warship->setDestination(0, ganymede);
+	warship->engageDrive();
+
+	// create warship near Ganymede orbital
+
 	// test IOS 4 at asteroids
 	Location *asteroid_belt = game->locationByID(9);
 	IOS *ios4 = game->createIOS(asteroid_belt, 0);

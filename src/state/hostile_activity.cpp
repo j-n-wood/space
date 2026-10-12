@@ -31,6 +31,7 @@ void Game::scanHostileActivities()
                 }
 
                 // determine destination location, and if there is an opposing faction orbital there
+                // TODO if this is first detection of hostile approach, trigger alert
                 Orbital *orbital = orbitalAt(i->currentDestination().location);
                 if (orbital && orbital->faction_id != i->faction_id)
                 {

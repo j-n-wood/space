@@ -41,10 +41,16 @@ Craft *Game::spawnWarship(int faction_id, Location *location, int crew_rank, int
 {
     // implementation for spawning a warship at the given location
     Craft *warship = createIOS(location, faction_id);
+    warship->drive = true;
     // set cargo to DFCC
     warship->pods[0].type = PodType::PT_WEAPON;
     warship->pods[0].contentType = ItemType::DFCC;
     warship->pods[0].amount = initial_drones;
+
+    if (location)
+    {
+        warship->enterRegion(true); // place the warship in the region at the location
+    }
 
     // create a crew - faction dependent, which we have not done
     // warship->crew = createCrew(0, CrewType::Marine, "Leader Name", crew_rank, 40, 0.0f);

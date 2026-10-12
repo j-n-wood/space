@@ -518,6 +518,7 @@ void Craft::runAI(float delta)
     if (canDock()) // defensive drone screen counts for Methanoid orbitals only, as there is no way to attack a player drone fleet without a warship
     {
         // initiate docking procedure
+        TraceLog(LOG_INFO, "Initiating docking procedure at hostile orbital");
         dock(); // time to dock at a hostile orbital is longer than friendly
     }
 }
