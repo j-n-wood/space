@@ -6,6 +6,7 @@
 #include "state/craft_action.h"
 #include "state/strings.h"
 #include "state/sdm_event.h"
+#include "state/faction_controller.h"
 
 #include <cstdio>
 #include <cmath>
@@ -1313,6 +1314,14 @@ void Game::advanceTick()
     for (auto factory : factories)
     {
         factory->update();
+    }
+
+    // run faction controllers
+    for (auto &controller : factionControllers)
+    {
+        if (controller->faction_id < FACTION_METHANOID)
+            continue;
+        controller->update();
     }
 }
 

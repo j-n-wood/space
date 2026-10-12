@@ -14,6 +14,7 @@
 #include "state/factory.h"
 #include "state/research_facility.h"
 #include "state/strings.h"
+#include "state/faction_controller.h"
 
 Loader::Loader(const char *dbPath) : game(nullptr)
 {
@@ -67,6 +68,8 @@ bool Loader::loadFactions()
         game->factions.back().ios_number = ios_number;
         game->factions.back().scg_number = scg_number;
         game->factions.back().orbital_drone_control = orbital_drone_control;
+
+        game->factionControllers.emplace_back(std::make_unique<FactionController>(id));
     }
 
     // read trade tables

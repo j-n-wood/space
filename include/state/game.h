@@ -2,11 +2,10 @@
 
 #include <cstdint>
 #include <memory>
+
 #include "state/system.h"
 #include "state/resourceFacility.h"
-#include "state/earth_city.h"
 #include "state/orbital.h"
-#include "state/factory.h"
 #include "state/item.h"
 #include "state/shuttle.h"
 #include "state/ios.h"
@@ -16,7 +15,6 @@
 #include "state/resources.h"
 #include "state/crew.h"
 #include "state/event.h"
-#include "state/realtime_event.h"
 #include "state/faction.h"
 #include "state/hostile_activity.h"
 
@@ -32,6 +30,7 @@ const int REQUIRED_RESOURCE_FACILITY_FRAMES = 2;
 
 class Loader;
 
+class EarthCity;
 class ResearchFacility;
 
 // abstracted, so we can test different simulations, or provide static values for testing
@@ -49,6 +48,8 @@ public:
 };
 
 class EventSink;
+class RealtimeEvent;
+class FactionController;
 
 class Game
 {
@@ -139,6 +140,7 @@ public:
 
     // factions
     std::vector<Faction> factions;
+    std::vector<std::unique_ptr<FactionController>> factionControllers;
 
     std::vector<EventSink *> eventSinks; // non-owning collection of event sinks to send game events to, e.g. for logging or triggering UI updates
 
