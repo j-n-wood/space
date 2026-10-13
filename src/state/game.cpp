@@ -6,6 +6,7 @@
 #include "state/craft_action.h"
 #include "state/strings.h"
 #include "state/sdm_event.h"
+#include "state/earth_city.h"
 #include "state/faction_controller.h"
 
 #include <cstdio>

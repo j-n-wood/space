@@ -912,6 +912,10 @@ void Craft::applyDamage()
 
 bool Craft::isWarship() const
 {
+    if (destroyed)
+    {
+        return false;
+    }
     // basic check for warship capability
     // has a DFCC and nonzero drones
     int weapon_pod = hasDrones();

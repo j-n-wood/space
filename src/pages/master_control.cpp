@@ -3,6 +3,7 @@
 #include "assets/ui_elements.h"
 #include "pages/overlay.h"
 #include "pages/pages.h"
+#include "state/faction_controller.h"
 
 #include <cstdio>
 #include <cmath>
@@ -45,6 +46,24 @@ void MasterControlView::render()
 
     renderOrbitals();
     renderIOS();
+}
+
+void MasterControlView::renderDebug()
+{
+    // show faction progress for debugging purposes
+    Game *game = Game::getCurrent();
+    FactionController *fc = game->factionControllers[FACTION_METHANOID].get();
+    auto orbitals_in_system = fc->systemOrbitals(currentSystem->id);
+    float y = 60.0f;
+    for (auto &orbital : orbitals_in_system)
+    {
+        // render debug info for each orbital
+        int drone_count = orbital->stores.items[ItemType::Ios_Drone];
+        char buf[128];
+        std::snprintf(buf, sizeof buf, "%s: %d", orbital->body()->name, drone_count);
+        DrawText(buf, 900, y, 20, WHITE);
+        y += 30.0f;
+    }
 }
 
 void MasterControlView::renderOrbitals()

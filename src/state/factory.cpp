@@ -3,7 +3,7 @@
 #include "state/factory.h"
 #include "state/game.h"
 
-QueueItem::QueueItem(const int id, bool r) : item_id{-1}, progress{0}
+QueueItem::QueueItem(const int id, bool r) : item_id{-1}, progress{0.0f}
 {
     if (id < Game::getCurrent()->items.size())
     {
@@ -94,9 +94,21 @@ void Factory::update()
     }
 
     // if no crew, cannot do anything
-    if (!crew)
+    if ((!crew) && (!aoc_installed))
     {
         return;
+    }
+
+    // more experienced or automated factories work faster
+    float factory_rate = 1.0f;
+    if (aoc_installed)
+    {
+        factory_rate = 2.0f; // example: AOC doubles factory rate
+    }
+    else
+    {
+        // rank 1-4
+        factory_rate = 1.0f + crew->rank * 0.125f;
     }
 
     // progress on current queue, if any
@@ -133,9 +145,13 @@ void Factory::update()
         }
 
         // add some crew experience
-        crew->addExperience(1.0f); // adjust rate as needed
+        if (crew)
+        {
+            crew->addExperience(1.0f); // adjust rate as needed
+        }
 
-        if (++queueItem.progress >= queueItem.build_time)
+        float progress = 1.0f * factory_rate;
+        if ((queueItem.progress += progress) >= queueItem.build_time)
         {
             // if a facility feature (SDM, AOC, MTX) this activates the feature if not present.
             // otherwise fall through to stores

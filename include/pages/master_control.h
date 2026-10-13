@@ -16,6 +16,7 @@ public:
     MasterControlView();
     void activate(ViewState &viewState) override;
     void render() override;
+    void renderDebug() override;
     void update(const float delta) override;
 
     void renderOrbitals();

@@ -1,6 +1,7 @@
 #include "state/game.h"
 #include "loaders/load_system.h"
 #include "state/training_facility.h"
+#include "state/earth_city.h"
 
 bool Game::initialise(Loader *loader)
 {

@@ -12,8 +12,8 @@ class QueueItem
 {
 public:
     int item_id;
-    int build_time;
-    int progress;
+    float build_time;
+    float progress;
     bool started;
     bool repeat;
 

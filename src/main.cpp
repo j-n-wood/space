@@ -27,6 +27,7 @@ extern "C"
 #include "state/game.h"
 #include "state/autopilot.h"
 #include "state/resourceFacility.h"
+#include "state/earth_city.h"
 #include "loaders/save_game.h"
 
 void takeDefaultFocus()
@@ -157,10 +158,13 @@ void buildTestData(Game *game)
 	// test capture by methanoids, notification systems
 	game->setFactionHostility(0, true);
 	game->setFactionHostility(1, true); // methanoids hostile to player
+
+	/*
 	Location *callisto = game->locationByID(15);
 	auto warship = game->spawnWarship(FACTION_METHANOID, callisto, 2, 50);
 	warship->setDestination(0, ganymede);
 	warship->engageDrive();
+	*/
 
 	// create warship near Ganymede orbital
 
