@@ -27,10 +27,11 @@ public:
     int ios_number;
     int scg_number;
     bool orbital_drone_control; // can defend orbitals with drones, without a warship
+    int captured_orbitals;      // number of orbitals captured by this faction
 
     FactionTrade tradeTable[ResourceType::Count];
 
-    Faction() : id{0}, hostile{false}, trades{0}, ios_number{1}, scg_number{1}, orbital_drone_control{false}
+    Faction() : id{0}, hostile{false}, trades{0}, ios_number{1}, scg_number{1}, orbital_drone_control{false}, captured_orbitals{0}
     {
         name[0] = '\0';
     }

@@ -206,6 +206,18 @@ public:
 		}
 		return false;
 	}
+
+	const char *valueForFlag(const char *flag) const
+	{
+		for (int i = 1; i < argc - 1; ++i)
+		{
+			if (std::strcmp(argv[i], flag) == 0)
+			{
+				return argv[i + 1];
+			}
+		}
+		return nullptr;
+	}
 };
 
 int main(const int argc, const char **argv)
@@ -232,9 +244,15 @@ int main(const int argc, const char **argv)
 
 	Game *game = Game::createCurrent();
 
+	const char *source_data_file = "initial.db";
+	if (args.hasFlag("-file"))
+	{
+		source_data_file = args.valueForFlag("-file");
+	}
+
 	{
 		{
-			Loader loader("initial.db");
+			Loader loader(source_data_file);
 			if (!loader.isValid())
 			{
 				TraceLog(LOG_ERROR, "Failed to create loader");

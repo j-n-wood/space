@@ -17,6 +17,68 @@ std::vector<const Orbital *> FactionController::systemOrbitals(const int system_
     return result;
 }
 
+std::vector<const Craft *> FactionController::systemWarships(const int system_id)
+{
+    Game *game = Game::getCurrent();
+    std::vector<const Craft *> result;
+    for (auto &i : game->allIOS())
+    {
+        if ((i->faction_id == this->faction_id) && (i->location->system->id == system_id) && (i->isWarship()))
+        {
+            result.push_back(i.get());
+        }
+    }
+    return result;
+}
+
+int FactionController::warshipRank() const
+{
+    // Determine the warship rank based on the number of captured orbitals
+    Game *game = Game::getCurrent();
+    const Faction &faction = game->factions[FACTION_TERRAN];
+    if (faction.captured_orbitals >= 12)
+    {
+        return 4;
+    }
+    else if (faction.captured_orbitals >= 8)
+    {
+        return 3;
+    }
+    else if (faction.captured_orbitals >= 5)
+    {
+        return 2;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
+int FactionController::garrisonThreshold() const
+{
+    // how many drones an orbital should maintain as its garrison
+    // excess are sent to build fleets
+    // driven by enemy success
+    Game *game = Game::getCurrent();
+    const Faction &faction = game->factions[FACTION_TERRAN];
+    if (faction.captured_orbitals >= 12)
+    {
+        return 200;
+    }
+    else if (faction.captured_orbitals >= 8)
+    {
+        return 150;
+    }
+    else if (faction.captured_orbitals >= 5)
+    {
+        return 100;
+    }
+    else
+    {
+        return 70;
+    }
+}
+
 void FactionController::update()
 {
     Game *game{Game::getCurrent()};
@@ -34,10 +96,25 @@ void FactionController::update()
     // when sufficient are available, spawn a warship and send to engage player orbitals in the same
     // system. If no such orbital exists, send interstellar.
 
+    // when producing drones, rather than wait for full garrison, we can transfer _some_ drones as
+    // excess to build a fleet.
+    // Also, if there is a fleet at an orbital, it has some defense as long as that fleet is present.
+
+    // For reference, original logic appeared to:
+    // Run a reinforcement cycle every 7-10 ticks
+    // Each produces 2 drones per orbital
+    // Also each system gets one drone for fleet reinforcement, or 2 if at least one orbital has full strength
+    // Fleets are then sent on attacks - each cycle increments a system counter to randomise a bit
+    // This means production is ~ 2x player (8 ticks) per orbital, but there is no collection from multiple orbitals to fleets
+    // 700-1000 ticks to get a complete fleet (doesn't seem right, but hey)
+
     std::vector<int> system_drone_counts(game->allSystems().size(), 0);
     std::vector<Location *> system_spawn_locations(game->allSystems().size(), nullptr);
 
     // locate faction orbitals
+
+    int garrison_threshold = garrisonThreshold();
+
     for (auto &o : game->allOrbitals())
     {
         if (o->faction_id != faction_id)
@@ -63,10 +140,11 @@ void FactionController::update()
         // if we have sufficient drones, produce a warship
         // this can depend on player strength and progress to set fleet strength, rank
         // accumulate per system - using excess drones over max of 200
-        if (o->stores.items[ItemType::Ios_Drone] > 200)
+        // storage location is not considered as emeny factions have MTX by default
+        if (o->stores.items[ItemType::Ios_Drone] > garrison_threshold)
         {
-            system_drone_counts[o->system->id] += o->stores.items[ItemType::Ios_Drone] - 200;
-            o->stores.items[ItemType::Ios_Drone] = 200; // reduce to max after counting excess
+            system_drone_counts[o->system->id] += o->stores.items[ItemType::Ios_Drone] - garrison_threshold;
+            o->stores.items[ItemType::Ios_Drone] = garrison_threshold; // reduce to max after counting excess
         }
     }
 
@@ -106,7 +184,7 @@ void FactionController::update()
                 // reduce the drone count by the number used for the warship
                 // pick a spawn location from that system
                 TraceLog(LOG_INFO, "Spawning new warship in system %zu at location %s", system_id, system_spawn_locations[system_id]->name);
-                warships[system_id] = game->spawnWarship(faction_id, system_spawn_locations[system_id], 2, 0);
+                warships[system_id] = game->spawnWarship(faction_id, system_spawn_locations[system_id], warshipRank(), 0);
             }
 
             if (warships[system_id])

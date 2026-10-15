@@ -154,7 +154,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT, operational INT, construction_progress INT, damage INT, faction_id INT, aoc_installed INT, sdm_installed INT, mtx_installed INT, factory_crew_id int );"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
         "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT );"
-        "CREATE TABLE IF NOT EXISTS factions ( id INT, name TEXT, hostile INT, trades INT, ios_number INT, scg_number INT, orbital_drone_control INT );"
+        "CREATE TABLE IF NOT EXISTS factions ( id INT, name TEXT, hostile INT, trades INT, ios_number INT, scg_number INT, orbital_drone_control INT, captured_orbitals INT );"
         "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, pod_type int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);"
         "CREATE TABLE IF NOT EXISTS item_build_requirements ( item_id int, resource_id int, amount int);"
         "CREATE TABLE IF NOT EXISTS item_work ( item_id int, work_time numeric, consumption int, abort_consumes int, auto_continue int);"
@@ -303,7 +303,7 @@ int SaveGame::saveFactions(Game *game)
 
     ScopedSqliteError errorMessage;
 
-    SQLiteQuery query(loader, "INSERT INTO factions (id, name, hostile, trades, ios_number, scg_number, orbital_drone_control) VALUES (?, ?, ?, ?, ?, ?, ?);");
+    SQLiteQuery query(loader, "INSERT INTO factions (id, name, hostile, trades, ios_number, scg_number, orbital_drone_control, captured_orbitals) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
     if (!query.stmt)
     {
         TraceLog(LOG_ERROR, "SaveGame: Failed to prepare factions insert");
@@ -320,7 +320,7 @@ int SaveGame::saveFactions(Game *game)
 
     for (const auto &faction : game->factions)
     {
-        if (!query.reset().bind(1, faction.id).bind(2, faction.name).bind(3, faction.hostile).bind(4, faction.trades).bind(5, faction.ios_number).bind(6, faction.scg_number).bind(7, faction.orbital_drone_control).step("SaveGame: Failed to insert faction record"))
+        if (!query.reset().bind(1, faction.id).bind(2, faction.name).bind(3, faction.hostile).bind(4, faction.trades).bind(5, faction.ios_number).bind(6, faction.scg_number).bind(7, faction.orbital_drone_control).bind(8, faction.captured_orbitals).step("SaveGame: Failed to insert faction record"))
         {
             return -7;
         }

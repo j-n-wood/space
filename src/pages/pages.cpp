@@ -16,7 +16,7 @@
 #include "assets/ui_elements.h"
 #include "pages/message_box.h"
 
-PageManager::PageManager() : currentPage(nullptr), desiredPage(PAGE_NONE), auto_advance_time(false), notify_player(false)
+PageManager::PageManager() : currentPage(nullptr), desiredPage(PAGE_NONE), auto_advance_time(false), manual_advance_time(false), notify_player(false)
 {
     // initialize page resources
     for (int i = 0; i < PAGE_COUNT; i++)
@@ -237,10 +237,24 @@ bool PageManager::advanceGameTime()
 
     if (notify_player)
     {
-        if (IsKeyReleased(KEY_SPACE))
+        if (manual_advance_time)
+        {
+            if (IsKeyReleased(KEY_SPACE))
+                notify_player = false; // Space must be released once to acknowledge
+            return false;
+        }
+        // was not using space to drive time, allow it to reset manual advance
+        if (IsKeyDown(KEY_SPACE))
+        {
             notify_player = false; // Space must be released once to acknowledge
+        }
         return false;
     }
 
-    return auto_advance_time || IsKeyDown(KEY_SPACE);
+    if (IsKeyDown(KEY_SPACE))
+    {
+        manual_advance_time = true;
+    }
+
+    return auto_advance_time || manual_advance_time;
 }

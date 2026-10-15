@@ -10,6 +10,7 @@ bool Game::processConsoleCommand(const char *command, Location *l, Facility *f)
 
     int item_id{ItemType::None};
     int amount{0};
+    char buf[64];
 
     if (std::strcmp(command, "help") == 0)
     {

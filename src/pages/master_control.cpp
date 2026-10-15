@@ -4,6 +4,7 @@
 #include "pages/overlay.h"
 #include "pages/pages.h"
 #include "state/faction_controller.h"
+#include "state/craft.h"
 
 #include <cstdio>
 #include <cmath>
@@ -63,6 +64,20 @@ void MasterControlView::renderDebug()
         std::snprintf(buf, sizeof buf, "%s: %d", orbital->body()->name, drone_count);
         DrawText(buf, 900, y, 20, WHITE);
         y += 30.0f;
+    }
+
+    // locate faction warships
+    auto warships_in_system = fc->systemWarships(currentSystem->id);
+    if (!warships_in_system.empty())
+    {
+        y += 30.0f;
+        for (auto &warship : warships_in_system)
+        {
+            char buf[128];
+            std::snprintf(buf, sizeof buf, "%s: %d (%s)", warship->name, warship->pods[0].amount, warship->location->name);
+            DrawText(buf, 900, y, 20, WHITE);
+            y += 30.0f;
+        }
     }
 }
 

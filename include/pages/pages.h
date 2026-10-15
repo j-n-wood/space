@@ -50,6 +50,7 @@ class PageManager : public EventSink
     std::vector<std::unique_ptr<Modal>> modals;
 
     bool auto_advance_time;
+    bool manual_advance_time;
     bool notify_player; // trigger for UI that time advance should stop
 public:
     // UI state
