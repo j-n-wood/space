@@ -19,6 +19,7 @@
 #include "../include/state/shuttle.h"
 #include "../include/state/ios.h"
 #include "../include/state/waypoint.h"
+#include "sim_support.h"
 #include <sqlite3.h>
 #include <cstdio>
 #include <cstring>
@@ -183,15 +184,14 @@ TEST_CASE("Game::initialise loads full game state")
     {
         REQUIRE(game->items.size() >= 2);
         auto &reqs = game->items[1].requirements;
-        // Derrick requires: Iron(1)=20, Titanium(2)=50, Aluminium(3)=35,
-        // Carbon(4)=10, Copper(5)=15
-        CHECK(reqs.size() == 5);
+        // Derrick requires: Iron(1)=3, Titanium(2)=4, Carbon(4)=1
+        CHECK(reqs.size() == 3);
     }
 }
 
 TEST_CASE("Game::initialise works on a stack-allocated Game (no singleton)")
 {
-    // initial.db ships with both an Orbital and an EarthCity at Earth. Both
+    // initial.db ships with orbitals (the methanoid stations) and an EarthCity. Both
     // constructors used to reach Game::getCurrent() during construction
     // (Orbital for createFactory, EarthCity for createResearchFacility),
     // which crashed when the singleton was unset. The owning Game methods
@@ -208,12 +208,12 @@ TEST_CASE("Game::initialise works on a stack-allocated Game (no singleton)")
     REQUIRE(loader.isValid());
     REQUIRE(game.initialise(&loader));
 
-    Location *earth = game.locationByID(4);
-    REQUIRE(earth != nullptr);
-
-    Orbital *orb = game.orbitalAt(earth);
-    REQUIRE(orb != nullptr);
-    CHECK(orb->factory != nullptr); // wired by Game::createOrbital
+    // Any orbital loaded from disk proves the point; the player has none at start.
+    REQUIRE_FALSE(game.allOrbitals().empty());
+    for (Orbital *orb : game.allOrbitals())
+    {
+        CHECK(orb->factory != nullptr); // wired by Game::createOrbital
+    }
 
     // Find the EarthCity in bases. LocationType is the discriminator now, so this
     // no longer needs RTTI.
@@ -377,7 +377,9 @@ static Game *createTestGame()
         orb = game->createOrbital(earth);
     orb->stores.resources[ResourceType::Carbon] = 10;
 
-    game->game_time = 42.5;
+    // The tick count is the persisted clock; game_time is derived from it.
+    game->game_tick_count = static_cast<uint64_t>(42.5 / GAME_SIM_TICK);
+    game->game_time = game->game_tick_count * GAME_SIM_TICK;
 
     return game;
 }
@@ -406,7 +408,8 @@ TEST_CASE("SaveGame produces a loadable database")
 
     SUBCASE("round-trips game time")
     {
-        CHECK(loaded.game_time == doctest::Approx(42.5));
+        CHECK(loaded.game_tick_count == static_cast<uint64_t>(42.5 / GAME_SIM_TICK));
+        CHECK(loaded.game_time == 42.5); // exact: a whole number of power-of-two ticks
     }
 
     SUBCASE("round-trips system")
@@ -502,17 +505,17 @@ TEST_CASE("SaveGame produces a loadable database")
     {
         REQUIRE(loaded.items.size() >= 2);
         auto &reqs = loaded.items[1].requirements;
-        REQUIRE(reqs.size() == 5);
+        REQUIRE(reqs.size() == 3);
 
-        // Verify specific requirements (Iron=20, Titanium=50, Carbon=10)
+        // Verify specific requirements (Iron=3, Titanium=4, Carbon=1)
         bool found_iron = false, found_titanium = false, found_carbon = false;
         for (auto &req : reqs)
         {
-            if (req.resource == ResourceType::Iron && req.amount == 20)
+            if (req.resource == ResourceType::Iron && req.amount == 3)
                 found_iron = true;
-            if (req.resource == ResourceType::Titanium && req.amount == 50)
+            if (req.resource == ResourceType::Titanium && req.amount == 4)
                 found_titanium = true;
-            if (req.resource == ResourceType::Carbon && req.amount == 10)
+            if (req.resource == ResourceType::Carbon && req.amount == 1)
                 found_carbon = true;
         }
         CHECK(found_iron);
@@ -1162,7 +1165,7 @@ TEST_CASE("a destination resolves a body to an exact place")
 
     Location *earth = game->locationByID(4);
     REQUIRE(earth != nullptr);
-    Orbital *earthOrbital = game->orbitalAt(earth);
+    Orbital *earthOrbital = ensureOrbital(game, earth);
     REQUIRE(earthOrbital != nullptr);
 
     SUBCASE("a body with a station resolves to the station")
@@ -1234,7 +1237,7 @@ TEST_CASE("atEndpoint compares locations")
     Location *earth = game->locationByID(4);
     REQUIRE(earth != nullptr);
     REQUIRE(earth->orbit() != nullptr);
-    Orbital *orbital = game->orbitalAt(earth);
+    Orbital *orbital = ensureOrbital(game, earth);
     REQUIRE(orbital != nullptr);
 
     Shuttle *shuttle = earth->shuttle ? earth->shuttle : game->createShuttle(earth);

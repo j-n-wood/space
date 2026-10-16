@@ -18,6 +18,7 @@
 #include "../include/state/ios.h"
 #include "../include/state/autopilot.h"
 #include "../include/state/craft_action.h"
+#include "sim_support.h"
 
 namespace
 {
@@ -33,6 +34,7 @@ namespace
         {
             return nullptr;
         }
+        ensureOrbital(game, game->locationByID(EARTH_ID)); // test data, as buildTestData
         return game;
     }
 
@@ -305,7 +307,7 @@ TEST_CASE("a blocked launch is retried, not lost")
     s->drive = false;
     for (int tick = 0; tick < 200; ++tick)
     {
-        f.game->update(0.05);
+        runFor(f.game, 0.05);
     }
     CHECK(s->docked()); // stuck, correctly -- it cannot fly
 
@@ -314,7 +316,7 @@ TEST_CASE("a blocked launch is retried, not lost")
     bool departed = false;
     for (int tick = 0; tick < 200 && !departed; ++tick)
     {
-        f.game->update(0.05);
+        runFor(f.game, 0.05);
         if (!s->docked())
         {
             departed = true;
@@ -405,7 +407,7 @@ TEST_CASE("only the pod being worked has an effect")
 
     for (int tick = 0; tick < 40 && ios->working(); ++tick)
     {
-        f.game->update(0.05);
+        runFor(f.game, 0.05);
     }
 
     CHECK_MESSAGE(f.station->damage == doctest::Approx(damageBefore),
@@ -447,7 +449,7 @@ TEST_CASE("construction chains across pods and stops when the facility is done")
 
         for (int tick = 0; tick < 4000 && ios->working(); ++tick)
         {
-            f.game->update(0.05);
+            runFor(f.game, 0.05);
         }
 
         Orbital *built = f.game->orbitalAt(luna);
@@ -469,7 +471,7 @@ TEST_CASE("construction chains across pods and stops when the facility is done")
         REQUIRE(f.game->activatePod(ios, 0));
         for (int tick = 0; tick < 4000 && ios->working(); ++tick)
         {
-            f.game->update(0.05);
+            runFor(f.game, 0.05);
         }
 
         CHECK(part->construction_progress == 8);
@@ -512,7 +514,7 @@ TEST_CASE("a craft saved mid-deployment resumes and finishes the section")
     // Part way through, well short of the 20s the frame takes.
     for (int tick = 0; tick < 20; ++tick)
     {
-        f.game->update(0.05);
+        runFor(f.game, 0.05);
     }
     REQUIRE(ios->working());
     const int lunaId = luna->id;
@@ -538,7 +540,7 @@ TEST_CASE("a craft saved mid-deployment resumes and finishes the section")
     REQUIRE(reloadedLuna != nullptr);
     for (int tick = 0; tick < 2000 && reloaded->working(); ++tick)
     {
-        loaded->update(0.05);
+        runFor(loaded, 0.05);
     }
 
     Orbital *built = loaded->orbitalAt(reloadedLuna);

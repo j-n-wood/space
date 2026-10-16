@@ -29,6 +29,9 @@ const int MAX_ORBITAL_STORAGE = 50000;
 const int REQUIRED_ORBITAL_FRAMES = 8;
 const int REQUIRED_RESOURCE_FACILITY_FRAMES = 2;
 
+constexpr double GAME_SIM_TICK = 1.0 / 64.0; // game simulation rate. 64 s.t. we can defer adding UI interpolation
+const int64_t GAME_TICKS_PER_STEP = 64;
+
 class Loader;
 
 class EarthCity;
@@ -116,6 +119,7 @@ class Game
 
 public:
     // game state
+    uint64_t game_tick_count;
     double game_time;
     double time_rate;
     bool paused;
@@ -177,7 +181,6 @@ public:
     }
 
     void advanceRealTime(double deltaTime);
-    void advanceGameTime(double deltaTime);
 
     // add game state
     System *createSystem(int id, const char *name);
@@ -275,9 +278,8 @@ public:
     ItemType droneTypeForCraft(const Craft *craft) const;
     int droneCountForCraft(const Craft *craft) const;
 
-    // update by delta
-    void update(double delta);
-    void advanceTick();
+    void tick();        // advance the game by one tick
+    void advanceStep(); // advance game by one step (1s)
 
     // events
     void addEventSink(EventSink *sink);

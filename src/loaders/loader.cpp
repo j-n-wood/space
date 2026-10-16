@@ -37,11 +37,12 @@ Loader::~Loader()
 
 bool Loader::loadGame()
 {
-    SQLiteQuery query(this, "SELECT game_time, rng_seed, rng_draws FROM game LIMIT 1");
+    SQLiteQuery query(this, "SELECT game_tick_count, rng_seed, rng_draws FROM game LIMIT 1");
 
     if (query.next())
     {
-        game->game_time = sqlite3_column_double(query, 0);
+        game->game_tick_count = sqlite3_column_int64(query, 0);
+        game->game_time = game->game_tick_count * GAME_SIM_TICK;
         game->rng.restore(sqlite3_column_int(query, 1), sqlite3_column_int64(query, 2));
         return true;
     }

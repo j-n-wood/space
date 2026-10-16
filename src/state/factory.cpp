@@ -71,7 +71,7 @@ bool Factory::sendToStores(const int item_id)
                 facility->mtx_installed = true;
                 return false;
             }
-            return true;
+            break; // surplus goes to stores like any other item
         default:
             break;
         }

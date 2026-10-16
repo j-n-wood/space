@@ -16,6 +16,7 @@
 #include "../include/state/resourceFacility.h"
 #include "../include/state/orbital.h"
 #include "../include/state/shuttle.h"
+#include "sim_support.h"
 
 #include <string>
 
@@ -33,6 +34,7 @@ Game *loadGame()
     {
         return nullptr;
     }
+    ensureOrbital(game, game->locationByID(EARTH_ID)); // test data, as buildTestData
     return game;
 }
 

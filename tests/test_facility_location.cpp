@@ -15,6 +15,7 @@
 #include "../include/state/orbital.h"
 #include "../include/state/shuttle.h"
 #include "../include/state/autopilot.h"
+#include "sim_support.h"
 
 #include <cmath>
 #include <cstdio>
@@ -41,6 +42,7 @@ namespace
         {
             return nullptr;
         }
+        ensureOrbital(game, game->locationByID(EARTH_ID)); // test data, as buildTestData
         return game;
     }
 
@@ -291,7 +293,7 @@ TEST_CASE("an autopilot shuttle advances past its first dock")
 
     for (int tick = 0; tick < 6000; ++tick)
     {
-        game->update(0.05);
+        runFor(game, 0.05);
 
         if (s->destination_index != startIndex)
         {
@@ -350,7 +352,7 @@ TEST_CASE("a craft's location matches what it is doing")
 
     for (int tick = 0; tick < 4000; ++tick)
     {
-        game->update(0.05);
+        runFor(game, 0.05);
 
         REQUIRE(s->location != nullptr);
         if (s->body() != earth)

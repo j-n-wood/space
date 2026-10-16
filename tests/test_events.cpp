@@ -29,7 +29,7 @@ public:
 static void createEventTables(Loader &loader, const char *rows)
 {
     std::string sql =
-        "CREATE TABLE events ( id INTEGER PRIMARY KEY, name TEXT, log_message TEXT, email_message TEXT, completed INT, raise_at FLOAT );"
+        "CREATE TABLE events ( id INTEGER PRIMARY KEY, name TEXT, log_message TEXT, email_message TEXT, completed INT, raise_at FLOAT, source_faction_id INT, message_display_type INT, message_interaction_type INT );"
         "CREATE TABLE event_unlock_research_topics ( event_id INT, topic_id INT );";
     sql += rows;
     REQUIRE(sqlite3_exec(loader.db, sql.c_str(), nullptr, nullptr, nullptr) == SQLITE_OK);
@@ -83,7 +83,7 @@ TEST_CASE("Loader::loadEvents tolerates NULL text columns")
     Loader loader(":memory:");
     REQUIRE(loader.isValid());
     loader.setGame(&game);
-    createEventTables(loader, "INSERT INTO events VALUES (1, 'Null fields', NULL, NULL, 0, NULL);");
+    createEventTables(loader, "INSERT INTO events (id, name, log_message, email_message, completed, raise_at) VALUES (1, 'Null fields', NULL, NULL, 0, NULL);");
 
     REQUIRE(loader.loadEvents());
 
@@ -102,7 +102,7 @@ TEST_CASE("Loader::loadEvents truncates over-long text safely")
     REQUIRE(loader.isValid());
     loader.setGame(&game);
     std::string longName(100, 'x');
-    createEventTables(loader, ("INSERT INTO events VALUES (1, '" + longName + "', '', '', 0, 0);").c_str());
+    createEventTables(loader, ("INSERT INTO events (id, name, log_message, email_message, completed, raise_at) VALUES (1, '" + longName + "', '', '', 0, 0);").c_str());
 
     REQUIRE(loader.loadEvents());
 
@@ -121,8 +121,8 @@ TEST_CASE("Loader::loadEvents with gaps in the id sequence")
     REQUIRE(loader.isValid());
     loader.setGame(&game);
     createEventTables(loader,
-                      "INSERT INTO events VALUES (1, 'One', '', '', 0, 0);"
-                      "INSERT INTO events VALUES (3, 'Three', '', '', 0, 0);"
+                      "INSERT INTO events (id, name, log_message, email_message, completed, raise_at) VALUES (1, 'One', '', '', 0, 0);"
+                      "INSERT INTO events (id, name, log_message, email_message, completed, raise_at) VALUES (3, 'Three', '', '', 0, 0);"
                       "INSERT INTO event_unlock_research_topics VALUES (3, 2);");
 
     REQUIRE(loader.loadEvents());
@@ -156,7 +156,7 @@ TEST_CASE("Loader::loadEvents rejects an unlock for an unknown event")
     REQUIRE(loader.isValid());
     loader.setGame(&game);
     createEventTables(loader,
-                      "INSERT INTO events VALUES (1, 'One', '', '', 0, 0);"
+                      "INSERT INTO events (id, name, log_message, email_message, completed, raise_at) VALUES (1, 'One', '', '', 0, 0);"
                       "INSERT INTO event_unlock_research_topics VALUES (99, 2);");
 
     CHECK_FALSE(loader.loadEvents());
@@ -170,7 +170,7 @@ TEST_CASE("Loader::loadEvents rejects an unlock for an unknown research topic")
     REQUIRE(loader.isValid());
     loader.setGame(&game);
     createEventTables(loader,
-                      "INSERT INTO events VALUES (1, 'One', '', '', 0, 0);"
+                      "INSERT INTO events (id, name, log_message, email_message, completed, raise_at) VALUES (1, 'One', '', '', 0, 0);"
                       "INSERT INTO event_unlock_research_topics VALUES (1, 4);");
 
     CHECK_FALSE(loader.loadEvents());
@@ -350,12 +350,15 @@ TEST_CASE("SaveGame round-trips events with gaps in the id sequence")
     SaveGame saver;
     REQUIRE(saver.save(EVENTS_SAVE_PATH) == 0);
 
+    // createCurrent destroys `game`, so take what we compare against first.
+    const size_t saved_event_count = game->events.size();
+
     Game *loaded = Game::createCurrent();
     Loader loader(EVENTS_SAVE_PATH);
     REQUIRE(loader.isValid());
     REQUIRE(loaded->initialise(&loader));
 
-    REQUIRE(loaded->events.size() == game->events.size());
+    REQUIRE(loaded->events.size() == saved_event_count);
     CHECK(loaded->events[EVENT_ORBITAL_FACTORY_COMPLETED].unlocksTopics == REACH_ORBIT_TOPICS);
     CHECK(loaded->events[gap_id].name[0] == '\0');
     CHECK(std::strcmp(loaded->events[new_id].name, "Late event") == 0);

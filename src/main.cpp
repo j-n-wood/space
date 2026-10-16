@@ -288,6 +288,9 @@ int main(const int argc, const char **argv)
 
 		// game loop
 		bool quit = false;
+		double passing_game_time = 0.0;
+		double last_tick_overflow = 0.0; // warning timer
+
 		while (!quit && !WindowShouldClose()) // run the loop until the user presses Ctrl-Q or presses the Close button on the window
 		{
 			game->scanHostileActivities(); // use current state of hostilities while rendering and before state update
@@ -440,9 +443,32 @@ int main(const int argc, const char **argv)
 
 			lastTime = currentTime;
 
-			if (pageManager.advanceGameTime())
+			if (pageManager.advanceGameTime() && (!game->paused))
 			{
-				game->advanceGameTime(deltaTime); // advance game time
+				passing_game_time += deltaTime * game->time_rate;
+				int n_ticks = 0;
+				while (passing_game_time >= GAME_SIM_TICK)
+				{
+					game->tick(); // advance game time
+					passing_game_time -= GAME_SIM_TICK;
+					++n_ticks;
+
+					// if too many ticks in one frame, abort
+					if (n_ticks > 256)
+					{
+						if (currentTime > last_tick_overflow)
+						{
+							TraceLog(LOG_WARNING, "Too many game ticks in one frame, aborting to prevent spiral of death");
+						}
+						last_tick_overflow = currentTime + 1.0; // add 1 second before allowing another warning
+						passing_game_time = 0.0;
+						break;
+					}
+				}
+			}
+			else
+			{
+				passing_game_time = 0.0; // clear when paused/notified
 			}
 
 			currentPage->update(deltaTime); // not game state, view state. Happens after render.

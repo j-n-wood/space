@@ -15,8 +15,6 @@
 
 std::unique_ptr<Game> Game::current;
 
-const double MAX_TIMESTEP = 1.0;
-
 // initial.db ships 173 bodies and 13 facilities; the orbit and surface locations take
 // that to roughly 490. Reserving past it means createLocation's resize never has to
 // reallocate while a game loads one location at a time. Growth beyond this is still
@@ -41,7 +39,7 @@ float LinearTransitTimeCalculator::calculateTransitTime(Location *from, Location
     return distance / speed;
 }
 
-Game::Game() : game_time(0.0), time_rate(1.0), paused(false), transitTimeCalculator(std::make_unique<LinearTransitTimeCalculator>())
+Game::Game() : game_tick_count(0), game_time(0.0), time_rate(1.0), paused(false), transitTimeCalculator(std::make_unique<LinearTransitTimeCalculator>())
 {
     locations.reserve(INITIAL_LOCATION_CAPACITY);
     events.resize(EVENT_MAX); // preallocate events vector to hold all events by ID
@@ -59,14 +57,6 @@ void Game::advanceRealTime(double deltaTime)
         return;
 
     updateRealtimeEvents(deltaTime); // advance realtime events
-}
-
-void Game::advanceGameTime(double deltaTime)
-{
-    if (paused)
-        return;
-
-    update(deltaTime); // advance game time
 }
 
 System *Game::createSystem(int id, const char *name)
@@ -1159,7 +1149,7 @@ Object *Game::randomiseAsteroid(Object *asteroid)
     // randomise resource type and quantity
     // use asteroid location to look up available resource types, and pick one
 
-    asteroid->resource_id = asteroid->location->resources.randomResourceType();
+    asteroid->resource_id = asteroid->location->resources.randomResourceType(rng);
 
     // size of asteroid - lots of little ones, few big ones. Use a simple power law distribution to generate quantity.
     float exponent = 8.0f; // power law exponent, adjust for desired distribution
@@ -1242,24 +1232,12 @@ int Game::droneCountForCraft(const Craft *craft) const
     return craft->pods[0].amount;
 }
 
-void Game::update(double delta)
+void Game::tick()
 {
-    if (delta > 0.0)
-    {
-        // update realtime events - any outstanding events are automatically completed
-        // done early in case processing were to create new realtime events
-        completeRealtimeEvents();
-    }
+    completeRealtimeEvents(); // advancing sim clears any ongoing realtime events
 
-    // add to time, if ticks over one second call advanceTick
-    double dt = delta * time_rate;
-    if (dt > MAX_TIMESTEP)
-    {
-        dt = MAX_TIMESTEP;
-    }
-
-    int prior{static_cast<int>(game_time)};
-    game_time += dt;
+    ++game_tick_count;
+    game_time = game_tick_count * GAME_SIM_TICK;
 
     // start with updating all systems - could only update visible ones
     for (auto &system : systems)
@@ -1267,32 +1245,30 @@ void Game::update(double delta)
         system->update(game_time);
     }
 
-    // update shuttles - use realtime as start of state changes is not tick aligned
     for (auto &shuttle : shuttles)
     {
-        shuttle->update(dt);
+        shuttle->update(GAME_SIM_TICK);
     }
 
     for (auto &craft : ios)
     {
-        craft->update(dt);
+        craft->update(GAME_SIM_TICK);
     }
 
     for (auto &rf : researchFacilities)
     {
-        rf->update(dt);
+        rf->update(GAME_SIM_TICK);
     }
 
     for (auto &tf : trainingFacilities)
     {
-        tf->update(dt);
+        tf->update(GAME_SIM_TICK);
     }
 
-    int difference = static_cast<int>(game_time) - prior;
-    while (difference > 0)
+    if (game_tick_count % GAME_TICKS_PER_STEP == 0)
     {
-        advanceTick();
-        --difference;
+        // slower rate items
+        advanceStep();
     }
 }
 
@@ -1305,9 +1281,10 @@ void Game::completeRealtimeEvents()
     realtime_events.clear(); // remove all completed realtime events
 }
 
-void Game::advanceTick()
+void Game::advanceStep()
 {
     // update all facilities
+    // gather resources
     for (auto &base : bases)
     {
         base->update();

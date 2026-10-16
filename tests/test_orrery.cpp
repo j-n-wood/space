@@ -12,6 +12,7 @@
 #include "../include/state/system.h"
 #include "../include/state/location.h"
 #include "../include/state/facility.h"
+#include "sim_support.h"
 
 #include <cmath>
 
@@ -147,7 +148,7 @@ TEST_CASE("the table rebuilds when its inputs change, and not otherwise")
         // Far enough around the orbit that the move is unambiguous rather than sub-pixel.
         for (int tick = 0; tick < 200; ++tick)
         {
-            game->update(1.0);
+            runFor(game, 1.0);
         }
         orrery->update();
 

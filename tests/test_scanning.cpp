@@ -18,6 +18,7 @@
 #include "../include/state/object.h"
 #include "../include/state/autopilot.h"
 #include "../include/state/resources.h"
+#include "sim_support.h"
 
 #include <string>
 
@@ -322,7 +323,7 @@ TEST_CASE("scanning keeps rotating rather than stopping after one target")
     // state; one that is still cycling is in it with a target and a running timer.
     for (int tick = 0; tick < 2000; ++tick)
     {
-        game->update(0.05);
+        runFor(game, 0.05);
     }
 
     CHECK_MESSAGE(ios->currentState().state == CS_SCANNING,
