@@ -45,6 +45,8 @@ Game::Game() : game_time(0.0), time_rate(1.0), paused(false), transitTimeCalcula
 {
     locations.reserve(INITIAL_LOCATION_CAPACITY);
     events.resize(EVENT_MAX); // preallocate events vector to hold all events by ID
+    rng.seed(1);              // initialize the game state RNG with a fixed seed for reproducibility
+    // on load, call restore(seed, draws). On save, persist those.
 }
 
 Game::~Game()
@@ -1050,7 +1052,7 @@ bool Game::updateCraftScanning(Craft *craft)
             randomiseAsteroid(craft->scan_object);
         }
         // reset scan timer
-        craft->setTimedState(CS_SCANNING, 5.0f + 1.0f * (rand() % 6));
+        craft->setTimedState(CS_SCANNING, 5.0f + 1.0f * rng.range(0, 5));
         return true;
     }
 
@@ -1161,7 +1163,7 @@ Object *Game::randomiseAsteroid(Object *asteroid)
 
     // size of asteroid - lots of little ones, few big ones. Use a simple power law distribution to generate quantity.
     float exponent = 8.0f; // power law exponent, adjust for desired distribution
-    float rand_val = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    float rand_val = rng.unit();
     float quantity = 10.0 + powf(rand_val, exponent) * 21000.0f;
 
     asteroid->quantity = static_cast<int>(quantity);

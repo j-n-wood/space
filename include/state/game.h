@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "state/rng.h"
 #include "state/system.h"
 #include "state/resourceFacility.h"
 #include "state/orbital.h"
@@ -53,6 +54,7 @@ class FactionController;
 
 class Game
 {
+
     // owning collection of systems
     Systems systems;
 
@@ -117,6 +119,8 @@ public:
     double game_time;
     double time_rate;
     bool paused;
+
+    Rng rng;
 
     // name counters
     int craft_max_id{0};

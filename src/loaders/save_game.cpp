@@ -153,7 +153,7 @@ int SaveGame::initialiseSaveFile()
         "CREATE TABLE IF NOT EXISTS systems ( id INTEGER, name TEXT );"
         "CREATE TABLE IF NOT EXISTS facilities ( id INT, system_id INT, location_id INT, type INT, num_derricks INT, operational INT, construction_progress INT, damage INT, faction_id INT, aoc_installed INT, sdm_installed INT, mtx_installed INT, factory_crew_id int );"
         "CREATE TABLE IF NOT EXISTS stores ( facility_id INT, resource_id INT, amount INT );"
-        "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT );"
+        "CREATE TABLE IF NOT EXISTS game ( game_time FLOAT, rng_seed INT, rng_draws INT );"
         "CREATE TABLE IF NOT EXISTS factions ( id INT, name TEXT, hostile INT, trades INT, ios_number INT, scg_number INT, orbital_drone_control INT, captured_orbitals INT );"
         "CREATE TABLE IF NOT EXISTS items ( id int, name text, description text, pod_type int, researched int, tech_level int, orbital int, mass int, production_time float, doc_image_index int, production_image_index int, pod_capacity int);"
         "CREATE TABLE IF NOT EXISTS item_build_requirements ( item_id int, resource_id int, amount int);"
@@ -215,7 +215,7 @@ int SaveGame::saveGame(Game *game)
         return -5;
     }
 
-    std::snprintf(sql, sizeof(sql), "INSERT INTO game (game_time) VALUES (%f);", game->game_time);
+    std::snprintf(sql, sizeof(sql), "INSERT INTO game (game_time, rng_seed, rng_draws) VALUES (%f, %u, %llu);", game->game_time, game->rng.getSeed(), game->rng.getDraws());
     rc = sqlite3_exec(loader->db, sql, nullptr, nullptr, errorMessage);
     if (rc != SQLITE_OK)
     {

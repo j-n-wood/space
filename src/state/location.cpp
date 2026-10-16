@@ -100,7 +100,7 @@ LocationResources::LocationResources()
     }
 }
 
-ResourceType LocationResources::randomResourceType() const
+ResourceType LocationResources::randomResourceType(Rng &rng) const
 {
     // if this is a bottleneck, store total count
     int total = 0;
@@ -114,7 +114,7 @@ ResourceType LocationResources::randomResourceType() const
         return ResourceType::Unknown;
     }
 
-    int r = rand() % total;
+    int r = rng.range(0, total - 1);
     for (int idx = 0; idx < ResourceType::Count; ++idx)
     {
         r -= availability[idx];

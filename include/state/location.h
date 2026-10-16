@@ -9,6 +9,7 @@ extern "C"
 #include <vector>
 #include <memory>
 
+#include "state/rng.h"
 #include "state/resources.h"
 #include "state/string_caps.h"
 #include "state/shuttle.h"
@@ -76,7 +77,7 @@ public:
     // can parameterise on how available it is
     uint8_t availability[static_cast<size_t>(ResourceType::Count)];
 
-    ResourceType randomResourceType() const;
+    ResourceType randomResourceType(Rng &rng) const;
 
     LocationResources();
 };
