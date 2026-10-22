@@ -203,6 +203,7 @@ public:
     void destroyFacility(Facility *facility);
 
     // locate game state
+    Location *locationByName(const char *name);
     ResourceFacility *resourceFacilityAt(Location *location);
     Orbital *orbitalAt(Location *location) const;
     EarthCity *earthCity() const { return earth_city; };

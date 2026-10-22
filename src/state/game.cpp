@@ -236,6 +236,18 @@ ResourceFacility *Game::createResourceFacility(Location *location, int id)
     return rf;
 }
 
+Location *Game::locationByName(const char *name)
+{
+    for (auto &loc : locations)
+    {
+        if (std::strcmp(loc->name, name) == 0)
+        {
+            return loc.get();
+        }
+    }
+    return nullptr;
+}
+
 ResourceFacility *Game::resourceFacilityAt(Location *location)
 {
     if (location)

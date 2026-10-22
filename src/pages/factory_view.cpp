@@ -97,7 +97,7 @@ void FactoryView::render()
     }
 
     auto game{Game::getCurrent()};
-    int y = 100;
+    int y = 60;
     auto &overlay{Overlay::getInstance()};
     hoverState hoverState{factory};
     for (auto &item : game->items)
@@ -105,24 +105,44 @@ void FactoryView::render()
         if (item.researched && factory->canBuild(item.id))
         {
             hoverState.item = &item;
-            if (overlay.renderButtonHover(Rectangle{1100, (float)y, 100, 20}, item.name, WHITE, renderPlanHover, &hoverState))
+            int selected = overlay.renderButtonHover(Rectangle{1100, (float)y, 100, 20}, item.name, WHITE, renderPlanHover, &hoverState);
+            if (selected)
             {
                 // trigger production
                 factory->queueItem(item.id);
+                // allow for repeated production
+                if (IsKeyDown(KEY_LEFT_SHIFT))
+                {
+                    // repeated production
+                    factory->repeatQueueItem(factory->queue.size() - 1, true);
+                }
             }
             y += 20;
         }
     }
 
     // list queue
-    y = 600;
+    y = 720;
     for (size_t idx = 0, imax = factory->queue.size(); idx < imax; ++idx)
     {
         auto &q{factory->queue[idx]};
+        // draw repeat marker as '*'
+        if (q.repeat)
+        {
+            DrawText("*", 1080, (float)y, 20, YELLOW);
+        }
         if (GuiButton(Rectangle{1100, (float)y, 100, 20}, game->items[q.item_id].name))
         {
-            // drop from queue
-            factory->dropQueueItem((int)idx);
+            if (IsKeyDown(KEY_LEFT_SHIFT))
+            {
+                // toggle repeat
+                factory->repeatQueueItem((int)idx, !q.repeat);
+            }
+            else
+            {
+                // drop from queue
+                factory->dropQueueItem((int)idx);
+            }
         }
         y += 20;
     }

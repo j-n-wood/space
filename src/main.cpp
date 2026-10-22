@@ -120,10 +120,19 @@ void buildTestData(Game *game)
 
 	// test IOS 3 at Jupiter
 	Location *jupiter = game->locationByID(10);
-	IOS *ios3 = game->createIOS(jupiter, 0);
+
+	Location *ganymede = game->locationByID(14);
+	Orbital *ganymede_orbital{game->createOrbital(ganymede)};
+	ganymede_orbital->operational = true;
+	ganymede_orbital->sdm_installed = true;
+
+	IOS *ios3 = game->createIOS(ganymede, 0);
 	ios3->enterRegion(true);
 	ios3->drive = true;
 	ios3->fuel = 250;
+	ios3->setPodType(0, PT_WEAPON);
+	ios3->pods[0].contentType = ItemType::DFCC;
+
 	// trade test
 	// 1. no equipment - get asked to bring a grapple
 	// 2. grapple equipped - given Comms research object
@@ -131,6 +140,7 @@ void buildTestData(Game *game)
 	// 4. Commspod and supplies available - trade possible
 	// 5. more than _n_ trades -> warning of war
 
+	/*
 	ios3->setPodType(0, PT_TOOL);
 	ios3->pods[0].contentType = ItemType::Commspod; // Commspod, Grapple
 	ios3->pods[0].amount = 1;
@@ -139,25 +149,26 @@ void buildTestData(Game *game)
 	ios3->pods[1].contentType = ResourceType::Deuterium;
 	ios3->pods[1].amount = 250;
 	// game->factionByID(1).trades = 20;
+	*/
 
-	Location *ganymede = game->locationByID(14);
-	Orbital *ganymede_orbital{game->createOrbital(ganymede)};
-	ganymede_orbital->operational = true;
-	ganymede_orbital->sdm_installed = true;
-
-	/*
 	// combat test
+	/*
 	ios3->setPodType(0, PT_WEAPON);
 	ios3->pods[0].contentType = ItemType::DFCC;
 	ios3->pods[0].amount = 100;
-
-	game->setFactionHostility(1, true);								  // methanoids hostile to player
-	game->orbitalAt(jupiter)->stores.items[ItemType::Ios_Drone] = 50; // orbital created from starting data
 	*/
+
+	// game->orbitalAt(jupiter)->stores.items[ItemType::Ios_Drone] = 50; // orbital created from starting data
 
 	// test capture by methanoids, notification systems
 	game->setFactionHostility(0, true);
 	game->setFactionHostility(1, true); // methanoids hostile to player
+
+	game->processConsoleCommand("orbital Phobos", nullptr, nullptr);
+	game->processConsoleCommand("orbital Tethys", nullptr, nullptr);
+	game->processConsoleCommand("orbital Titan", nullptr, nullptr);
+	game->processConsoleCommand("idkfa", nullptr, nullptr);		  // load up for production
+	game->processConsoleCommand("research -1", nullptr, nullptr); // give all
 
 	/*
 	Location *callisto = game->locationByID(15);

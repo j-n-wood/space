@@ -14,6 +14,14 @@ Some clue that Luna base exists?
 
 Not needed now, but why restrict it?
 
+## SDM page
+
+Does not exist. Check button as well.
+
+## Flaming station icon
+
+When under attack.
+
 ## staff model
 
 Remember: Need to disband crew via Game.

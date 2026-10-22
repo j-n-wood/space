@@ -43,6 +43,32 @@ bool Game::processConsoleCommand(const char *command, Location *l, Facility *f)
             return true;
         }
     }
+    else if (std::sscanf(command, "orbital %s", buf) == 1)
+    {
+        Location *loc = locationByName(buf);
+        if (loc && !orbitalAt(loc))
+        {
+            Orbital *orbital{createOrbital(loc)};
+            orbital->operational = true;
+            TraceLog(LOG_INFO, "Orbital created at location: %s", buf);
+            return true;
+        }
+    }
+    else if (std::strcmp(command, "idkfa") == 0) // load all player orbitals with serious amounts of resources
+    {
+        for (auto &orbital : orbitals)
+        {
+            if (orbital->faction_id == FACTION_TERRAN)
+            {
+                orbital->factory->aoc_installed = true;
+                for (int res = ResourceType::Iron; res < ResourceType::Count; ++res)
+                {
+                    orbital->stores.resources[res] = 50000; // max in original
+                }
+            }
+        }
+        TraceLog(LOG_INFO, "Loaded all player orbitals with resources");
+    }
     // 'shuttle' to spawn shuttle at current facility if any
     else if (std::strcmp(command, "shuttle") == 0)
     {
