@@ -21,6 +21,8 @@ std::unique_ptr<Game> Game::current;
 // correct, just not free.
 const size_t INITIAL_LOCATION_CAPACITY = 512;
 
+const int BODY_EARTH_ID = 4; // matches base data file
+
 EventSink nullEventSink;
 
 float LinearTransitTimeCalculator::calculateTransitTime(Location *from, Location *to)
@@ -1359,6 +1361,11 @@ void Game::onSpacecraftDocked(Craft *craft)
         if (orbital)
         {
             onCaptureOrbital(orbital, craft->faction_id);
+            if (craft->faction_id == FACTION_METHANOID)
+            {
+                // if Methanoids capture, can set WORKING state on the craft to represent capture time
+                craft->setTimedState(CS_WORKING, CSTD_BOARD_HOSTILE_ORBITAL);
+            }
         }
     }
 }
@@ -1458,10 +1465,22 @@ void Game::onCaptureOrbital(Orbital *orbital, int new_faction_id)
         return;
     }
 
+    // this should never be called
+    if (orbital->faction_id == new_faction_id)
+    {
+        return; // no change in ownership
+    }
+
     // methanoids will trigger SDM on capture of their orbitals
     if ((orbital->faction_id == FACTION_METHANOID) && (orbital->sdm_installed))
     {
         activateSDM(orbital); // trigger SDM, notification shall stop auto-advance of time so player can react
+    }
+
+    if (new_faction_id == FACTION_TERRAN)
+    {
+        // update player progress. Note this does not distinguish re-capture of orbitals
+        factions[FACTION_TERRAN].captured_orbitals++;
     }
 
     orbital->faction_id = new_faction_id;
@@ -1470,6 +1489,21 @@ void Game::onCaptureOrbital(Orbital *orbital, int new_faction_id)
     // TODO
     // methanoids tend to trash orbitals before they are captured
     // transferring out most resources and surface derricks
+
+    // if this was Earth orbital, consider game over
+    // or possibly, allow play if player has _any_ orbitals. Start with Earth capture as loss condition.
+    if (orbital->body()->id == BODY_EARTH_ID)
+    {
+        // player lost Earth orbital, trigger game over
+        TraceLog(LOG_INFO, "Earth orbital captured by faction %d, game over", orbital->faction_id);
+        // implement game over logic here
+
+        // raise Earth orbital captured event
+        for (auto sink : eventSinks)
+        {
+            sink->onEarthOrbitalCaptured(orbital);
+        }
+    }
 }
 
 void Game::addEventSink(EventSink *sink)
@@ -1601,10 +1635,13 @@ void Game::setFactionHostility(int faction_id, bool hostile)
     {
         f.hostile = hostile;
 
-        if (faction_id == 1 && hostile)
+        if (faction_id == FACTION_METHANOID && hostile)
         {
             completeEvent(EVENT_FACTION_HOSTILITY);
             completeEvent(EVENT_WARNING);
+
+            // set matching hostility in opposite direction - only 2 factions
+            setFactionHostility(FACTION_TERRAN, hostile);
         }
         TraceLog(LOG_INFO, "Faction %d hostility set to %s", faction_id, hostile ? "true" : "false");
     }

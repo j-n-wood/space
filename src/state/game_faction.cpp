@@ -28,7 +28,7 @@ Craft *Game::targetCraftAt(int faction_id, Location *location)
     // iterate through all craft in the location and return the first one that is a valid target
     for (auto &craft : ios)
     {
-        if (craft->location == location && craft->faction_id != faction_id && !craft->moving())
+        if (craft->location == location && craft->faction_id != faction_id && (!craft->isWarship()) && (!craft->destroyed) && !craft->moving())
         {
             return craft.get();
         }

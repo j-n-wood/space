@@ -51,6 +51,7 @@ class PageManager : public EventSink
 
     bool auto_advance_time;
     bool manual_advance_time;
+    bool must_release;
     bool notify_player; // trigger for UI that time advance should stop
 public:
     // UI state
@@ -95,6 +96,11 @@ public:
         if (np)
         {
             auto_advance_time = false; // stop auto-advance when notifying player
+            if (manual_advance_time)
+            {
+                manual_advance_time = false; // also stop manual advance when notifying player
+                must_release = true;         // indicate that manual advance must be released when notifying player
+            }
         }
         return *this;
     }

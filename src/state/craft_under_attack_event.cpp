@@ -63,5 +63,10 @@ void CraftUnderAttackEvent::onComplete()
         // destroy craft
         Game::getCurrent()->destroyCraft(craft);
     }
+    if (attacker)
+    {
+        attacker->engagement = nullptr;
+        attacker = nullptr;
+    }
     craft = nullptr;
 }

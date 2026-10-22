@@ -3,10 +3,10 @@
 
 #include <vector>
 
-std::vector<const Orbital *> FactionController::systemOrbitals(const int system_id)
+std::vector<Orbital *> FactionController::systemOrbitals(const int system_id)
 {
     Game *game = Game::getCurrent();
-    std::vector<const Orbital *> result;
+    std::vector<Orbital *> result;
     for (auto &o : game->allOrbitals())
     {
         if ((o->faction_id == this->faction_id) && (o->system->id == system_id) && (o->operational) && (!o->destroyed))
@@ -17,10 +17,10 @@ std::vector<const Orbital *> FactionController::systemOrbitals(const int system_
     return result;
 }
 
-std::vector<const Craft *> FactionController::systemWarships(const int system_id)
+std::vector<Craft *> FactionController::systemWarships(const int system_id)
 {
     Game *game = Game::getCurrent();
-    std::vector<const Craft *> result;
+    std::vector<Craft *> result;
     for (auto &i : game->allIOS())
     {
         if ((i->faction_id == this->faction_id) && (i->location->system->id == system_id) && (i->isWarship()))
@@ -29,6 +29,31 @@ std::vector<const Craft *> FactionController::systemWarships(const int system_id
         }
     }
     return result;
+}
+
+Location *FactionController::selectTargetLocation(Craft *warship)
+{
+    // Implement the logic to select a target location for the given warship
+    // Placeholder implementation: return nullptr for now
+    Location *target = nullptr;
+    float transit_time = 10000.0f; // long
+    Game *game = Game::getCurrent();
+    int system_id = warship->location->system->id;
+    for (auto &t : game->allOrbitals())
+    {
+        if ((t->faction_id == faction_id) || (t->system->id != system_id) || t->destroyed || (!t->operational))
+        {
+            continue; // skip orbitals belonging to the same faction, or different system
+            // TODO - interstellar travel considerations
+        }
+        float t_transit_time = game->transitTimeCalculator->calculateTransitTime(warship->location, t);
+        if (t_transit_time < transit_time)
+        {
+            transit_time = t_transit_time;
+            target = t;
+        }
+    }
+    return target;
 }
 
 int FactionController::warshipRank() const
@@ -151,7 +176,7 @@ void FactionController::update()
     // per system, is it time to produce a warship based on drone counts?
     // if nonzero, build/reinforce a warship for that system. Accumulate excess drones towards the next warship
 
-    std::vector<Craft *> warships(game->allSystems().size(), nullptr);
+    std::vector<std::vector<Craft *>> warships(game->allSystems().size(), std::vector<Craft *>());
 
     for (auto &i : game->allIOS())
     {
@@ -163,71 +188,67 @@ void FactionController::update()
         {
             continue;
         }
-        // assign the warship to its system slot if not already assigned
-        if (!warships[i->location->system->id])
-        {
-            warships[i->location->system->id] = i.get();
-        }
+
+        warships[i->location->system->id].push_back(i.get());
     }
 
     for (size_t system_id = 0; system_id < system_drone_counts.size(); ++system_id)
     {
-        while (system_drone_counts[system_id] > 0)
+        auto &system_warships = warships[system_id];
+        if (system_drone_counts[system_id] > 0)
         {
             TraceLog(LOG_INFO, "System %zu has %d excess drones", system_id, system_drone_counts[system_id]);
 
-            // while we have drones, and less than the 200 cap, spawn warships and reinforce existing ones
-            // check if there is one already
-            if (!warships[system_id] && system_spawn_locations[system_id])
+            // add to all warships in this system
+            // if some remain, spawn a new warship
+
+            for (auto &i : system_warships)
             {
-                // build a new warship for this system
-                // reduce the drone count by the number used for the warship
-                // pick a spawn location from that system
-                TraceLog(LOG_INFO, "Spawning new warship in system %zu at location %s", system_id, system_spawn_locations[system_id]->name);
-                warships[system_id] = game->spawnWarship(faction_id, system_spawn_locations[system_id], warshipRank(), 0);
+                if ((i->pods[0].amount < MAX_DRONE_FLEET_SIZE) && i->idle())
+                {
+                    int reinforce_amount = std::min(system_drone_counts[system_id], MAX_DRONE_FLEET_SIZE - i->pods[0].amount);
+                    i->pods[0].amount += reinforce_amount;
+                    system_drone_counts[system_id] -= reinforce_amount;
+                }
             }
 
-            if (warships[system_id])
+            // any left?
+            if (system_drone_counts[system_id] > 0)
             {
-                // reinforce the existing warship with available drones, up to 200
-                int reinforce_amount = std::min(system_drone_counts[system_id], 200 - game->droneCountForCraft(warships[system_id]));
-                warships[system_id]->pods[0].amount += reinforce_amount;
-                system_drone_counts[system_id] -= reinforce_amount;
-
-                // enough to go attack something?
-                if ((warships[system_id]->pods[0].amount == 200) && (!warships[system_id]->moving()))
+                TraceLog(LOG_INFO, "System %zu has %d leftover drones after reinforcing existing warships", system_id, system_drone_counts[system_id]);
+                if (system_spawn_locations[system_id])
                 {
-                    // select a target and engage drive
-                    // use game transit time calculation - initially just pick the shortest time
-                    Location *target = nullptr;
-                    float transit_time = 10000.0f; // long
-                    for (auto &t : game->allOrbitals())
+                    while (system_drone_counts[system_id] > 0)
                     {
-                        if ((t->faction_id == faction_id) || (t->system->id != system_id))
-                        {
-                            continue; // skip orbitals belonging to the same faction, or different system
-                            // TODO - interstellar travel considerations
-                        }
-                        float t_transit_time = game->transitTimeCalculator->calculateTransitTime(warships[system_id]->location, t);
-                        if (t_transit_time < transit_time)
-                        {
-                            transit_time = t_transit_time;
-                            target = t;
-                        }
-                    }
-
-                    if (target)
-                    {
-                        TraceLog(LOG_INFO, "Warship in system %zu engaging target %s", system_id, target->name);
-                        warships[system_id]->setDestination(0, target);
-                        warships[system_id]->engageDrive();
-                        // could give a 'head start' but will try actual simulation first.
-                        // interstellar could behave differently (or just start faction with better drives)
-                    }
-
-                    // clear slot so we can spawn a new warship in the next iteration
-                    warships[system_id] = nullptr;
+                        // if there is a target ship at this location, it could be engaged immediately
+                        TraceLog(LOG_INFO, "Spawning new warship in system %zu at location %s due to leftover drones", system_id, system_spawn_locations[system_id]->name);
+                        auto warship = game->spawnWarship(faction_id, system_spawn_locations[system_id], warshipRank(), 0);
+                        warship->pods[0].amount += std::min(MAX_DRONE_FLEET_SIZE, system_drone_counts[system_id]);
+                        system_drone_counts[system_id] -= std::min(MAX_DRONE_FLEET_SIZE, system_drone_counts[system_id]);
+                        system_warships.push_back(warship);
+                    } // reinforce with new warships while there are drones
                 }
+            }
+        }
+
+        for (auto &i : system_warships)
+        {
+            if ((i->pods[0].amount == MAX_DRONE_FLEET_SIZE) && (!i->moving()) && (i->canEngageDrive()) && (!i->engagement))
+            {
+                // select a target and engage drive
+                // use game transit time calculation - initially just pick the shortest time
+                Location *target = selectTargetLocation(i);
+                if (!target)
+                {
+                    TraceLog(LOG_INFO, "Warship in system %zu has no valid target", system_id);
+                    continue;
+                }
+
+                TraceLog(LOG_INFO, "Warship in system %zu engaging target %s", system_id, target->name);
+                i->setDestination(i->destination_index, target);
+                i->engageDrive();
+                // could give a 'head start' but will try actual simulation first.
+                // interstellar could behave differently (or just start faction with better drives)
             }
         }
     }

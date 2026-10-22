@@ -230,6 +230,8 @@ void PageManager::showMessage(const char *message)
 
 bool PageManager::advanceGameTime()
 {
+    manual_advance_time = false;
+
     if (isModalActive())
     {
         return false;
@@ -237,21 +239,24 @@ bool PageManager::advanceGameTime()
 
     if (notify_player)
     {
-        if (manual_advance_time)
+        if (must_release)
         {
             if (IsKeyReleased(KEY_SPACE))
+            {
                 notify_player = false; // Space must be released once to acknowledge
+                must_release = false;  // reset must_release flag
+            }
             return false;
         }
         // was not using space to drive time, allow it to reset manual advance
-        if (IsKeyDown(KEY_SPACE))
+        if (IsKeyDown(KEY_SPACE) && (!must_release))
         {
             notify_player = false; // Space must be released once to acknowledge
         }
         return false;
     }
 
-    if (IsKeyDown(KEY_SPACE))
+    if (IsKeyDown(KEY_SPACE) && (!must_release))
     {
         manual_advance_time = true;
     }

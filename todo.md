@@ -16,7 +16,7 @@ Not needed now, but why restrict it?
 
 ## staff model
 
-Remeber: Need to disband crew via Game.
+Remember: Need to disband crew via Game.
 
 ## Craft persistence
 
@@ -62,14 +62,18 @@ In progress - need graphics, click to remove content.
 
 ## Capture of orbitals
 
-In progress. Can capture (by player).
+~~In progress. Can capture (by player).~~
 Consider capture by enemy and damage to facilities.
 
 ## MTX
 
 ## AOC
 
-Basically a fake crew that cannot be removed (normally)?
+Basically a fake crew that cannot be removed (normally)? Implemented as a flag.
+
+Restrict queueing work if not using AOC?
+
+Graphics.
 
 ## orrery position caching
 

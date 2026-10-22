@@ -513,8 +513,24 @@ void Craft::runAI(float delta)
         return; // AI has initiated an engagement, no further action this tick
     }
 
-    // attack orbitals
+    // if docked at friendly orbital, launch
+    // a bit of repeated lookup here // TODO
+    auto orbital = game->orbitalAt(location);
+
+    if (docked() && orbital && (orbital->faction_id == faction_id) && canLaunch())
+    {
+        TraceLog(LOG_INFO, "Launching from friendly orbital");
+        launch();
+    }
+
+    // attack opposing orbitals
     // this is handled by docking, then capture
+
+    if ((!orbital) || (orbital->faction_id == faction_id))
+    {
+        return;
+    }
+
     if (canDock()) // defensive drone screen counts for Methanoid orbitals only, as there is no way to attack a player drone fleet without a warship
     {
         // initiate docking procedure

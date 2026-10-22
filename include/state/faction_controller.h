@@ -4,6 +4,7 @@
 
 class Orbital;
 class Craft;
+class Location;
 
 class FactionController
 {
@@ -13,8 +14,10 @@ class FactionController
 public:
     int faction_id;
 
-    std::vector<const Orbital *> systemOrbitals(const int system_id);
-    std::vector<const Craft *> systemWarships(const int system_id);
+    std::vector<Orbital *> systemOrbitals(const int system_id);
+    std::vector<Craft *> systemWarships(const int system_id);
+
+    Location *selectTargetLocation(Craft *warship);
 
     FactionController(int fid) : faction_id(fid) {};
     void update(); // runs at tick cadence

@@ -67,3 +67,9 @@ void EventSink::onBoardingAction(Craft *c)
     // default implementation does nothing - can be overridden by derived classes to react to boarding action events
     (void)c; // suppress unused parameter warning
 }
+
+void EventSink::onEarthOrbitalCaptured(Orbital *orbital)
+{
+    // default implementation does nothing - can be overridden by derived classes to react to Earth orbital capture events
+    (void)orbital; // suppress unused parameter warning
+}

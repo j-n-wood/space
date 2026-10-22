@@ -3,6 +3,7 @@
 #include "state/location.h"
 #include "state/orbital.h"
 #include "state/shuttle.h"
+#include "state/faction_controller.h"
 
 bool Game::processConsoleCommand(const char *command, Location *l, Facility *f)
 {
@@ -96,6 +97,16 @@ bool Game::processConsoleCommand(const char *command, Location *l, Facility *f)
             }
             return true;
         }
+    }
+    else if (std::sscanf(command, "drones %d", &amount) == 1) // enemy builds _n_ drones
+    {
+        auto faction_orbitals = factionControllers[FACTION_METHANOID]->systemOrbitals(1);
+        for (auto orbital : faction_orbitals)
+        {
+            orbital->stores.items[ItemType::Ios_Drone] += amount;
+            TraceLog(LOG_INFO, "Spawned %d drones at orbital: %s", amount, orbital->name);
+        }
+        return true;
     }
 
     return false;

@@ -25,4 +25,6 @@ public:
     virtual void onCraftUnderAttack(Craft *c);
     virtual void onSDMActivated(Orbital *orbital);
     virtual void onBoardingAction(Craft *c);
+
+    virtual void onEarthOrbitalCaptured(Orbital *orbital);
 };
