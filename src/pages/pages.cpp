@@ -15,6 +15,7 @@
 #include "pages/training_view.h"
 #include "assets/ui_elements.h"
 #include "pages/message_box.h"
+#include "pages/sdm_view.h"
 
 PageManager::PageManager() : currentPage(nullptr), desiredPage(PAGE_NONE), auto_advance_time(false), manual_advance_time(false), notify_player(false)
 {
@@ -40,6 +41,7 @@ PageManager::PageManager() : currentPage(nullptr), desiredPage(PAGE_NONE), auto_
     pages[PAGE_MASTER_CONTROL] = new MasterControlView();
     pages[PAGE_ORBITAL] = new OrbitalView();
     pages[PAGE_EARTH_TRAINING] = new TrainingView();
+    pages[PAGE_SELF_DESTRUCT] = new SDMView();
 }
 
 PageManager::~PageManager()

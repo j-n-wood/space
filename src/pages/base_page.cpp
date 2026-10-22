@@ -161,6 +161,9 @@ void BasePage::renderStandardButtons()
             case BUTTON_SURFACE_STORES:
                 enabled = surface_available;
                 break;
+            case BUTTON_SELF_DESTRUCT:
+                enabled = orbital_available && (orbital->sdm_installed);
+                break;
             }
 
             if (!enabled)
