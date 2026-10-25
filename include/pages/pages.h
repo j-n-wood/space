@@ -5,6 +5,7 @@
 #include "state/event_sink.h"
 
 #include <vector>
+#include <memory>
 
 typedef enum
 {

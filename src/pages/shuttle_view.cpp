@@ -314,7 +314,7 @@ void ShuttleView::render()
         DrawTexturePro(*backgroundTexture, viewportImageFor(craft), viewportDest, (Vector2){0, 0}, 0.f, WHITE);
     }
 
-    char status[128];
+    char status[256];
 
     // if there are hostiles at the current location, indicate it
     if (Game::getCurrent()->hostilesAt(craft->location, 0))
@@ -348,7 +348,7 @@ void ShuttleView::render()
     {
         if (craft->currentDestination().location)
         {
-            char dest_status[128];
+            char dest_status[256];
             std::snprintf(dest_status, sizeof dest_status, "Destination: %s", craft->currentDestination().location->name);
             DrawText(dest_status, 320, 190, 20, YELLOW);
             if (craft->inTransit())
