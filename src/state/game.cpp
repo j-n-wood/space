@@ -1633,7 +1633,7 @@ void Game::raiseFactionInteractionEvent(Faction *faction, Event *event, Craft *c
 
 CraftUnderAttackEvent *Game::createCraftUnderAttackEvent(Craft *attacker, Craft *target, float duration)
 {
-    attacker->engagement = new CraftUnderAttackEvent(duration, this, target);
+    attacker->engagement = new CraftUnderAttackEvent(duration, attacker, target);
     addRealtimeEvent(attacker->engagement);
     raiseCraftUnderAttackEvent(target);
     return attacker->engagement;
