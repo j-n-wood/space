@@ -71,13 +71,14 @@ In progress - need graphics, click to remove content.
 ## Capture of orbitals
 
 ~~In progress. Can capture (by player).~~
-Consider capture by enemy and damage to facilities.
+~~Consider capture by enemy and damage to facilities.~~
 
 ## MTX
 
 ## AOC
 
-Basically a fake crew that cannot be removed (normally)? Implemented as a flag.
+~~Basically a fake crew that cannot be removed (normally)? ~~
+Implemented as a flag.
 
 Restrict queueing work if not using AOC?
 

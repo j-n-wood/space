@@ -9,6 +9,8 @@
 #include "state/earth_city.h"
 #include "state/faction_controller.h"
 
+#include "state/craft_under_attack_event.h"
+
 #include <cstdio>
 #include <cmath>
 #include <algorithm> // std::remove - needed?
@@ -1627,6 +1629,14 @@ void Game::raiseFactionInteractionEvent(Faction *faction, Event *event, Craft *c
     {
         sink->onFactionInteraction(faction, event, craft);
     }
+}
+
+CraftUnderAttackEvent *Game::createCraftUnderAttackEvent(Craft *attacker, Craft *target, float duration)
+{
+    attacker->engagement = new CraftUnderAttackEvent(duration, this, target);
+    addRealtimeEvent(attacker->engagement);
+    raiseCraftUnderAttackEvent(target);
+    return attacker->engagement;
 }
 
 bool Game::factionIsHostile(int faction_id)

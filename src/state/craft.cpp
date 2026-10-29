@@ -507,9 +507,7 @@ void Craft::runAI(float delta)
     if (target)
     {
         // initiate attack on the target
-        engagement = new CraftUnderAttackEvent(10.0, this, target);
-        game->addRealtimeEvent(engagement);
-        game->raiseCraftUnderAttackEvent(target);
+        game->createCraftUnderAttackEvent(this, target, 10.0);
         return; // AI has initiated an engagement, no further action this tick
     }
 

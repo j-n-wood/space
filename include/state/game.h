@@ -37,6 +37,8 @@ class Loader;
 class EarthCity;
 class ResearchFacility;
 
+class CraftUnderAttackEvent;
+
 // abstracted, so we can test different simulations, or provide static values for testing
 class TransitTimeCalculator
 {
@@ -281,6 +283,9 @@ public:
 
     void tick();        // advance the game by one tick
     void advanceStep(); // advance game by one step (1s)
+
+    // create realtime events
+    CraftUnderAttackEvent *createCraftUnderAttackEvent(Craft *attacker, Craft *target, float duration);
 
     // events
     void addEventSink(EventSink *sink);
