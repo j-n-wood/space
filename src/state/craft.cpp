@@ -459,6 +459,19 @@ bool Craft::hasCargo() const
     return false;
 }
 
+bool Craft::hasEmptySupplyPod() const
+{
+    for (int i = 0; i < max_pods; ++i)
+    {
+        const Pod &pod = pods[i];
+        if (pod.type == PT_SUPPLY && pod.amount == 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 int Craft::hasDrones() const
 {
     for (int i = 0; i < max_pods; ++i)

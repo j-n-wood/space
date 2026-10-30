@@ -416,7 +416,7 @@ void ShuttleView::render()
             else
             {
                 // if is tool pod, and can activate in current state:
-                bool canActivate = (craft->pods[idx].type == PT_TOOL) && Game::getCurrent()->canActivatePod(craft, idx);
+                bool canActivate = Game::getCurrent()->canActivatePod(craft, idx);
                 // check game logic for activation conditions
 
                 if (canActivate)

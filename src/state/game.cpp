@@ -907,7 +907,18 @@ bool Game::canActivatePod(Craft *craft, int pod_index)
         }
 
         break;
-
+    case ItemType::AMA:
+        // must be in orbit, at location of type asteroids
+        if (craft->inOrbit() && craft->location && craft->location->type == LOCATION_TYPE_ASTEROID_BELT)
+        {
+            // must be an asteroid of sufficient size to mine
+            if (craft->scan_object && craft->scan_object->quantity >= 1000.0f)
+            {
+                // must have empty supply pod(s)
+                return craft->hasEmptySupplyPod();
+            }
+        }
+        break;
     case ItemType::Commspod:
         return canPerformTrade(craft);
         break;
@@ -1012,6 +1023,55 @@ bool Game::updateActivePod(Craft *craft, Pod &pod, float delta)
                         craft->setTimedState(CS_WORKING, 0.001f);
                         return false;
                     }
+                }
+            }
+            break;
+        case ItemType::AMA:
+            // if active, with a scan target of suitable asteroid, mine and fill supply pods
+            // stop working when pods full
+            // constant rate for now (16 tons per tick)
+            {
+                bool completed = false;
+                if (craft->scan_object && craft->scan_object->type == ObjectType::Asteroid)
+                {
+                    bool remaining_capacity{false};
+                    for (int i = 0; i < craft->max_pods; ++i)
+                    {
+                        Pod &supply_pod = craft->pods[i];
+                        if (supply_pod.type == PT_SUPPLY && supply_pod.amount < 250)
+                        {
+                            int fill_amount = std::min(16, craft->scan_object->quantity);
+                            supply_pod.amount = std::min(250, supply_pod.amount + fill_amount);
+                            craft->scan_object->quantity -= fill_amount;
+                            if (craft->scan_object->quantity <= 0)
+                            {
+                                craft->scan_object->quantity = 0;
+                                // asteroid depleted, remove scan object
+                                craft->scan_object = nullptr;
+                                completed = true;
+                            }
+                            if (supply_pod.amount < 250)
+                            {
+                                remaining_capacity = true;
+                            }
+                            break; // fill one pod at a time
+                        }
+                    }
+                    if (!remaining_capacity)
+                    {
+                        completed = true;
+                    }
+                }
+                else
+                {
+                    // not an asteroid, nothing to do
+                    completed = true;
+                }
+                if (completed)
+                {
+                    // set work timer to tiny s.t. update triggers work complete
+                    craft->setTimedState(CS_WORKING, 0.001f);
+                    return false;
                 }
             }
             break;

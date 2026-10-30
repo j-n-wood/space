@@ -131,6 +131,7 @@ public:
     void setPodType(const int index, const PodType pt);
     int hasTool(const ItemType it) const;
     bool hasCargo() const;
+    bool hasEmptySupplyPod() const;
     int hasDrones() const;
     void update(float delta);
 

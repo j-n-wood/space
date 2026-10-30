@@ -161,6 +161,7 @@ void buildTestData(Game *game)
 	// game->orbitalAt(jupiter)->stores.items[ItemType::Ios_Drone] = 50; // orbital created from starting data
 
 	// test capture by methanoids, notification systems
+	/*
 	game->setFactionHostility(0, true);
 	game->setFactionHostility(1, true); // methanoids hostile to player
 
@@ -169,6 +170,7 @@ void buildTestData(Game *game)
 	game->processConsoleCommand("orbital Titan", nullptr, nullptr);
 	game->processConsoleCommand("idkfa", nullptr, nullptr);		  // load up for production
 	game->processConsoleCommand("research -1", nullptr, nullptr); // give all
+	*/
 
 	/*
 	Location *callisto = game->locationByID(15);
@@ -186,10 +188,12 @@ void buildTestData(Game *game)
 	ios4->drive = true;
 	ios4->fuel = 250;
 	ios4->setPodType(0, PT_TOOL);
-	ios4->pods[0].contentType = ItemType::Grapple;
+	ios4->pods[0].contentType = ItemType::AMA;
 	ios4->pods[0].amount = 1;
+	ios4->setPodType(1, PT_SUPPLY);
 	ios4->startScanning();
 	ios4->assignCrew(game->createCrew(0, CrewType::Marine, "Hudson", 1, 35, 0.0f));
+	ios4->scan_object = game->createObject(0, ObjectType::Asteroid, ios4->location, 5000, ResourceType::Iron);
 
 	IOS *ios5 = game->createIOS(of, 0);
 	ios5->enterRegion(true);

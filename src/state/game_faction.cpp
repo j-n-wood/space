@@ -52,7 +52,7 @@ Craft *Game::spawnWarship(int faction_id, Location *location, int crew_rank, int
         warship->enterRegion(true); // place the warship in the region at the location
     }
 
-    // create a crew - faction dependent, which we have not done
+    // create a crew - faction dependent, which we have not done // TODO
     // warship->crew = createCrew(0, CrewType::Marine, "Leader Name", crew_rank, 40, 0.0f);
     return warship;
 }
